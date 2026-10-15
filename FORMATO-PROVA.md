@@ -6,7 +6,7 @@ Cada prova é um JSON gravado em `app.provas.conteudo` no Supabase. O gabarito f
 {
   "id": "2026-10-20-mat-divisao",        // único; sugestão: data-matéria-tema
   "titulo": "Divisão com resto",
-  "materia": "Matemática",               // Português, Matemática, Ciências, História, Geografia, Inglês…
+  "materia": "Matemática",               // Português, Matemática, PLE, Inglês, Disciplinar, Artes, Informática, Educação Física
   "tipo": "prova",                       // prova | simulado | atividade | reforco
   "criadaEm": "2026-10-20",
   "liberarEm": "2026-10-21",             // opcional: só aparece a partir desta data

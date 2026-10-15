@@ -264,7 +264,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
           <label class="vc-f"><span><input type="checkbox" id="d-esc"> Escondeu exercício em branco</span><input id="d-branco" type="number" min="0" value="0" title="quantos"></label>
           <label class="vc-f">Pendências com estrela<input id="d-est" type="number" min="0" value="0"></label>
           <label class="vc-f" style="grid-column:1/-1">Deveres para amanhã (um por linha; aparecem na tela dela para marcar "Fiz")<textarea id="d-deveres" rows="2" placeholder="ex.: Matemática: página 42, exercícios 1 a 5"></textarea></label>
-          <label class="vc-f">Recado para ela<input id="d-obs" placeholder="ex.: Adorei como você explicou a aula de Ciências!"></label>
+          <label class="vc-f">Recado para ela<input id="d-obs" placeholder="ex.: Adorei como você explicou a aula de Artes!"></label>
           <label class="vc-f">Combinado / consequência<input id="d-comb" placeholder="ex.: Hoje sem tablet até terminar o dever"></label>
         </div>
         <div class="vc-adulto"><label><input type="checkbox" id="d-notas"> Conferi se tem nota nova da escola (prova, trabalho, atividade, tarefa)</label><button type="button" class="btn ghost" id="d-lancar">Lançar nota agora</button></div>
@@ -359,7 +359,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
 <script src="config.js"></script>
 <script>
 (() => {
-  const MATERIAS = ["Português","Matemática","Ciências","História","Geografia","Inglês","Arte","Educação Física","Ensino Religioso"];
+  const MATERIAS = ["Português","Matemática","PLE","Inglês","Disciplinar","Artes","Informática","Educação Física"];
   const TIPOS = [
     ["Prova (escola)","prova"],["Simulado (escola)","prova"],["Olimpíada","prova"],
     ["Trabalho (escola)","escola"],["Atividade de sala (escola)","escola"],["Tarefa de casa (escola)","escola"],

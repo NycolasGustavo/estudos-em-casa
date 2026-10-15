@@ -15,7 +15,7 @@ const store = {
   del(k) { try { localStorage.removeItem(k); } catch (e) { } }
 };
 function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, 3200); }
-const MATERIAS = ["Português", "Matemática", "Ciências", "História", "Geografia", "Inglês", "Arte", "Ed. Física", "Ensino Religioso"];
+const MATERIAS = ["Português", "Matemática", "PLE", "Inglês", "Disciplinar", "Artes", "Informática", "Educação Física"];
 const TIPOS_NOTA = ["Prova (escola)", "Simulado (escola)", "Trabalho (escola)", "Atividade (escola)", "Tarefa de casa (escola)", "Olimpíada"];
 
 /* ---------------- API ---------------- */
@@ -148,7 +148,7 @@ function anel(n) {
 }
 
 /* ---------------- tela da aluna ---------------- */
-const MATCOR = { "Português": "#7A4FD6", "Matemática": "#D2632A", "Ciências": "#C2185B", "História": "#8E5A2B", "Geografia": "#0E7C86", "Inglês": "#C2413A", "Arte": "#B8860B", "Artes": "#B8860B", "Educação Física": "#5E6483", "Ensino Religioso": "#7A6A53", "Leitura": "#7A4FD6", "Disciplinar": "#0E7C86", "Informática": "#5E6483" };
+const MATCOR = { "Português": "#7A4FD6", "Matemática": "#D2632A", "PLE": "#A23E8C", "Inglês": "#C2413A", "Artes": "#B8860B", "Educação Física": "#8E5A2B", "Leitura": "#7A4FD6", "Disciplinar": "#0E7C86", "Informática": "#5E6483", "Geral": "#7A6A53" };
 const corMat = m => MATCOR[m] || "#5E6483";
 const ehGrande = t => /prova|simulado|olimp|trabalho/i.test(t || "");
 const ehCasa = t => /\(casa\)/i.test(t || "");

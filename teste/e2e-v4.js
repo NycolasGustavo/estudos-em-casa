@@ -10,7 +10,7 @@ const { chromium } = require('playwright');
   for (const k of ['caderno', 'sala', 'deveres', 'aula']) await p.click(`[data-vc="${k}"][data-v="1"]`);
   await p.click('[data-vc="agenda"][data-v="0"]');
   if (await p.$('[data-vc="estudo"]')) await p.click('[data-vc="estudo"][data-v="1"]');
-  await p.fill('#d-deveres', 'Matemática: página 42, exercícios 1 a 5'); await p.fill('#d-obs', 'Adorei como você explicou a aula de Ciências!');
+  await p.fill('#d-deveres', 'Matemática: página 42, exercícios 1 a 5'); await p.fill('#d-obs', 'Adorei como você explicou a aula de Artes!');
   await p.screenshot({ path: 'teste/v4-cafe.png', fullPage: true });
   await p.click('#f-dia button[type=submit]'); await p.waitForTimeout(600); console.log('msg:', await p.textContent('#m-dia'));
   await p.close();
