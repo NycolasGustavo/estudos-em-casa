@@ -213,7 +213,7 @@ function widgetAula() {
 setInterval(() => { const w = document.getElementById("aula-w"); if (w) w.outerHTML = widgetAula(); }, 30000);
 
 /* concha da aluna: menu lateral */
-const NAV = [["hoje", "Hoje"], ["aulas", "Minhas aulas"], ["notas", "Minhas notas"], ["materias", "Matérias"], ["agenda", "Agenda"], ["livros", "Livros"], ["erros", "Caderno de erros"]];
+const NAV = [["hoje", "Hoje"], ["aulas", "Agenda"], ["notas", "Minhas notas"], ["materias", "Matérias"], ["livros", "Livros"], ["erros", "Caderno de erros"]];
 function concha(aba, titulo, corpo, d) {
   const of = d ? ofensiva(d) : null;
   const base = sess.papel === "adulto" ? "#/aluna/" : "#/";
@@ -223,11 +223,6 @@ function concha(aba, titulo, corpo, d) {
     <main class="main"><div class="mtop"><h1>${titulo}</h1>${widgetAula()}</div><div class="stack" id="corpo">${corpo}</div></main></div>`;
 }
 
-function todasNotas(d) {
-  const L = d.avaliacoes.map(a => ({ data: a.data, materia: a.materia, tipo: a.tipo, titulo: a.titulo, nota: Number(a.nota), comentario: a.comentario, acertos: a.acertos, total: a.total, origem: ehCasa(a.tipo) ? "casa" : "escola", grande: ehGrande(a.tipo) }));
-  d.historico.filter(h => h.status === "corrigida" && VALE_NOTA(h.tipo)).forEach(h => L.push({ data: h.data, materia: h.materia, tipo: TIPO_PROVA[h.tipo] + " (casa)", titulo: h.titulo, nota: h.nota, acertos: h.pontos, total: h.max, origem: "casa", grande: true, tentativa: h.id }));
-  return L.filter(n => !isNaN(n.nota)).sort((a, b) => String(b.data).localeCompare(String(a.data)));
-}
 function cartaoNota(n) {
   const m = MUNDO[n.origem];
   const corpo = `<div class="mundo" style="--w:${m.cor}">${ico(m.ico, 26)}<b>${m.nome}</b></div>
@@ -255,13 +250,14 @@ function cartaoAgenda(a, podeApagar) {
 
 async function telaAluna(aba) {
   app.className = "shell-wrap";
+  if (aba === "agenda") aba = "aulas";
   if (!NAV.some(t => t[0] === aba) && aba !== "ler") aba = "hoje";
   if (telaAluna.ultima !== aba) { semanaOff = 0; telaAluna.ultima = aba; }
   if (!cache.aluna) app.innerHTML = `<p class="muted" style="padding:40px">Carregando…</p>`;
   const d = await api("inicioAluna");
   cache.aluna = d;
   const primeiro = (d.nome || sess.nome || "").split(" ")[0];
-  const T = { hoje: `Oi, <span class="hl">${esc(primeiro)}</span>!`, aulas: "Minhas aulas", notas: "Minhas notas", materias: "Matérias", agenda: "Agenda", livros: "Livros", ler: "Ler em voz alta", erros: "Caderno de erros" };
+  const T = { hoje: `Oi, <span class="hl">${esc(primeiro)}</span>!`, aulas: "Minha agenda", notas: "Minhas notas", materias: "Matérias", agenda: "Agenda", livros: "Livros", ler: "Ler em voz alta", erros: "Caderno de erros" };
   const f = { hoje: abaHoje, aulas: abaAulas, notas: abaNotas, materias: abaMaterias, agenda: abaAgenda, livros: abaLivros, ler: abaLer, erros: abaErros }[aba];
   app.innerHTML = concha(aba === "ler" ? "hoje" : aba, T[aba], f(d), d);
   ligarAluna(d);
@@ -529,11 +525,11 @@ function abaHoje(d) {
   const aula = infoAula(), proxEsc = d.agenda.filter(a => diasAte(a.data) >= 0).slice(0, 3);
   const lendo = d.livros.filter(l => l.status === "lendo");
   return `<p class="hoje-data">${dataTxt}</p>
-   <div class="home"><div class="stack col-main">${cardDevendo(d)}${estudo}
+   <div class="home3"><div class="stack c1">${cardDevendo(d)}${estudo}
     ${atrasados.length ? `<section class="painel-mundo" style="--w:var(--bad)"><div class="faixa" style="--w:var(--bad)"><b>FICOU PARA TRÁS</b><span>faça quando terminar o de hoje</span></div><div class="pm-corpo"><div class="itens">${atrasados.slice(-4).map(([dia, it], i) => linhaItem(d, dia, Object.assign({}, it, { descricao: `Era para ${DCURTO[diaSem(dia)].toLowerCase()}, ${dataBR(dia)}` }), i, false)).join("")}</div></div></section>` : ""}
-   </div><aside class="stack col-side">${cardSol(d)}${cardDia(d)}
+   </div><aside class="stack c2">${cardSol(d)}${cardDia(d)}</aside><aside class="stack c3">
     <section class="painel-mundo" style="--w:var(--escola)">${faixa("escola", "Hoje à tarde")}<div class="pm-corpo">${aula.aulas.length ? `${aula.aulas.map(a => `<div class="aula-l"><span class="mchip" style="--mc:${corMat(a.split(" ")[0])}">${esc(a)}</span></div>`).join("")}<span class="muted small">13:15 às 17:15 · ${esc(aula.linha)}</span>` : `<span>${esc(aula.linha)}</span>`}
-      <h3 style="margin-top:8px">Vem aí na escola</h3>${proxEsc.length ? proxEsc.map(a => cartaoAgenda(a, false)).join("") : `<span class="muted small">Nenhuma prova anotada. Ouviu falar de prova? Anote na Agenda.</span>`}</div></section>
+      <h3 style="margin-top:8px">Vem aí na escola</h3>${proxEsc.length ? proxEsc.map(a => cartaoAgenda(a, false)).join("") : `<span class="muted small">Nenhuma prova anotada. Ouviu falar de prova? Anote na Agenda.</span>`}</div></section>${cardRecompensa(d)}
     <section class="panel stack"><h3>Lendo agora</h3>${lendo.length ? lendo.map(l => `<div><b>${esc(l.titulo)}</b><div class="muted small">desde ${dataBR(l.inicio)}</div></div>`).join("") : `<span class="muted small">Nenhum livro. Comece um na aba Livros.</span>`}</section>
    </aside></div>
    ${minhaSemana(d)}`;
@@ -570,47 +566,135 @@ function minhaSemana(d) {
 }
 
 /* ---------- Minhas aulas ---------- */
+/* ---------- Agenda: semana + caderno de anotações ---------- */
+const TIPOS_AG = ["Prova", "Trabalho", "Simulado", "Apresentação", "Atividade avaliada", "Dever de casa", "Recado", "Material para levar"];
+function cadernoAgenda(d) {
+  const h = d.hoje || hoje();
+  const futuras = d.agenda.filter(a => a.data >= h), passadas = d.agenda.filter(a => a.data < h).slice(-6).reverse();
+  const porDia = {}; futuras.forEach(a => (porDia[a.data] = porDia[a.data] || []).push(a));
+  const linha = (a, apagar) => `<div class="cad-l"><span class="cad-tipo" style="--mc:${corMat(a.materia)}">${esc(a.tipo)}</span><span class="cad-txt"><b>${esc(a.materia)}</b>${a.conteudo ? ` — ${esc(a.conteudo)}` : ""}</span><span class="cad-ok" title="${a.confirmado ? "conferido por um adulto" : "esperando um adulto conferir"}">${a.confirmado ? "✓" : "…"}</span>${apagar && !a.confirmado ? `<button class="cad-x" data-agdel="${esc(a.id)}" title="Apagar">×</button>` : ""}</div>`;
+  return `<aside class="caderno"><div class="cad-capa"><span class="cad-etq">Minha agenda · 4º ano</span></div><div class="cad-espiral" aria-hidden="true"></div>
+    <div class="cad-folha">
+      <div class="cad-form">
+        <b class="cad-h">Anotar</b>
+        <label>Quando<input type="date" id="ag-data" min="${h}"></label>
+        <label>Matéria<select id="ag-mat">${[...MATERIAS, "Geral"].map(m => `<option>${m}</option>`).join("")}</select></label>
+        <label>O que é<select id="ag-tipo">${TIPOS_AG.map(t => `<option>${t}</option>`).join("")}</select></label>
+        <label class="lg">Detalhes<input id="ag-cont" placeholder="ex.: frações, páginas 40 a 52"></label>
+        <button id="ag-salvar">Anotar na agenda</button>
+      </div>
+      <b class="cad-h">Próximas anotações</b>
+      ${Object.keys(porDia).sort().map(dia => `<div class="cad-dia">${DCURTO[diaSem(dia)]} ${dataBR(dia)} <small>${quando(diasAte(dia))}</small></div>${porDia[dia].map(a => linha(a, true)).join("")}`).join("") || `<div class="cad-l vazio-l">Nada anotado ainda. Ouviu a professora falar de prova, trabalho ou recado? Anote aqui!</div>`}
+      ${passadas.length ? `<b class="cad-h passou">Já passou</b>${passadas.map(a => `<div class="cad-dia passou">${DCURTO[diaSem(a.data)]} ${dataBR(a.data)}</div>${linha(a, false)}`).join("")}` : ""}
+    </div></aside>`;
+}
 function abaAulas(d) {
   const h = d.hoje || hoje(), ini = addDias(segundaDe(h), 7 * semanaOff);
   const dias = [0, 1, 2, 3, 4].map(i => addDias(ini, i));
-  const rot = (m, t, s) => `<div class="ag-rot" style="--w:${m === "casa" ? "var(--casa)" : "var(--escola)"}">${ico(m, 22)}<b>${t}</b>${s ? `<span>${s}</span>` : ""}</div>`;
+  const rot = (m, t, s) => `<div class="ag-rot" style="--w:${m === "casa" ? "var(--casa)" : "var(--escola)"}">${ico(m, 20)}<b>${t}</b>${s ? `<span>${s}</span>` : ""}</div>`;
   const head = dias.map(x => `<div class="ag-head ${x === h ? "hoje" : ""}"><b>${DIAS[diaSem(x)]}</b><span>${dataBR(x)}${x === h ? " · hoje" : ""}</span></div>`).join("");
   const aulas = dias.map(x => `<div class="ag-cel ${x === h ? "hoje" : ""}">${AULAS[diaSem(x)].map(a => `<div class="gaula" style="--mc:${corMat(a.split(" ")[0])}">${esc(a)}</div>`).join("")}</div>`).join("");
   const provas = dias.map(x => { const ag = d.agenda.filter(a => a.data === x); return `<div class="ag-cel ${x === h ? "hoje" : ""}">${ag.map(a => `<div class="ag-ev" style="--mc:${corMat(a.materia)}"><b>${esc(a.tipo)}</b><span>${esc(a.materia)}</span>${a.conteudo ? `<small>${esc(a.conteudo)}</small>` : ""}</div>`).join("") || `<span class="vazio">—</span>`}</div>`; }).join("");
-  const casa = dias.map(x => { const p = d.plano.find(y => y._id === x); const its = p ? p.itens : MANHA[diaSem(x)].map(([k, v]) => ({ titulo: v, momento: k })); return `<div class="ag-cel ${x === h ? "hoje" : ""}">${its.map(it => `<div class="gm"><span>${esc(MOMENTO[it.momento] ? MOMENTO[it.momento][0].split(" · ")[0] : it.momento || "")}</span><b>${esc(it.titulo)}</b></div>`).join("")}</div>`; }).join("");
-  const fds = [5, 6].map(i => addDias(ini, i)).map(x => { const p = d.plano.find(y => y._id === x); return `<div class="panel stack"><h3>${DIAS[diaSem(x)]} · ${dataBR(x)}</h3>${p ? p.itens.map(it => `<div class="gm"><span>${esc(MOMENTO[it.momento] ? MOMENTO[it.momento][0].split(" · ")[0] : "")}</span><b>${esc(it.titulo)}</b></div>`).join("") : `<span class="muted">${diaSem(x) === 0 ? "Descanso. Só 10 minutos com um adulto para olhar a semana." : "Simulado ou prova e um pouco de livro."}</span>`}</div>`; }).join("");
-  return `<div class="row between"><p class="muted" style="margin:0">Escola sempre à tarde, das <b>13:15 às 17:15</b>. De manhã, em casa, você estuda para chegar afiada.</p>${navSemana(ini)}</div>
-   <div class="agrid"><div></div>${head}
-     ${rot("escola", "Aulas", "13:15 às 17:15")}${aulas}
-     ${rot("escola", "Provas e trabalhos", "da sua Agenda")}${provas}
-     ${rot("casa", "De manhã", "45 minutos")}${casa}</div>
-   <div class="grid2">${fds}</div>`;
+  const nomeMom = it => MOMENTO[it.momento] ? MOMENTO[it.momento][0].split(" · ")[0] : (it.momento || "");
+  const casa = dias.map(x => { const its = d.plano.find(y => y._id === x) ? itensDoDia(d, x) : MANHA[diaSem(x)].map(([k, v]) => ({ titulo: v, momento: k })); return `<div class="ag-cel ${x === h ? "hoje" : ""}">${its.map(it => `<div class="gm"><span>${esc(nomeMom(it))}</span><b>${esc(it.titulo)}</b></div>`).join("")}</div>`; }).join("");
+  const fds = [5, 6].map(i => addDias(ini, i)).map(x => { const p = d.plano.find(y => y._id === x); return `<div class="panel stack"><h3>${DIAS[diaSem(x)]} · ${dataBR(x)}</h3>${p ? p.itens.map(it => `<div class="gm"><span>${esc(nomeMom(it))}</span><b>${esc(it.titulo)}</b></div>`).join("") : `<span class="muted">${diaSem(x) === 0 ? "Descanso. Só 10 minutos com um adulto para olhar a semana." : "Simulado ou prova e um pouco de livro."}</span>`}</div>`; }).join("");
+  return `<div class="agenda-lay"><div class="stack">
+     <div class="row between"><p class="muted" style="margin:0">Escola à tarde, das <b>13:15 às 17:15</b>. De manhã, em casa, você estuda para chegar afiada.</p>${navSemana(ini)}</div>
+     <div class="agrid"><div></div>${head}
+       ${rot("escola", "Aulas", "13:15 às 17:15")}${aulas}
+       ${rot("escola", "Provas e trabalhos", "da sua agenda")}${provas}
+       ${rot("casa", "De manhã", "45 minutos")}${casa}</div>
+     <div class="grid2">${fds}</div></div>
+   ${cadernoAgenda(d)}</div>`;
 }
 
+/* ---------- gráfico com datas no eixo x ---------- */
+function graficoTempo(series, { altura = 260, meta = 8.5, compacto = false } = {}) {
+  const W = compacto ? 420 : 760, H = altura, L = 30, R = compacto ? 10 : 70, T = 14, B = 26;
+  const todos = series.flatMap(s => s.pts.map(p => p.x)).sort();
+  if (!todos.length) return `<p class="muted small" style="margin:8px 0">Sem notas ainda.</p>`;
+  const t0 = new Date(addDias(todos[0], -2) + "T12:00:00").getTime(), t1 = new Date(addDias(todos[todos.length - 1], 2) + "T12:00:00").getTime();
+  const X = iso => L + (new Date(iso + "T12:00:00").getTime() - t0) / Math.max(1, t1 - t0) * (W - L - R);
+  const Y = v => T + (1 - v / 10) * (H - T - B);
+  let g = `<rect x="${L}" y="${Y(7)}" width="${W - L - R}" height="${Y(0) - Y(7)}" fill="var(--bad)" opacity=".06"/>`;
+  [0, 2, 4, 6, 8, 10].forEach(v => g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end" class="ax">${v}</text>`);
+  g += `<line x1="${L}" x2="${W - R}" y1="${Y(meta)}" y2="${Y(meta)}" stroke="var(--sun)" stroke-dasharray="6 4" stroke-width="1.5"/>${compacto ? "" : `<text x="${W - R + 4}" y="${Y(meta) + 4}" class="ax">meta 8,5</text>`}`;
+  const nt = compacto ? 3 : 6;
+  for (let i = 0; i <= nt; i++) { const t = t0 + (t1 - t0) * i / nt; const iso = new Date(t).toISOString().slice(0, 10); g += `<text x="${X(iso)}" y="${H - 6}" text-anchor="middle" class="ax">${dataBR(iso)}</text>`; }
+  series.forEach(s => {
+    const pts = s.pts.slice().sort((a, b) => a.x.localeCompare(b.x));
+    if (pts.length > 1) g += `<path d="${pts.map((p, i) => (i ? "L" : "M") + X(p.x).toFixed(1) + " " + Y(p.y).toFixed(1)).join("")}" fill="none" stroke="${s.cor}" stroke-width="2" ${s.tracejado ? 'stroke-dasharray="6 4"' : ""} stroke-linejoin="round" stroke-linecap="round"/>`;
+    pts.forEach(p => {
+      const cx = X(p.x).toFixed(1), cy = Y(p.y).toFixed(1), tip = esc(`${s.nome} · ${dataBR(p.x)} · ${p.rotulo || ""}: ${fmtN(p.y)}`);
+      g += s.forma === "quadrado" ? `<rect x="${cx - 4.5}" y="${cy - 4.5}" width="9" height="9" rx="2" fill="${s.cor}" stroke="var(--card)" stroke-width="2"/>` : `<circle cx="${cx}" cy="${cy}" r="5" fill="${s.cor}" stroke="var(--card)" stroke-width="2"/>`;
+      g += `<circle cx="${cx}" cy="${cy}" r="12" fill="transparent" data-tip="${tip}"/>`;
+    });
+    if (!compacto && pts.length) { const u = pts[pts.length - 1]; g += `<text x="${Math.min(W - R + 4, X(u.x) + 8)}" y="${Y(u.y) + 4}" class="ax lbl">${esc(s.curto || "")}</text>`; }
+  });
+  return `<svg class="tchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gráfico de notas no tempo">${g}</svg>`;
+}
+document.addEventListener("mouseover", e => {
+  const t = e.target.closest && e.target.closest("[data-tip]"); let tip = document.getElementById("tip");
+  if (!t) { if (tip) tip.hidden = true; return; }
+  if (!tip) { tip = document.createElement("div"); tip.id = "tip"; document.body.appendChild(tip); }
+  tip.textContent = t.dataset.tip; tip.hidden = false; const r = t.getBoundingClientRect();
+  tip.style.left = Math.min(window.innerWidth - 260, r.left + r.width / 2 - 10) + "px"; tip.style.top = (r.top + window.scrollY - 40) + "px";
+});
+
 /* ---------- Minhas notas ---------- */
-let filtroMat = "Todas", filtroClasse = "prova";
+let filtroMat = "Todas", notasVer = "todas";
 const ehProvaEscola = t => /prova|simulado|olimp/i.test(t || "");
 function todasNotas(d) {
   const L = d.avaliacoes.filter(a => !ehCasa(a.tipo)).map(a => ({ data: a.data, materia: a.materia, tipo: tipoCurto(a.tipo), titulo: a.titulo, nota: Number(a.nota), comentario: a.comentario, origem: "escola", classe: ehProvaEscola(a.tipo) ? "prova" : "atividade" }));
   d.historico.filter(x => x.status === "corrigida").forEach(x => L.push({ data: x.data, materia: x.materia, tipo: TIPO_PROVA[x.tipo] || "Atividade", titulo: x.titulo, nota: Number(x.nota), origem: "casa", classe: VALE_NOTA(x.tipo) ? "prova" : "atividade", tentativa: x.id }));
   return L.filter(n => !isNaN(n.nota)).sort((a, b) => String(b.data).localeCompare(String(a.data)));
 }
+const SERIES_NOTA = [
+  { k: "escola-prova", origem: "escola", classe: "prova", nome: "Provas da escola", curto: "Provas escola", cor: "#2F55C9", tracejado: false, forma: "circulo" },
+  { k: "escola-atividade", origem: "escola", classe: "atividade", nome: "Atividades da escola", curto: "Ativ. escola", cor: "#2F55C9", tracejado: true, forma: "quadrado" },
+  { k: "casa-prova", origem: "casa", classe: "prova", nome: "Provas e simulados de casa", curto: "Provas casa", cor: "#1E8A5A", tracejado: false, forma: "circulo" },
+  { k: "casa-atividade", origem: "casa", classe: "atividade", nome: "Atividades de casa", curto: "Ativ. casa", cor: "#1E8A5A", tracejado: true, forma: "quadrado" }
+];
+const amostra = s => `<svg width="34" height="12" aria-hidden="true"><line x1="1" y1="6" x2="33" y2="6" stroke="${s.cor}" stroke-width="2.5" ${s.tracejado ? 'stroke-dasharray="5 3"' : ""}/>${s.forma === "quadrado" ? `<rect x="13" y="2" width="8" height="8" rx="2" fill="${s.cor}"/>` : `<circle cx="17" cy="6" r="4" fill="${s.cor}"/>`}</svg>`;
 function abaNotas(d) {
   const todas = todasNotas(d);
   const mats = ["Todas", ...new Set(todas.map(n => n.materia))];
   const notas = todas.filter(n => filtroMat === "Todas" || n.materia === filtroMat);
   const med = a => a.length ? a.reduce((s, n) => s + n.nota, 0) / a.length : null;
-  const q = (o, c) => { const a = notas.filter(n => n.origem === o && n.classe === c); const m = med(a); return `<button class="q4-c ${filtroClasse === c ? "on" : ""}" data-fclasse="${c}" style="--w:var(--${o})"><b class="${m != null ? clsNota(m) : ""}">${m != null ? fmtN(m) : "–"}</b><span>${a.length} nota${a.length === 1 ? "" : "s"}</span></button>`; };
-  const serie = notas.filter(n => n.classe === filtroClasse).slice().reverse();
-  const xs = serie.map(n => n.data);
-  const graf = serie.length ? grafico([{ nome: "Escola", cor: "var(--escola)", vals: serie.map(n => n.origem === "escola" ? n.nota : null), ligar: true }, { nome: "Casa", cor: "var(--casa)", vals: serie.map(n => n.origem === "casa" ? n.nota : null), ligar: true }], { xs, rotulos: xs.map(dataBR), refs: [{ v: 8.5, cor: "var(--sun)" }], altura: 230 }) : `<p class="muted">Ainda não tem ${filtroClasse === "prova" ? "provas" : "atividades"} com nota${filtroMat !== "Todas" ? " em " + esc(filtroMat) : ""}.</p>`;
-  return `<div class="chips">${mats.map(m => `<button data-fmat="${esc(m)}" class="${m === filtroMat ? "on" : ""}">${esc(m)}</button>`).join("")}</div>
-   <div class="notas-top"><div class="q4"><span></span><div class="q4-h" style="--w:var(--escola)">${ico("escola", 18)} Escola</div><div class="q4-h" style="--w:var(--casa)">${ico("casa", 18)} Casa</div>
-     <div class="q4-r">Provas e simulados<small>valem nota</small></div>${q("escola", "prova")}${q("casa", "prova")}
-     <div class="q4-r">Atividades<small>para treinar</small></div>${q("escola", "atividade")}${q("casa", "atividade")}</div>
-   <div class="panel stack"><div class="row between"><h3>${filtroClasse === "prova" ? "Provas e simulados" : "Atividades"} ao longo do tempo</h3><div class="seg"><button data-fclasse="prova" class="${filtroClasse === "prova" ? "on" : ""}">Provas</button><button data-fclasse="atividade" class="${filtroClasse === "atividade" ? "on" : ""}">Atividades</button></div></div>
-     ${graf}<div class="legend"><span><i style="background:var(--escola)"></i>Escola</span><span><i style="background:var(--casa)"></i>Casa</span><span><i style="background:var(--sun)"></i>Meta 8,5</span></div></div></div>
-   <section class="panel stack"><h3>Todas as notas</h3><div class="nlist">${notas.map(n => { const l = `<span class="nl-d">${dataBR(n.data)}</span><span class="nl-o" style="--w:var(--${n.origem})">${n.origem === "casa" ? "Casa" : "Escola"}</span><span class="nl-t"><b>${esc(n.titulo || n.tipo)}</b><small>${esc(n.materia)} · ${esc(n.tipo)}${n.classe === "prova" ? " · vale nota" : ""}</small></span><span class="nl-n ${clsNota(n.nota)}">${fmtN(n.nota)}</span>`; return n.tentativa ? `<a class="nl" href="#/resultado/${encodeURIComponent(n.tentativa)}">${l}</a>` : `<div class="nl">${l}</div>`; }).join("") || `<p class="muted">Nenhuma nota ainda.</p>`}</div></section>`;
+  const de = s => notas.filter(n => n.origem === s.origem && n.classe === s.classe);
+  const visivel = s => notasVer === "todas" || notasVer === s.classe || notasVer === s.origem || notasVer === s.k;
+  const tiles = SERIES_NOTA.map(s => {
+    const a = de(s).slice().reverse(), m = med(a), u = a.length ? a[a.length - 1].nota : null, ant = a.length > 1 ? med(a.slice(0, -1)) : null;
+    const tend = u != null && ant != null ? (u > ant + .2 ? `<span class="tend up">▲ subiu</span>` : u < ant - .2 ? `<span class="tend down">▼ caiu</span>` : `<span class="tend">= igual</span>`) : "";
+    return `<button class="ntile ${visivel(s) ? "on" : ""}" data-nver="${s.k}" style="--w:${s.cor}"><span class="nt-h">${amostra(s)}${s.nome}</span><b class="${m != null ? clsNota(m) : ""}">${m != null ? fmtN(m) : "–"}</b><span class="nt-r">${a.length} nota${a.length === 1 ? "" : "s"}${u != null ? ` · última ${fmtN(u)}` : ""} ${tend}</span></button>`;
+  }).join("");
+  const ser = SERIES_NOTA.filter(visivel).map(s => Object.assign({}, s, { pts: de(s).map(n => ({ x: n.data, y: n.nota, rotulo: n.titulo || n.tipo })) }));
+  const barras = [...new Set(notas.map(n => n.materia))].map(m => {
+    const e = med(notas.filter(n => n.materia === m && n.origem === "escola")), c = med(notas.filter(n => n.materia === m && n.origem === "casa"));
+    const bar = (v, cor, rot) => `<div class="mb-l"><span>${rot}</span><div class="mb-t"><i style="width:${v != null ? v * 10 : 0}%;background:${cor}"></i><em style="left:85%"></em></div><b>${v != null ? fmtN(v) : "–"}</b></div>`;
+    return `<div class="mb"><b style="color:${corMat(m)}">${esc(m)}</b>${bar(e, "#2F55C9", "Escola")}${bar(c, "#1E8A5A", "Casa")}</div>`;
+  }).join("") || `<p class="muted small">Sem notas ainda.</p>`;
+  const VER = [["todas", "Todas"], ["prova", "Só provas"], ["atividade", "Só atividades"], ["escola", "Só escola"], ["casa", "Só casa"]];
+  return `<div class="row between"><div class="chips">${mats.map(m => `<button data-fmat="${esc(m)}" class="${m === filtroMat ? "on" : ""}">${esc(m)}</button>`).join("")}</div><span class="muted small">Notas de 0 a 10 · meta 8,5 · abaixo de 7 = hora de reforçar</span></div>
+   <div class="ntiles">${tiles}</div>
+   <div class="notas-grid"><section class="panel stack"><div class="row between"><h3>Minhas notas ao longo do tempo</h3><div class="seg">${VER.map(([k, t]) => `<button data-nver="${k}" class="${notasVer === k ? "on" : ""}">${t}</button>`).join("")}</div></div>
+      ${graficoTempo(ser, { altura: 250 })}
+      <div class="legend">${ser.map(s => `<span>${amostra(s)} ${s.nome}</span>`).join("")}<span><svg width="34" height="12"><line x1="1" y1="6" x2="33" y2="6" stroke="var(--sun)" stroke-width="2" stroke-dasharray="6 4"/></svg> Meta 8,5</span></div></section>
+    <section class="panel stack"><h3>Média por matéria</h3><p class="muted small" style="margin:0">Todas as notas. A risquinha é a meta 8,5.</p>${barras}</section></div>
+   <h3 style="margin:4px 0 0">Cada tipo separado</h3>
+   <div class="nsmall">${SERIES_NOTA.map(s => `<section class="panel stack"><span class="nt-h">${amostra(s)}<b>${s.nome}</b></span>${graficoTempo([Object.assign({}, s, { pts: de(s).map(n => ({ x: n.data, y: n.nota, rotulo: n.titulo || n.tipo })) })], { altura: 170, compacto: true })}</section>`).join("")}</div>
+   <section class="panel stack"><h3>Todas as notas</h3><div class="nlist">${notas.map(n => { const s = SERIES_NOTA.find(x => x.origem === n.origem && x.classe === n.classe); const l = `<span class="nl-d">${dataBR(n.data)}</span><span class="nl-o" style="--w:var(--${n.origem})">${n.origem === "casa" ? "Casa" : "Escola"}</span><span class="nl-t"><b>${esc(n.titulo || n.tipo)}</b><small>${amostra(s)} ${esc(n.materia)} · ${esc(n.tipo)}${n.classe === "prova" ? " · vale nota" : ""}</small></span><span class="nl-n ${clsNota(n.nota)}">${fmtN(n.nota)}</span>`; return n.tentativa ? `<a class="nl" href="#/resultado/${encodeURIComponent(n.tentativa)}">${l}</a>` : `<div class="nl">${l}</div>`; }).join("") || `<p class="muted">Nenhuma nota ainda.</p>`}</div></section>`;
+}
+
+/* ---------- recompensa da semana ---------- */
+function cardRecompensa(d) {
+  const r = d.recompensa; if (!r || !r.texto) return "";
+  const h = d.hoje || hoje(), ini = segundaDe(h), meta = Number(r.meta) || 4;
+  const verdes = (d.diario || []).filter(x => x.cor === "verde" && x.data >= ini && x.data <= addDias(ini, 6)).length;
+  const ok = verdes >= meta;
+  return `<section class="recomp ${ok ? "ok" : ""}"><span class="rc-k">Recompensa da semana</span><b>${esc(r.texto)}</b>
+    <div class="rc-dots">${Array.from({ length: meta }, (_, i) => `<i class="${i < verdes ? "on" : ""}"></i>`).join("")}</div>
+    <span class="small">${ok ? "Conseguiu! Você ganhou a recompensa desta semana!" : `${verdes} de ${meta} dias verdes nesta semana. Faltam ${meta - verdes}.`}</span></section>`;
 }
 
 /* ---------- Matérias e superpoderes ---------- */
@@ -755,7 +839,7 @@ function ligarAluna(d) {
   corpo.onclick = e => {
     const b = e.target.closest("button"); if (!b) return;
     if (b.dataset.fmat) { filtroMat = b.dataset.fmat; render(); }
-    else if (b.dataset.fclasse) { filtroClasse = b.dataset.fclasse; render(); }
+    else if (b.dataset.nver) { notasVer = notasVer === b.dataset.nver && b.dataset.nver.includes("-") ? "todas" : b.dataset.nver; render(); }
     else if (b.dataset.sem) { semanaOff = Math.max(-1, Math.min(1, semanaOff + Number(b.dataset.sem))); render(); }
     else if (b.dataset.feito) { if (b.dataset.volta) { b.disabled = true; api("marcarFeito", { item: b.dataset.feito }).then(() => { toast("Muito bem!"); location.hash = b.dataset.volta; }).catch(e => { toast(e.message); b.disabled = false; }); } else exec("marcarFeito", { item: b.dataset.feito }, "Muito bem!", b); }
     else if (b.dataset.lvedit) { const f = corpo.querySelector(`[data-edit-form="${b.dataset.lvedit}"]`); f.hidden = !f.hidden; }

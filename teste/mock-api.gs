@@ -452,6 +452,7 @@ function inicioAlunaV2_() {
   b.feitos = Object.keys(DOCS.feitos);
   b.feitosInfo = Object.assign({}, DOCS.feitos);
   b.erros = errosResumo_();
+  b.recompensa = DOCS.metas.recompensa || null;
   b.diario = Object.keys(DOCS.dias).map(k => DOCS.dias[k]).sort((x, y) => y.data.localeCompare(x.data));
   b.historico = b.historico.map(x => Object.assign(x, { provaId: x.provaId || (linhas_("Tentativas").find(t => t.id === x.id) || {}).provaId }));
   return b;

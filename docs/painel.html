@@ -6,35 +6,51 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Painel da Isabella</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
 <style>
 /* Layout: boletim de bolso — faixa de resumo, abas; aba Matérias = gráfico semanal por matéria com 3 linhas */
 :root{
-  --bg:#F5F6FA; --surface:#FFFFFF; --ink:#1C2140; --muted:#5E6483; --line:#DFE2EC;
-  --accent:#2F55C9; --accent-soft:#E6ECFB; --mark:#F5D547;
-  --good:#1E8A5A; --warn:#B7791F; --bad:#C2413A; --black:#2A2A2A;
-  --good-s:#E3F4EA; --warn-s:#FBF1D4; --bad-s:#FBE3E1; --black-s:#E7E7E7;
-  --prova:#2F55C9; --escola:#D2632A; --casa:#1E8A5A;
-  --display:"Bricolage Grotesque", "Figtree", system-ui, sans-serif;
-  --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme:light;
+  --bg:#FAF9F5; --surface:#FFFFFF; --side:#F0EEE6; --ink:#141413; --muted:#73726C; --line:#E6E3D8;
+  --accent:#C6613F; --accent-soft:#F5E6DE; --mark:#F0D9A8;
+  --good:#3F7D58; --warn:#B7791F; --bad:#B8453A; --black:#2A2A2A;
+  --good-s:#E5F0E8; --warn-s:#F8EDD6; --bad-s:#F6E1DD; --black-s:#E7E5DF;
+  --prova:#2F55C9; --escola:#7C93D9; --casa:#3F7D58;
+  --display:"Source Serif 4", Georgia, serif;
+  --body:"Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#12152A; --surface:#1B1F38; --ink:#E9EBF5; --muted:#A3A8C4; --line:#2E3354;
-  --accent:#8AA6FF; --accent-soft:#25305C; --mark:#E8C93A;
-  --good:#4CC28A; --warn:#E3A84A; --bad:#F07A72; --black:#C9CBD6;
-  --good-s:#173A2A; --warn-s:#3D3216; --bad-s:#43211F; --black-s:#2C2F45;
-  --prova:#8AA6FF; --escola:#F0935E; --casa:#4CC28A; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#12152A; --surface:#1B1F38; --ink:#E9EBF5; --muted:#A3A8C4; --line:#2E3354;
-  --accent:#8AA6FF; --accent-soft:#25305C; --mark:#E8C93A;
-  --good:#4CC28A; --warn:#E3A84A; --bad:#F07A72; --black:#C9CBD6;
-  --good-s:#173A2A; --warn-s:#3D3216; --bad-s:#43211F; --black-s:#2C2F45;
-  --prova:#8AA6FF; --escola:#F0935E; --casa:#4CC28A; color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
-.wrap{max-width:1120px;margin:0 auto;padding-inline:16px;padding-block:20px 48px}
+.app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:14px;padding:18px 12px}
+.sb-brand{display:flex;gap:10px;align-items:center;padding:0 8px;font-family:var(--display);font-size:19px;font-weight:600;line-height:1.1}
+.sb-brand i{width:30px;height:30px;border-radius:8px;background:var(--accent);display:grid;place-items:center;color:#fff;font-style:normal;font-family:var(--body);font-weight:700}
+.sidebar nav.tabs{flex-direction:column;border:0;margin:0;gap:2px;overflow:visible}
+.sidebar nav.tabs button{display:flex;align-items:center;gap:10px;text-align:left;border:0;border-radius:8px;padding:9px 10px;color:var(--ink);font-weight:500;font-size:14.5px}
+.sidebar nav.tabs button svg{flex:none;opacity:.7}
+.sidebar nav.tabs button:hover{background:rgba(20,20,19,.05)}
+.sidebar nav.tabs button[aria-selected="true"]{background:var(--surface);box-shadow:0 1px 2px rgba(20,20,19,.08);font-weight:600}
+.sidebar nav.tabs button[aria-selected="true"] svg{opacity:1;color:var(--accent)}
+.sb-foot{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding:0 8px;font-size:13px;color:var(--muted)}
+.sb-foot a,.sb-foot button{font:inherit;font-weight:600;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;text-decoration:none;text-align:left;cursor:pointer}
+.wrap{max-width:1560px;width:100%;margin:0 auto;padding:22px 28px 48px}
+@media (max-width:900px){.app{grid-template-columns:1fr}.sidebar{position:static;height:auto}.sidebar nav.tabs{flex-direction:row;flex-wrap:wrap}}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:1100px){.g3{grid-template-columns:1fr}}
+.card-h{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.card-h h2{margin:0;font-size:19px}
+.big{font-family:var(--display);font-size:34px;font-weight:600;line-height:1}
+.alerta{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.alerta:first-of-type{border-top:0}
+.alerta .ic{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:12px;color:#fff}
+.ic.bad{background:var(--bad)}.ic.warn{background:var(--warn)}.ic.good{background:var(--good)}.ic.info{background:var(--prova)}
+.mis-i{display:flex;gap:8px;align-items:center;padding:5px 0;font-size:14px}
+.semdots{display:flex;gap:6px}.semdots span{flex:1;text-align:center;font-size:11px;color:var(--muted)}.semdots i{display:block;height:28px;border-radius:6px;background:var(--line);margin-bottom:3px}
+.foco{display:grid;grid-template-columns:minmax(0,1fr) 60px 52px;gap:10px;align-items:center;padding:6px 0;border-top:1px solid var(--line);font-size:14px}
+.foco .bar{height:10px}
+.foco b.p{text-align:right;font-family:var(--mono);font-size:13px}
 header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px;margin-bottom:18px}
 h1{font-family:var(--display);font-weight:700;font-size:clamp(26px,4vw,36px);line-height:1.1;margin:0;text-wrap:balance}
 h1 .hl{background:linear-gradient(transparent 62%,var(--mark) 62%);padding:0 2px}
@@ -87,7 +103,11 @@ th{text-align:left;font-size:12px;letter-spacing:.04em;text-transform:uppercase;
 td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
 td.r,th.r{text-align:right}
 .empty{color:var(--muted);font-size:14px;padding:14px;border:1px dashed var(--line);border-radius:8px;margin-top:12px}
-.chart svg{width:100%;height:auto;display:block}
+.chart svg{width:100%;height:auto;display:block;max-height:340px}
+section[data-pane="etapa0"]:not([hidden]){display:grid;grid-template-columns:minmax(0,1.7fr) minmax(320px,1fr);gap:16px;align-items:start}
+section[data-pane="etapa0"] > .grid2{grid-template-columns:1fr;align-content:start}
+section[data-pane="etapa0"] > .chart, section[data-pane="etapa0"] > .panel:last-child{grid-column:1/-1}
+@media (max-width:1100px){section[data-pane="etapa0"]:not([hidden]){grid-template-columns:1fr}}
 .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);margin-top:8px}
 .legend span::before{content:"";display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle;background:var(--sw)}
 .legend span.dash::before{background:none;border-top:2px dashed var(--sw);height:0}
@@ -134,43 +154,49 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
 </style>
 </head>
 <body>
+<div class="app">
+<aside class="sidebar">
+  <div class="sb-brand"><i>E</i><span>Estudos<br>em Casa</span></div>
+  <nav class="tabs" role="tablist"><button role="tab" aria-selected="true" data-tab="geral"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-8 9 8M5 10v10h14V10"/></svg><span>Visão geral</span></button><button role="tab" aria-selected="false" data-tab="etapa0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Checklist do dia</span></button><button role="tab" aria-selected="false" data-tab="plano"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Plano e constância</span></button><button role="tab" aria-selected="false" data-tab="materias"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M8 15l4-5 3 3 5-6"/></svg><span>Matérias e notas</span></button><button role="tab" aria-selected="false" data-tab="provas"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6M9 2h6v4H9z"/><rect x="5" y="4" width="14" height="18" rx="2"/><path d="M9 12h6M9 16h4"/></svg><span>Provas em casa<span class="badge" id="b-corr" hidden></span></span></button><button role="tab" aria-selected="false" data-tab="boletim"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13H6zM14 3v6h6M9 13h6M9 17h6"/></svg><span>Boletim</span></button><button role="tab" aria-selected="false" data-tab="leitura"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5c3-1.5 6-1.5 10 0v15c-4-1.5-7-1.5-10 0zM22 5c-3-1.5-6-1.5-10 0v15c4-1.5 7-1.5 10 0z"/></svg><span>Leitura e medições</span></button><button role="tab" aria-selected="false" data-tab="metas"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg><span>Metas</span></button></nav>
+  <div class="sb-foot"><span class="status" id="status">Conectando aos dados…</span><a href="index.html#/aluna">Ver como a Isabella</a><button id="sair" type="button">Sair</button></div>
+</aside>
 <div class="wrap">
   <header>
     <div>
       <h1>Painel da <span class="hl">Isabella</span></h1>
-      <p class="sub">Matérias semana a semana, Etapa 0, leitura e metas</p>
+      <p class="sub">Missão do dia, checklist, constância e onde precisamos trabalhar</p>
     </div>
-    <div class="top-actions"><span class="status" id="status">Conectando aos dados…</span><a href="index.html#/aluna">Ver como a Isabella</a><button id="sair" type="button">Sair</button></div>
+    <div class="top-actions"><span class="tag" id="hoje-txt"></span></div>
   </header>
   <div class="notice" id="offline" hidden>Não foi possível carregar os dados. Confira a internet e recarregue a página.</div>
 
   <section class="kpis" aria-label="Resumo">
-    <div class="kpi"><span class="label">Etapa 0 · esta semana</span><span class="val num" id="k-e0">–</span><span class="foot" id="k-e0-foot">Dias verdes ou amarelos (meta 4 de 5)</span></div>
+    <div class="kpi"><span class="label">Checklist · esta semana</span><span class="val num" id="k-e0">–</span><span class="foot" id="k-e0-foot">Dias verdes ou amarelos (meta 4 de 5)</span></div>
     <div class="kpi"><span class="label">Branco escondido · 30 dias</span><span class="val num" id="k-branco">–</span><span class="foot">Meta: zero</span></div>
     <div class="kpi"><span class="label">Média geral · 4 semanas</span><span class="val num" id="k-media">–</span><span class="foot" id="k-media-foot">Todas as notas registradas</span></div>
     <div class="kpi"><span class="label">Livros no ano</span><span class="val num" id="k-livros">–</span><div class="bar"><i id="k-livros-bar" style="width:0"></i></div></div>
     <div class="kpi"><span class="label">Metas do período</span><span class="val num" id="k-metas">–</span><div class="bar"><i id="k-metas-bar" style="width:0"></i></div><span class="foot" id="k-metas-foot"></span></div>
   </section>
 
-  <nav class="tabs" role="tablist">
-    <button role="tab" aria-selected="true" data-tab="geral">Visão geral</button>
-    <button role="tab" aria-selected="false" data-tab="plano">Plano e constância</button>
-    <button role="tab" aria-selected="false" data-tab="materias">Matérias</button>
-    <button role="tab" aria-selected="false" data-tab="etapa0">Café da tarde</button>
-    <button role="tab" aria-selected="false" data-tab="boletim">Boletim</button>
-    <button role="tab" aria-selected="false" data-tab="leitura">Leitura e medições</button>
-    <button role="tab" aria-selected="false" data-tab="metas">Metas</button>
-    <button role="tab" aria-selected="false" data-tab="provas">Provas em casa<span class="badge" id="b-corr" hidden></span></button>
-  </nav>
+
 
   <!-- VISÃO GERAL -->
   <section data-pane="geral" class="stack">
+    <div class="g3">
+      <div class="panel" id="g-missao"></div>
+      <div class="panel" id="g-check"></div>
+      <div class="panel" id="g-alertas"></div>
+    </div>
+    <div class="grid2">
+      <div class="panel" id="g-foco"></div>
+      <div class="panel" id="g-semana"></div>
+    </div>
     <div>
       <div class="row" style="margin-bottom:10px"><h2 style="margin:0">Matérias</h2><span class="tag">Média das últimas 3 notas · clique para abrir</span></div>
       <div class="minis" id="minis"></div>
     </div>
-    <div class="notice" id="g-notas" hidden></div>
-    <div class="panel" id="g-hoje"></div>
+    <div class="notice" id="g-notas" hidden style="display:none"></div>
+    <div class="panel" id="g-hoje" style="display:none"></div>
     <div class="panel"><div class="row" style="margin-bottom:6px"><h2 style="margin:0">Agenda da escola</h2><span class="tag">Provas e trabalhos que a Isabella anotou · confira cada um</span></div><div id="g-agenda"></div></div>
     <div class="grid2">
       <div class="panel chart"><h3>Etapa 0 · cor dos dias por semana</h3><div id="ch-e0-g"></div></div>
@@ -220,7 +246,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
   <!-- ETAPA 0 -->
   <section data-pane="etapa0" class="stack" hidden>
     <div class="panel">
-      <div class="row"><h2 style="margin:0">Visto do café da tarde</h2><span class="tag">Feito pela Grazi todos os dias à tarde</span></div>
+      <div class="row"><h2 style="margin:0">Checklist do dia</h2><span class="tag">No café da tarde · leva uns 5 minutos</span></div>
       <p class="tag" style="margin:6px 0 12px">Marque <b>Fez</b> só quando ela realmente fez o que a frase diz. A cor sai sozinha: <b>tudo feito = verde</b> · <b>1 ou 2 faltando = amarelo</b> · <b>3 ou mais = vermelho</b> · <b>escondeu exercício em branco = preto</b>. O que faltar vira lembrete na tela dela no dia seguinte.</p>
       <form id="f-dia" class="stack" style="gap:12px">
         <div class="row" style="justify-content:flex-start;gap:18px;align-items:flex-end">
@@ -240,6 +266,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
       </form>
       <div class="msg" id="m-dia"></div>
     </div>
+    <div class="grid2"><div class="panel" id="vc-conferir"></div><div class="panel" id="vc-recomp"></div></div>
     <div class="panel chart"><h3>Cor dos dias por semana</h3><div id="ch-e0"></div>
       <div class="legend"><span style="--sw:var(--good)">Verde</span><span style="--sw:var(--warn)">Amarelo</span><span style="--sw:var(--bad)">Vermelho</span><span style="--sw:var(--black)">Preto</span></div></div>
     <div class="panel"><h3>Últimos dias</h3><div id="t-dias"></div></div>
@@ -322,6 +349,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
   </section>
 </div>
 
+</div>
 <script src="config.js"></script>
 <script>
 (() => {
@@ -586,10 +614,12 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
     $("vc-lista").innerHTML = linhas.map(([k,t,l])=>{
       const extra = k==="estudo" ? `<div class="tag">No app: ${inf.feitos} de ${inf.its.length} feitos (${inf.its.map(i=>(statusItem(i).feito?"✓ ":"✗ ")+esc(i.titulo)).join(" · ")})</div>`
         : k==="ontem" ? `<div class="tag">De ${fmtData(inf.ant.data)}: ${inf.dev.map(esc).join(" · ")}</div>` : "";
-      return `<div class="vc-row ${vc[k]===true?"sim":vc[k]===false?"nao":""}"><div class="vc-t"><b>${t}</b>${extra}${vc[k]===false?`<input class="vc-lem" data-lem="${k}" value="${esc(vc["l_"+k]!=null?vc["l_"+k]:l)}" title="Lembrete que aparece para ela amanhã">`:""}</div>
+      const falhas=state.dias.filter(x=>x.data<dia && x.data>=addD(dia,-14) && x.itens && x.itens[k]===false).length;
+      return `<div class="vc-row ${vc[k]===true?"sim":vc[k]===false?"nao":""}"><div class="vc-t"><b>${t}${falhas>=2?` <span class="pill ${falhas>=3?"bad":"warn"}">${falhas}x em 14 dias</span>`:""}</b>${extra}${vc[k]===false?`<input class="vc-lem" data-lem="${k}" value="${esc(vc["l_"+k]!=null?vc["l_"+k]:l)}" title="Lembrete que aparece para ela amanhã">`:""}</div>
         <div class="segmented"><button type="button" data-vc="${k}" data-v="1" aria-pressed="${vc[k]===true}">Fez</button><button type="button" data-vc="${k}" data-v="0" aria-pressed="${vc[k]===false}">Não fez</button></div></div>`; }).join("");
     vc._linhas = linhas.map(x=>x[0]);
     $("vc-prev").innerHTML = vcCor().html;
+    vcConferir(dia);
     document.getElementById("vc-lista").style.opacity = $("d-folga").checked ? .4 : 1;
   }
   function vcCor(){
@@ -605,6 +635,18 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
     if(x&&x.itens){ Object.assign(vc,x.itens); CHECK.forEach(([k,,l],i)=>{ if(x.itens[k]===false){ const lem=(x.devendo||[]).find(t=>t===l); if(!lem && x.lembretes && x.lembretes[k]) vc["l_"+k]=x.lembretes[k]; } }); }
     vcRender();
   }
+  function vcConferir(dia){
+    const ag=state.agenda.filter(a=>!a.confirmado && a.data>=dia).sort((a,b)=>a.data<b.data?-1:1);
+    const prox=state.agenda.filter(a=>a.data>=dia && a.data<=addD(dia,5) && /prova|trabalho|simulado|apresenta|avaliad/i.test(a.tipo||"")).sort((a,b)=>a.data<b.data?-1:1);
+    $("vc-conferir").innerHTML=`<h2>Conferir junto</h2>
+      <h3>Ela anotou e ainda não foi conferido</h3>${ag.length?ag.map(a=>`<div class="row" style="padding:5px 0;border-top:1px solid var(--line)"><span><b>${fmtData(a.data)}</b> · ${esc(a.tipo)} de ${esc(a.materia)}${a.conteudo?` — ${esc(a.conteudo)}`:""}</span><span><button class="btn ghost" data-agok="${esc(a._id)}">Confirmar</button> ${delBtn("agenda",a._id)}</span></div>`).join(""):'<div class="tag">Nada pendente.</div>'}
+      <h3 style="margin-top:12px">Provas e trabalhos nos próximos 5 dias</h3>${prox.length?prox.map(a=>`<div class="alerta"><span class="ic warn">!</span><span><b>${fmtData(a.data)}</b> · ${esc(a.tipo)} de ${esc(a.materia)}${a.conteudo?` (${esc(a.conteudo)})`:""}. Ela já estudou para isso? Se precisar, peça ao Claude um reforço.</span></div>`).join(""):'<div class="tag">Nenhuma nos próximos 5 dias.</div>'}`;
+    const r=state.recompensa||{};
+    $("vc-recomp").innerHTML=`<h2>Recompensa da semana</h2><p class="tag" style="margin:0 0 8px">Aparece na tela dela com o placar de dias verdes da semana, que se completa sozinho com este checklist.</p>
+      <div class="vc-grid"><label class="vc-f" style="grid-column:1/-1">Recompensa<input id="rc-txt" value="${esc(r.texto||"")}" placeholder="ex.: Sorvete no sábado"></label><label class="vc-f">Dias verdes na semana<input id="rc-meta" type="number" min="1" max="6" value="${r.meta||4}"></label><div style="display:flex;align-items:flex-end"><button class="btn" type="button" id="rc-salvar">Salvar recompensa</button></div></div>`;
+  }
+  document.addEventListener("click", async e=>{ if(e.target.id!=="rc-salvar") return; e.target.disabled=true;
+    try{ await api("gravarDoc",{col:"metas", id:"recompensa", data:{texto:$("rc-txt").value.trim(), meta:+$("rc-meta").value||4, atualizadoEm:new Date().toISOString(), quem:SESS.nome}}); await refresh(); setMsg("m-dia","Recompensa salva.",true); }catch(err){ e.target.textContent="Erro"; } });
   $("d-data").addEventListener("change", vcCarregar);
   ["d-folga","d-esc"].forEach(id=>$(id).addEventListener("change", vcRender));
   $("d-branco").addEventListener("input", ()=>{ if(+$("d-branco").value>0 && !$("d-esc").checked){ $("d-esc").checked=true; vcRender(); } });
@@ -677,6 +719,59 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
     render();
   }
 
+  // ---------- visão geral: missão, checklist, alertas, foco, semana ----------
+  const NOME_CK={caderno:"Caderno",sala:"Atividades de sala",deveres:"Deveres",agenda:"Agenda",aula:"Contar a aula",estudo:"Estudo da manhã",ontem:"O que ficou devendo"};
+  const DICA_CK={caderno:"combinar 5 minutos de cópia caprichada logo ao chegar",sala:"pedir para ela mostrar o caderno de sala antes do lanche",deveres:"deixar um horário fixo para os deveres",agenda:"pedir que ela leia a agenda em voz alta ao chegar",aula:"perguntar 'qual foi a coisa mais legal que você aprendeu hoje?'",estudo:"fazer o estudo logo depois do café da manhã",ontem:"conferir o 'ficou devendo' logo no início do checklist"};
+  function feitoEm(it){ if(it.provaId){ const t=(extra.tentativas||[]).filter(x=>x.provaId===it.provaId).map(x=>x.data).sort(); return t[0]||null; } const f=state.feitos.find(x=>x._id===it.id); return f?f.data:null; }
+  function statusDiaA(dia){ const h=hoje(); const p=state.plano.find(x=>x._id===dia); const its=(p&&p.itens)||[]; const av=state.dias.find(x=>x.data===dia);
+    if(!its.length||(av&&av.folga)) return "neutro"; if(its.every(i=>{ const f=feitoEm(i); return f&&f<=dia; })) return "ok"; if(dia===h) return "pendente"; return new Date(dia+"T12:00:00").getDay()===0?"neutro":"falhou"; }
+  function ofensivaA(){ const h=hoje(); const ps=state.plano.map(x=>x._id).sort(); if(!ps.length) return 0; let n=0, d=h; while(d>=ps[0]){ const st=statusDiaA(d); if(st==="ok") n++; else if(st==="falhou") break; d=addD(d,-1); } return n; }
+  function renderHoje(){
+    const h=hoje(), dt=new Date(h+"T12:00:00"); $("hoje-txt").textContent=dt.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long"});
+    const p=state.plano.find(x=>x._id===h), its=(p&&p.itens)||[], fe=its.filter(i=>statusItem(i).feito).length, of=ofensivaA();
+    $("g-missao").innerHTML=`<div class="card-h"><h2>Missão do dia</h2><span class="pill ${of?"good":"na"}">🔥 ${of} dia${of===1?"":"s"} de ofensiva</span></div>`+
+      (its.length?`<div class="row" style="justify-content:flex-start;gap:12px;margin-bottom:6px"><span class="big">${fe}/${its.length}</span><span class="tag">atividades feitas hoje (${p.minutos||45} min planejados)</span></div><div class="bar" style="height:8px;margin-bottom:8px"><i style="width:${fe/its.length*100}%;background:var(--good)"></i></div>`+
+        its.map(i=>{ const s=statusItem(i); return `<div class="mis-i">${s.feito?'<span class="pill good">✓</span>':'<span class="pill na">·</span>'} ${esc(i.titulo)}${s.nota!=null?` <b class="num">${f1(+s.nota)}</b>`:""}</div>`; }).join("")
+        : `<div class="tag">Sem estudo planejado hoje.</div>`);
+    const av=state.dias.find(x=>x.data===h), ont=state.dias.filter(x=>x.data<h).sort((a,b)=>a.data<b.data?1:-1)[0];
+    const corTxt=x=>x.folga?"folga":x.cor;
+    $("g-check").innerHTML=`<div class="card-h"><h2>Checklist do dia</h2>${av?`<span class="pill ${av.cor==="verde"?"good":av.cor==="amarelo"?"warn":"bad"}">${esc(corTxt(av))}</span>`:'<span class="pill warn">pendente</span>'}</div>`+
+      (av?`<div class="row" style="justify-content:flex-start;gap:12px"><span class="dot" style="width:34px;height:34px;background:${av.folga?"var(--muted)":COR[av.cor]}"></span><span><b>Dia ${esc(corTxt(av))}</b><br><span class="tag">por ${esc(av.quem||"")} · ${(av.devendo||[]).length} lembrete(s) e ${(av.deveres||[]).length} dever(es) para amanhã</span></span></div>`
+        :`<p style="margin:4px 0 10px">O checklist de hoje ainda não foi feito. É no café da tarde, leva uns 5 minutos.</p><button class="btn" type="button" data-ir="etapa0">Fazer o checklist agora</button>`)+
+      (ont?`<div class="tag" style="margin-top:10px">Último dia avaliado: ${fmtData(ont.data)} · <b>${esc(corTxt(ont))}</b>${(ont.devendo||[]).length?` · ficou devendo: ${esc(ont.devendo.join("; "))}`:""}</div>`:"");
+    // alertas automáticos
+    const A=[];
+    const pc=(extra.pendentesCorrecao||[]).length; if(pc) A.push(["warn",`${pc} resposta(s) escrita(s) esperando correção. <a class="lnk" href="index.html#/adulto/correcao">Corrigir</a>`]);
+    const agp=state.agenda.filter(a=>!a.confirmado && a.data>=h).length; if(agp) A.push(["warn",`${agp} anotação(ões) da agenda dela para conferir. <a class="lnk" href="#" data-ir="etapa0">Abrir checklist</a>`]);
+    state.agenda.filter(a=>a.data>=h && a.data<=addD(h,5) && /prova|trabalho|simulado|apresenta|avaliad/i.test(a.tipo||"")).forEach(a=>A.push(["bad",`<b>${esc(a.tipo)} de ${esc(a.materia)}</b> em ${fmtData(a.data)}${a.conteudo?` (${esc(a.conteudo)})`:""}. Precisa de reforço?`]));
+    Object.keys(NOME_CK).forEach(k=>{ const n=state.dias.filter(x=>x.data>=addD(h,-14) && x.itens && x.itens[k]===false).length; if(n>=3) A.push(["bad",`<b>${NOME_CK[k]}</b> falhou ${n} vezes nos últimos 14 dias. Sugestão: ${DICA_CK[k]}.`]); });
+    const ult=state.avaliacoes.filter(a=>!/\(casa\)/i.test(a.tipo||"")).map(a=>a.data).filter(Boolean).sort().pop(); const dd=ult?Math.round((new Date(h+"T12:00:00")-new Date(ult+"T12:00:00"))/864e5):null;
+    if(dd==null||dd>=5) A.push(["warn",`Última nota da escola lançada ${dd==null?"— nenhuma ainda":`há ${dd} dias (${fmtData(ult)})`}. Tem nota nova? <a class="lnk" href="#" data-ir="materias">Lançar</a>`]);
+    const dec=document.querySelectorAll("#pl-decidir [data-adiar]").length/2; if(dec) A.push(["warn",`${dec} atividade(s) atrasada(s) há mais de 3 dias esperando decisão. <a class="lnk" href="#" data-ir="plano">Decidir</a>`]);
+    const er=extra.erros||{}; if(er.devidos) A.push(["info",`${er.devidos} questão(ões) do caderno de erros para ela revisar hoje.`]);
+    $("g-alertas").innerHTML=`<div class="card-h"><h2>Atenção</h2><span class="tag">${A.length?A.length+" item(ns)":"tudo em dia"}</span></div>`+(A.length?A.map(([t,x])=>`<div class="alerta"><span class="ic ${t}">${t==="info"?"i":"!"}</span><span>${x}</span></div>`).join(""):`<div class="alerta"><span class="ic good">✓</span><span>Nada pendente para os adultos.</span></div>`);
+    // onde trabalhar
+    const H=(extra.habilidades||[]).filter(x=>x.total>=2).sort((a,b)=>a.pct-b.pct).slice(0,7);
+    const porHab={}; ((extra.erros||{}).porHabilidade||[]).forEach(x=>porHab[x.habilidade]=x.ativos);
+    $("g-foco").innerHTML=`<div class="card-h"><h2>Onde precisamos trabalhar</h2><span class="tag">acerto nas atividades e provas de casa</span></div>`+
+      (H.length?H.map(x=>`<div class="foco"><span><b>${esc(x.habilidade)}</b> <span class="tag">${esc(x.materia)}${porHab[x.habilidade]?` · ${porHab[x.habilidade]} no caderno de erros`:""}</span><div class="bar" style="margin-top:4px"><i style="width:${x.pct}%;background:${x.pct>=80?"var(--good)":x.pct>=60?"var(--warn)":"var(--bad)"}"></i></div></span><span class="tag num">${x.certas}/${x.total}</span><b class="p">${x.pct}%</b></div>`).join("")
+        :'<div class="tag">Ainda há poucos dados. Depois das primeiras atividades, as habilidades mais fracas aparecem aqui.</div>');
+    // resumo da semana
+    const ini=addD(h,-((dt.getDay()+6)%7)), dias=Array.from({length:7},(_,i)=>addD(ini,i));
+    const DS=["seg","ter","qua","qui","sex","sáb","dom"];
+    const its7=dias.flatMap(d=>{ const q=state.plano.find(x=>x._id===d); return d<=h&&q?q.itens||[]:[]; }), fe7=its7.filter(i=>statusItem(i).feito).length;
+    const verdes=dias.filter(d=>{ const x=state.dias.find(y=>y.data===d); return x&&x.cor==="verde"; }).length;
+    const notas7=regs().filter(r=>r.data>=ini&&r.data<=h);
+    const r=state.recompensa;
+    $("g-semana").innerHTML=`<div class="card-h"><h2>Resumo da semana</h2><span class="tag">para os 10 minutos de domingo</span></div>
+      <div class="semdots">${dias.map((d,i)=>{ const x=state.dias.find(y=>y.data===d); return `<span><i style="background:${x?(x.folga?"var(--muted)":COR[x.cor]):"var(--line)"}"></i>${DS[i]}</span>`; }).join("")}</div>
+      <div class="kpis" style="margin:12px 0 0;grid-template-columns:repeat(3,1fr)">
+        <div class="kpi"><span class="label">Plano feito</span><span class="val num">${its7.length?Math.round(fe7/its7.length*100)+"%":"–"}</span><span class="foot">${fe7} de ${its7.length} atividades</span></div>
+        <div class="kpi"><span class="label">Dias verdes</span><span class="val num">${verdes}</span><span class="foot">${r&&r.texto?`meta ${r.meta||4} para "${esc(r.texto)}"`:"sem recompensa definida"}</span></div>
+        <div class="kpi"><span class="label">Notas na semana</span><span class="val num">${notas7.length?f1(avg(notas7.map(x=>x.nota))):"–"}</span><span class="foot">${notas7.length} nota(s)</span></div></div>`;
+  }
+  document.addEventListener("click", e=>{ const b=e.target.closest("[data-ir]"); if(!b) return; e.preventDefault(); show(b.dataset.ir); window.scrollTo({top:0}); });
+
   // ---------- plano e constância ----------
   const MOM = {aquecimento:"Aquecimento", frio:"Revisão (frio)", quente:"Preparar aula (quente)", missao:"Missão", prova:"Prova", simulado:"Simulado", extra:"Extra", livro:"Livro"};
   const DSEM = ["dom","seg","ter","qua","qui","sex","sáb"];
@@ -717,6 +812,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
     const dd=ultEsc?Math.round((new Date(h+"T12:00:00")-new Date(ultEsc+"T12:00:00"))/864e5):null;
     $("g-notas").hidden = !(dd==null || dd>=5);
     $("g-notas").innerHTML = dd==null ? "Nenhuma nota da escola lançada ainda." : `A última nota da escola foi lançada há <b>${dd} dias</b> (${fmtData(ultEsc)}). Tem prova, trabalho ou atividade corrigida nova? Lance na aba Matérias, ou pelo botão no Café da tarde.`;
+    renderHoje();
     const hp=dias.find(d=>d._id===h);
     $("g-hoje").innerHTML = `<div class="row" style="margin-bottom:6px"><h2 style="margin:0">Estudo de hoje</h2><span class="tag">${hp?`${Math.round(pct(hp)*100)}% feito`:"sem plano hoje"}</span></div>`+
       (hp?(hp.itens||[]).map(i=>{ const s=statusItem(i); return `<div style="padding:2px 0">${s.feito?'<span class="pill good">✓</span>':'<span class="pill na">·</span>'} ${esc(i.titulo)}${s.nota!=null?` · nota <b>${f1(+s.nota)}</b>`:''}</div>`; }).join(""):'<div class="tag">Nada planejado para hoje.</div>');
@@ -735,7 +831,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
   document.addEventListener("click", async e=>{ const b=e.target.closest("[data-reabrir]"); if(!b) return; b.disabled=true; try{ await api("reabrir",{provaId:b.dataset.reabrir}); await refresh(); }catch(err){ b.textContent="Erro"; } });
 
   render();
-  Object.keys(state).forEach(col=> db.collection(col).onSnapshot(s=>{ state[col]=s.docs.map(d=>({...d.data(), _id:d.id})); }));
+  Object.keys(state).forEach(col=> db.collection(col).onSnapshot(s=>{ let L=s.docs.map(d=>({...d.data(), _id:d.id})); if(col==="metas"){ state.recompensa=L.find(x=>x._id==="recompensa")||null; L=L.filter(x=>x._id!=="recompensa"); } state[col]=L; }));
   refresh().then(()=>{ $("status").textContent=SESS.nome+" · dados sincronizados"; vcCarregar(); }).catch(e=>{ $("status").textContent="Erro ao carregar"; $("offline").hidden=false; });
 })();
 </script>

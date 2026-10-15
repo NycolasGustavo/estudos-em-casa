@@ -389,3 +389,58 @@ a.nl:hover{background:var(--bg)}
 .fc-fim{align-items:center;text-align:center}
 @media (max-width:980px){.erros-top{grid-template-columns:1fr 1fr}.side-of{margin-top:0}}
 .side-of + .side-foot{margin-top:0}
+/* v5: densidade em telas largas, agenda-caderno, notas, recompensa */
+.main{max-width:1880px;padding:18px 26px 40px}
+.stack{gap:14px}
+.panel{padding:16px 18px;border-radius:16px}
+.mtop h1{font-size:28px}
+.home3{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr);gap:16px;align-items:start}
+.home3 .c1{grid-row:span 2}
+.home3 .c3{grid-column:2}
+@media (min-width:1500px){.home3{grid-template-columns:minmax(0,1.5fr) minmax(300px,.95fr) minmax(300px,.95fr)}.home3 .c1{grid-row:auto}.home3 .c3{grid-column:3}}
+@media (max-width:980px){.home3{grid-template-columns:1fr}.home3 .c3{grid-column:auto}}
+.sol-card{background:linear-gradient(180deg,color-mix(in srgb,#F2C46B 22%,var(--card)),var(--card) 65%);padding:12px 14px;gap:6px}
+.sol-pet svg{width:140px;height:auto}
+.side-of{background:color-mix(in srgb,#F2C46B 20%,var(--card))}
+.agenda-lay{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:20px;align-items:start}
+@media (max-width:1200px){.agenda-lay{grid-template-columns:1fr}}
+.caderno{position:sticky;top:14px;background:#2F55C9;border-radius:18px 18px 14px 14px;padding:12px 12px 14px;box-shadow:0 10px 24px rgba(28,33,64,.18)}
+.cad-capa{display:flex;justify-content:center;padding:4px 0 12px}
+.cad-etq{background:#FFFDF6;color:#1C2140;font-family:"Patrick Hand",var(--body);font-size:20px;padding:4px 18px;border-radius:6px;transform:rotate(-1.5deg);box-shadow:0 2px 0 rgba(0,0,0,.15)}
+.cad-espiral{height:22px;margin:-6px 6px -12px;position:relative;z-index:2;background:radial-gradient(circle at 50% 50%,#1C2140 0 4px,transparent 4.5px) 0 0/26px 22px repeat-x,linear-gradient(#C9CCD6,#C9CCD6) 0 50%/100% 0 no-repeat}
+.cad-espiral::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 5px 11px at 50% 30%,transparent 3px,#B8BDC9 3.5px 5px,transparent 5.5px) 0 0/26px 22px repeat-x}
+.cad-folha{background-color:#FFFDF6;background-image:linear-gradient(90deg,transparent 40px,#F2A0A8 40px 42px,transparent 42px),repeating-linear-gradient(180deg,transparent 0 29px,#CFE0F5 29px 30px);border-radius:8px;padding:22px 14px 16px 52px;color:#1C2140;font-family:"Patrick Hand",var(--body);font-size:18px;line-height:30px;max-height:calc(100vh - 120px);overflow:auto}
+.cad-h{display:block;font-size:21px;color:#2F55C9;margin-top:6px}.cad-h.passou{color:#8A94A6}
+.cad-form{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;margin-bottom:8px}
+.cad-form .cad-h{grid-column:1/-1}
+.cad-form label{display:flex;flex-direction:column;font-size:15px;line-height:22px;color:#5E6483;margin-bottom:6px}
+.cad-form label.lg{grid-column:1/-1}
+.cad-form input,.cad-form select{font-family:"Patrick Hand",var(--body);font-size:18px;background:transparent;border:0;border-bottom:2px dashed #9FB4E6;border-radius:0;padding:2px 2px;color:#1C2140}
+.cad-form button{grid-column:1/-1;margin-top:4px;font-family:"Patrick Hand",var(--body);font-size:19px}
+.cad-dia{font-weight:700;color:#C2413A;margin-top:4px}.cad-dia small{color:#8A94A6;font-weight:400;font-size:15px;margin-left:6px}.cad-dia.passou{color:#8A94A6}
+.cad-l{display:flex;gap:8px;align-items:baseline;min-height:30px}
+.cad-tipo{flex:none;font-size:14px;line-height:20px;border:1.5px solid var(--mc);color:var(--mc);border-radius:6px;padding:0 6px;font-family:var(--body);font-weight:700}
+.cad-txt{flex:1;min-width:0}.cad-ok{color:#1E8A5A;font-weight:700}.cad-x{background:none;color:#C2413A;border:0;font-size:22px;padding:0 4px;line-height:1}
+.vazio-l{color:#8A94A6}
+.ntiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.ntile{display:flex;flex-direction:column;align-items:flex-start;gap:4px;background:var(--card);color:var(--fg);border:1.5px solid var(--line);border-left:6px solid var(--w);border-radius:14px;padding:12px 14px;text-align:left;opacity:.55}
+.ntile.on{opacity:1;box-shadow:0 2px 0 var(--line)}
+.ntile b{font-family:var(--display);font-size:34px;line-height:1}
+.nt-h{display:flex;gap:8px;align-items:center;font-size:14px;font-weight:700}
+.nt-r{font-size:12.5px;color:var(--soft);font-weight:500}
+.tend{margin-left:4px;font-weight:700;color:var(--soft)}.tend.up{color:var(--ok)}.tend.down{color:var(--bad)}
+.notas-grid{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(280px,1fr);gap:14px;align-items:start}
+.nsmall{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:1200px){.ntiles,.nsmall{grid-template-columns:repeat(2,minmax(0,1fr))}.notas-grid{grid-template-columns:1fr}}
+.tchart{width:100%;height:auto;display:block}.tchart .ax{font-size:11px;fill:var(--soft);font-family:var(--body)}.tchart .lbl{font-weight:700;fill:var(--fg)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--soft);align-items:center}.legend span{display:flex;gap:6px;align-items:center}
+.mb{display:grid;gap:4px;padding:6px 0;border-top:1px solid var(--line)}
+.mb-l{display:grid;grid-template-columns:56px 1fr 34px;gap:8px;align-items:center;font-size:13px;color:var(--soft)}.mb-l b{color:var(--fg);text-align:right}
+.mb-t{position:relative;height:12px;background:var(--bg);border-radius:6px}.mb-t i{display:block;height:100%;border-radius:6px}.mb-t em{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--sun)}
+#tip{position:absolute;z-index:50;background:var(--fg);color:var(--bg);font-size:13px;padding:6px 10px;border-radius:8px;pointer-events:none;max-width:260px}
+.recomp{border:2px dashed #E5761A;border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;background:color-mix(in srgb,#F2C46B 12%,var(--card))}
+.recomp.ok{border-style:solid;background:color-mix(in srgb,var(--ok) 14%,var(--card))}
+.rc-k{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#E5761A;font-weight:800}.recomp b{font-family:var(--display);font-size:20px}
+.rc-dots{display:flex;gap:6px}.rc-dots i{width:22px;height:22px;border-radius:50%;background:var(--line)}.rc-dots i.on{background:var(--ok)}
+.sem-grid .sdia{min-height:120px}
+.itens{gap:8px}.item{padding:10px 12px}
