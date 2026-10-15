@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Painel da Isabella</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: boletim de bolso — faixa de resumo, abas; aba Matérias = gráfico semanal por matéria com 3 linhas */
+:root{
+  --bg:#F5F6FA; --surface:#FFFFFF; --ink:#1C2140; --muted:#5E6483; --line:#DFE2EC;
+  --accent:#2F55C9; --accent-soft:#E6ECFB; --mark:#F5D547;
+  --good:#1E8A5A; --warn:#B7791F; --bad:#C2413A; --black:#2A2A2A;
+  --good-s:#E3F4EA; --warn-s:#FBF1D4; --bad-s:#FBE3E1; --black-s:#E7E7E7;
+  --prova:#2F55C9; --escola:#D2632A; --casa:#1E8A5A;
+  --display:"Bricolage Grotesque", "Figtree", system-ui, sans-serif;
+  --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12152A; --surface:#1B1F38; --ink:#E9EBF5; --muted:#A3A8C4; --line:#2E3354;
+  --accent:#8AA6FF; --accent-soft:#25305C; --mark:#E8C93A;
+  --good:#4CC28A; --warn:#E3A84A; --bad:#F07A72; --black:#C9CBD6;
+  --good-s:#173A2A; --warn-s:#3D3216; --bad-s:#43211F; --black-s:#2C2F45;
+  --prova:#8AA6FF; --escola:#F0935E; --casa:#4CC28A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12152A; --surface:#1B1F38; --ink:#E9EBF5; --muted:#A3A8C4; --line:#2E3354;
+  --accent:#8AA6FF; --accent-soft:#25305C; --mark:#E8C93A;
+  --good:#4CC28A; --warn:#E3A84A; --bad:#F07A72; --black:#C9CBD6;
+  --good-s:#173A2A; --warn-s:#3D3216; --bad-s:#43211F; --black-s:#2C2F45;
+  --prova:#8AA6FF; --escola:#F0935E; --casa:#4CC28A; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:16px;padding-block:20px 48px}
+header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px;margin-bottom:18px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(26px,4vw,36px);line-height:1.1;margin:0;text-wrap:balance}
+h1 .hl{background:linear-gradient(transparent 62%,var(--mark) 62%);padding:0 2px}
+.sub{color:var(--muted);margin:4px 0 0}
+.status{font-size:13px;color:var(--muted)}
+h2{font-family:var(--display);font-weight:700;font-size:20px;margin:0 0 10px;text-wrap:balance}
+h3{font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;font-weight:600}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.kpi .label{font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.kpi .val{font-family:var(--display);font-size:30px;font-weight:700;line-height:1.1}
+.kpi .val small{font-size:15px;color:var(--muted);font-weight:500}
+.kpi .foot{font-size:13px;color:var(--muted)}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.pill.good{color:var(--good)} .pill.warn{color:var(--warn)} .pill.bad{color:var(--bad)} .pill.na{color:var(--muted)}
+nav.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:8px 0 18px;overflow-x:auto}
+nav.tabs button{font:inherit;font-weight:600;background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);padding:10px 12px;cursor:pointer;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media (max-width:760px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.stack{display:flex;flex-direction:column;gap:16px}
+form.entry{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;align-items:end}
+form.entry label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted);min-width:0}
+input,select,textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:7px 9px;width:100%;min-width:0}
+.btn{font:inherit;font-weight:600;font-size:14px;background:var(--accent);color:var(--surface);border:0;border-radius:7px;padding:8px 14px;cursor:pointer}
+.btn.ghost{background:none;color:var(--muted);border:1px solid var(--line);padding:3px 9px;font-size:12px}
+.btn.ghost.armed{color:var(--bad);border-color:var(--bad)}
+.tablewrap{overflow-x:auto;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+td.r,th.r{text-align:right}
+.empty{color:var(--muted);font-size:14px;padding:14px;border:1px dashed var(--line);border-radius:8px;margin-top:12px}
+.chart svg{width:100%;height:auto;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);margin-top:8px}
+.legend span::before{content:"";display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle;background:var(--sw)}
+.legend span.dash::before{background:none;border-top:2px dashed var(--sw);height:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:13px;font-weight:600;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.chip .n{font-family:var(--mono);font-size:11px;opacity:.8;margin-left:4px}
+.minis{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.mini{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;text-align:left;font:inherit;color:inherit;min-width:0}
+.mini:hover{border-color:var(--accent)}
+.mini .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.mini .name{font-weight:600}
+.mini .avg{font-family:var(--display);font-size:24px;font-weight:700}
+.mini svg{width:100%;height:42px;display:block;margin-top:4px}
+.insight{background:var(--accent-soft);border-radius:8px;padding:10px 12px;font-size:14px;margin-top:12px}
+.segmented{display:flex;flex-wrap:wrap;gap:6px}
+.segmented button{font:inherit;font-weight:600;font-size:14px;border-radius:8px;padding:8px 14px;cursor:pointer;border:2px solid transparent}
+.segmented button[data-c="verde"]{background:var(--good-s);color:var(--good)}
+.segmented button[data-c="amarelo"]{background:var(--warn-s);color:var(--warn)}
+.segmented button[data-c="vermelho"]{background:var(--bad-s);color:var(--bad)}
+.segmented button[data-c="preto"]{background:var(--black-s);color:var(--black)}
+.segmented button[aria-pressed="true"]{border-color:currentColor}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:middle;margin-right:6px}
+.checks{display:flex;flex-wrap:wrap;gap:14px;font-size:14px}
+.checks label{display:flex;gap:6px;align-items:center;color:var(--ink);font-weight:500}
+.checks input{width:18px;height:18px;accent-color:var(--accent)}
+.metas{display:flex;flex-direction:column;gap:6px}
+.meta{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid var(--line);border-radius:8px}
+.meta input{width:18px;height:18px;margin-top:2px;flex:none;accent-color:var(--accent)}
+.meta.done .t{text-decoration:line-through;color:var(--muted)}
+.meta .t{flex:1;min-width:0}
+.tag{font-size:12px;color:var(--muted)}
+.groupname{font-family:var(--display);font-weight:700;font-size:16px;margin:16px 0 8px;display:flex;justify-content:space-between;gap:8px}
+.notice{background:var(--accent-soft);border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:14px}
+.msg{font-size:13px;margin-top:8px;min-height:1em}
+.msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+
+.top-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.top-actions a,.top-actions button{font:inherit;font-size:13px;font-weight:600;color:var(--accent);background:none;border:1px solid var(--line);border-radius:7px;padding:5px 10px;text-decoration:none;cursor:pointer}
+a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
+.badge{display:inline-block;min-width:18px;padding:0 6px;border-radius:999px;background:var(--bad);color:#fff;font-size:11px;margin-left:4px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Painel da <span class="hl">Isabella</span></h1>
+      <p class="sub">Matérias semana a semana, Etapa 0, leitura e metas</p>
+    </div>
+    <div class="top-actions"><span class="status" id="status">Conectando aos dados…</span><a href="index.html#/aluna">Ver como a Isabella</a><button id="sair" type="button">Sair</button></div>
+  </header>
+  <div class="notice" id="offline" hidden>Não foi possível carregar os dados. Confira a internet e recarregue a página.</div>
+
+  <section class="kpis" aria-label="Resumo">
+    <div class="kpi"><span class="label">Etapa 0 · esta semana</span><span class="val num" id="k-e0">–</span><span class="foot" id="k-e0-foot">Dias verdes ou amarelos (meta 4 de 5)</span></div>
+    <div class="kpi"><span class="label">Branco escondido · 30 dias</span><span class="val num" id="k-branco">–</span><span class="foot">Meta: zero</span></div>
+    <div class="kpi"><span class="label">Média geral · 4 semanas</span><span class="val num" id="k-media">–</span><span class="foot" id="k-media-foot">Todas as notas registradas</span></div>
+    <div class="kpi"><span class="label">Livros no ano</span><span class="val num" id="k-livros">–</span><div class="bar"><i id="k-livros-bar" style="width:0"></i></div></div>
+    <div class="kpi"><span class="label">Metas do período</span><span class="val num" id="k-metas">–</span><div class="bar"><i id="k-metas-bar" style="width:0"></i></div><span class="foot" id="k-metas-foot"></span></div>
+  </section>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="geral">Visão geral</button>
+    <button role="tab" aria-selected="false" data-tab="materias">Matérias</button>
+    <button role="tab" aria-selected="false" data-tab="etapa0">Etapa 0</button>
+    <button role="tab" aria-selected="false" data-tab="boletim">Boletim</button>
+    <button role="tab" aria-selected="false" data-tab="leitura">Leitura e medições</button>
+    <button role="tab" aria-selected="false" data-tab="metas">Metas</button>
+    <button role="tab" aria-selected="false" data-tab="provas">Provas em casa<span class="badge" id="b-corr" hidden></span></button>
+  </nav>
+
+  <!-- VISÃO GERAL -->
+  <section data-pane="geral" class="stack">
+    <div>
+      <div class="row" style="margin-bottom:10px"><h2 style="margin:0">Matérias</h2><span class="tag">Média das últimas 3 notas · clique para abrir</span></div>
+      <div class="minis" id="minis"></div>
+    </div>
+    <div class="grid2">
+      <div class="panel chart"><h3>Etapa 0 · cor dos dias por semana</h3><div id="ch-e0-g"></div></div>
+      <div class="panel"><h3>Próximas metas</h3><div id="g-metas"></div></div>
+    </div>
+  </section>
+
+  <!-- MATÉRIAS -->
+  <section data-pane="materias" class="stack" hidden>
+    <div class="panel">
+      <div class="row">
+        <div class="chips" id="chips"></div>
+        <label style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--muted);font-weight:600">Ano <select id="ano" style="width:auto"></select></label>
+      </div>
+    </div>
+    <section class="kpis" id="m-kpis" style="margin:0"></section>
+    <div class="panel chart">
+      <div class="row"><h2 id="m-title" style="margin:0">Português</h2><span class="tag">Média semanal, nota de 0 a 10 · semana do ano</span></div>
+      <div id="ch-materia" style="margin-top:8px"></div>
+      <div class="legend">
+        <span style="--sw:var(--prova)">Provas e simulados da escola</span>
+        <span style="--sw:var(--escola)">Atividades da escola</span>
+        <span style="--sw:var(--casa)">Atividades e provas em casa</span>
+        <span class="dash" style="--sw:var(--good)">8,5 meta de excelência</span>
+        <span class="dash" style="--sw:var(--bad)">7,0 mínimo</span>
+      </div>
+      <div class="insight" id="m-insight"></div>
+    </div>
+    <div class="panel">
+      <h2>Registrar nota</h2>
+      <form class="entry" id="f-reg">
+        <label>Data<input id="r-data" type="date" required></label>
+        <label>Matéria<select id="r-mat"></select></label>
+        <label>Tipo<select id="r-tipo"></select></label>
+        <label style="grid-column:span 2">Título ou conteúdo<input id="r-tit" placeholder="Ex.: Divisão com resto"></label>
+        <label>Acertos<input id="r-ac" type="number" min="0" step="0.5"></label>
+        <label>Total<input id="r-tot" type="number" min="1" step="0.5"></label>
+        <label>ou Nota (0 a 10)<input id="r-nota" type="number" min="0" max="10" step="0.1"></label>
+        <button class="btn" type="submit">Salvar</button>
+      </form>
+      <div class="msg" id="m-reg"></div>
+      <div id="t-reg"></div>
+    </div>
+  </section>
+
+  <!-- ETAPA 0 -->
+  <section data-pane="etapa0" class="stack" hidden>
+    <div class="panel">
+      <h2>Visto do dia</h2>
+      <form id="f-dia" class="stack" style="gap:12px">
+        <div class="row" style="justify-content:flex-start;gap:14px">
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted);max-width:170px">Data<input id="d-data" type="date" required></label>
+          <div><div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px">Cor do dia</div>
+            <div class="segmented" id="d-cor">
+              <button type="button" data-c="verde" aria-pressed="false">Verde</button>
+              <button type="button" data-c="amarelo" aria-pressed="false">Amarelo</button>
+              <button type="button" data-c="vermelho" aria-pressed="false">Vermelho</button>
+              <button type="button" data-c="preto" aria-pressed="false">Preto</button>
+            </div></div>
+        </div>
+        <div class="checks">
+          <label><input type="checkbox" id="d-foto">Foto da manhã</label>
+          <label><input type="checkbox" id="d-agenda">Agenda completa</label>
+          <label><input type="checkbox" id="d-cad">Cadernos ok</label>
+          <label><input type="checkbox" id="d-aula">Contou a aula</label>
+        </div>
+        <div class="entry" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end">
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted)">Pendências com estrela<input id="d-est" type="number" min="0" value="0"></label>
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted)">Em branco escondido<input id="d-branco" type="number" min="0" value="0"></label>
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted);grid-column:span 2">Observação<input id="d-obs"></label>
+          <button class="btn" type="submit">Salvar o dia</button>
+        </div>
+      </form>
+      <div class="msg" id="m-dia"></div>
+    </div>
+    <div class="panel chart"><h3>Cor dos dias por semana</h3><div id="ch-e0"></div>
+      <div class="legend"><span style="--sw:var(--good)">Verde</span><span style="--sw:var(--warn)">Amarelo</span><span style="--sw:var(--bad)">Vermelho</span><span style="--sw:var(--black)">Preto</span></div></div>
+    <div class="panel"><h3>Últimos dias</h3><div id="t-dias"></div></div>
+  </section>
+
+  <!-- BOLETIM -->
+  <section data-pane="boletim" hidden>
+    <div class="panel">
+      <h2>Boletim da escola</h2>
+      <form class="entry" id="f-nota">
+        <label>Ano letivo<input id="n-ano" type="number" min="2026" max="2040" required></label>
+        <label>Período<select id="n-periodo"><option>1º trimestre</option><option>2º trimestre</option><option>3º trimestre</option><option>1º bimestre</option><option>2º bimestre</option><option>3º bimestre</option><option>4º bimestre</option><option>Final</option></select></label>
+        <label>Matéria<select id="n-materia"></select></label>
+        <label>Nota (0 a 10)<input id="n-nota" type="number" step="0.1" min="0" max="10" required></label>
+        <button class="btn" type="submit">Salvar</button>
+      </form>
+      <div class="msg" id="m-nota"></div>
+      <div id="t-notas"></div>
+    </div>
+  </section>
+
+  <!-- LEITURA -->
+  <section data-pane="leitura" class="stack" hidden>
+    <div class="panel">
+      <h2>Diário de leitura</h2>
+      <form class="entry" id="f-livro">
+        <label>Título<input id="l-titulo" required></label>
+        <label>Autor<input id="l-autor"></label>
+        <label>Formato<select id="l-fmt"><option>Papel</option><option>Áudio</option></select></label>
+        <label>Começou em<input id="l-inicio" type="date"></label>
+        <label>Terminou em<input id="l-fim" type="date"></label>
+        <button class="btn" type="submit">Salvar livro</button>
+      </form>
+      <div class="msg" id="m-livro"></div>
+      <div id="t-livros"></div>
+    </div>
+    <div class="panel">
+      <h2>Medições trimestrais</h2>
+      <form class="entry" id="f-med">
+        <label>Data<input id="q-data" type="date" required></label>
+        <label>Leitura (palavras/min)<input id="q-ppm" type="number" min="0"></label>
+        <label>Tabuada (seg. por conta)<input id="q-tab" type="number" step="0.1" min="0"></label>
+        <label>Redação (0 a 10)<input id="q-red" type="number" step="0.5" min="0" max="10"></label>
+        <button class="btn" type="submit">Salvar</button>
+      </form>
+      <div class="msg" id="m-med"></div>
+      <div id="t-med"></div>
+    </div>
+  </section>
+
+  <!-- METAS -->
+  <section data-pane="metas" hidden>
+    <div class="panel">
+      <h2>Metas do plano</h2>
+      <form class="entry" id="f-meta">
+        <label>Período<input id="t-periodo" placeholder="Ex.: T1 2027" required></label>
+        <label>Pilar<select id="t-pilar"><option>Leitura</option><option>Matemática</option><option>Inglês</option><option>Hábitos</option><option>Ciência e tecnologia</option><option>Comunicação</option><option>Corpo e arte</option><option>Caráter e cidadania</option></select></label>
+        <label style="grid-column:span 2">Meta<input id="t-titulo" required></label>
+        <button class="btn" type="submit">Adicionar</button>
+      </form>
+      <div class="msg" id="m-meta"></div>
+      <div id="t-metas"></div>
+    </div>
+  </section>
+  <!-- PROVAS EM CASA -->
+  <section data-pane="provas" class="stack" hidden>
+    <div class="notice">As provas são criadas pelo Claude direto no banco. Peça numa conversa, por exemplo: "prova de Matemática sobre divisão com resto, 15 questões, para amanhã".</div>
+    <div class="panel" id="p-corr"></div>
+    <div class="panel"><h2>Provas</h2><div id="t-provas"></div></div>
+    <div class="panel"><h2>Tentativas da Isabella</h2><div id="t-tent"></div></div>
+    <div class="panel"><h2>Habilidades</h2><p class="tag" style="margin:0">Cada questão das provas de casa soma na sua habilidade. O alerta só acende com 3 questões ou mais.</p><div id="t-hab"></div></div>
+  </section>
+</div>
+
+<script src="config.js"></script>
+<script>
+(() => {
+  const MATERIAS = ["Português","Matemática","Ciências","História","Geografia","Inglês","Arte","Educação Física","Ensino Religioso"];
+  const TIPOS = [
+    ["Prova (escola)","prova"],["Simulado (escola)","prova"],["Olimpíada","prova"],
+    ["Atividade (escola)","escola"],["Trabalho (escola)","escola"],["Tarefa de casa (escola)","escola"],
+    ["Atividade (casa)","casa"],["Prova (casa)","casa"]
+  ];
+  const GRUPO = Object.fromEntries(TIPOS);
+  const LEGACY = {"Simulado da escola":"Simulado (escola)","Prova da escola":"Prova (escola)","Prova em casa":"Prova (casa)"};
+  const META_LIVROS = {2026:3, 2027:12, 2028:18, 2029:20, 2030:24, 2031:24};
+  const COR = {verde:"var(--good)", amarelo:"var(--warn)", vermelho:"var(--bad)", preto:"var(--black)"};
+  const $ = id => document.getElementById(id);
+  const state = {avaliacoes:[], notas:[], leitura:[], medicoes:[], metas:[], dias:[]};
+  let extra = {tentativas:[],provas:[],pendentesCorrecao:[],habilidades:[]};
+  let db = null, materia = "Português", ano = new Date().getFullYear();
+  const anoAtual = new Date().getFullYear();
+
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const fmtData = d => d ? d.split("-").reverse().join("/") : "–";
+  const f1 = n => n==null||isNaN(n) ? "–" : (Math.round(n*10)/10).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1});
+  const avg = a => a.length ? a.reduce((s,x)=>s+x,0)/a.length : null;
+  function hoje(){ const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10); }
+  function isoWeek(iso){ const d=new Date(iso+"T12:00:00Z"); const day=(d.getUTCDay()+6)%7; d.setUTCDate(d.getUTCDate()-day+3); const y=d.getUTCFullYear(); const f=new Date(Date.UTC(y,0,4)); return {y, w:1+Math.round(((d-f)/864e5-3+((f.getUTCDay()+6)%7))/7)}; }
+  function mondayOf(iso){ const d=new Date(iso+"T12:00:00"); d.setDate(d.getDate()-((d.getDay()+6)%7)); return d.toISOString().slice(0,10); }
+  function setMsg(id,t,ok){ const m=$(id); m.textContent=t; m.className="msg "+(ok?"ok":"err"); if(ok) setTimeout(()=>{ if(m.textContent===t) m.textContent=""; },2500); }
+  function status(v){ if(v==null) return '<span class="pill na">sem dado</span>'; return v>=8.5?'<span class="pill good">no alvo</span>':v>=7?'<span class="pill warn">atenção</span>':'<span class="pill bad">reforço</span>'; }
+  const delBtn = (col,id) => `<button class="btn ghost" data-del="${col}" data-id="${esc(id)}">Excluir</button>`;
+
+  // normaliza registro de avaliação
+  function norm(a){
+    const tipo = LEGACY[a.tipo] || a.tipo || "Atividade (escola)";
+    const mat = a.materia || a.area || "Geral";
+    let nota = a.nota!=null && a.nota!=="" ? +a.nota : (a.total ? (+a.acertos/+a.total)*10 : null);
+    return {...a, tipo, materia:mat, nota, grupo: GRUPO[tipo] || "escola"};
+  }
+  const regs = () => state.avaliacoes.concat((extra.tentativas||[]).filter(t=>t.status==="corrigida").map(t=>({_id:t.id, _tent:true, data:t.data, materia:t.materia, tipo:"Prova (casa)", titulo:t.titulo, acertos:t.pontos, total:t.max, nota:+t.nota}))).map(norm).filter(r=>r.nota!=null && r.data);
+
+  // tabs
+  const tabs=[...document.querySelectorAll("nav.tabs button")];
+  function show(n){ tabs.forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===n?"true":"false")); document.querySelectorAll("[data-pane]").forEach(p=>p.hidden=p.dataset.pane!==n); try{localStorage.setItem("aba",n)}catch(e){} }
+  tabs.forEach(b=>b.addEventListener("click",()=>show(b.dataset.tab)));
+  try{ const a=localStorage.getItem("aba"); if(a && tabs.some(b=>b.dataset.tab===a)) show(a); const m=localStorage.getItem("materia"); if(m) materia=m; }catch(e){}
+
+  // selects
+  $("r-mat").innerHTML = MATERIAS.map(m=>`<option>${m}</option>`).join("");
+  $("n-materia").innerHTML = MATERIAS.map(m=>`<option>${m}</option>`).join("");
+  $("r-tipo").innerHTML = TIPOS.map(([t])=>`<option>${t}</option>`).join("");
+  function defaults(){ $("r-data").value=hoje(); $("d-data").value=hoje(); $("q-data").value=hoje(); $("n-ano").value=anoAtual; }
+  defaults();
+
+  // ---------- gráfico da matéria (semanas do ano) ----------
+  function chartMateria(el, rs, year){
+    const W=760,H=300,L=36,R=16,T=14,B=34;
+    const X = w => L+(w-1)/52*(W-L-R), Y = v => T+(1-v/10)*(H-T-B);
+    let g="";
+    for(const v of [0,2,4,6,8,10]) g+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${L-8}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v}</text>`;
+    g+=`<line x1="${L}" x2="${W-R}" y1="${Y(8.5)}" y2="${Y(8.5)}" stroke="var(--good)" stroke-dasharray="5 4" stroke-width="1.2"/>`;
+    g+=`<line x1="${L}" x2="${W-R}" y1="${Y(7)}" y2="${Y(7)}" stroke="var(--bad)" stroke-dasharray="5 4" stroke-width="1.2"/>`;
+    const meses=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+    meses.forEach((m,i)=>{ const iso=`${year}-${String(i+1).padStart(2,"0")}-01`; let w=isoWeek(iso); const wk = w.y===year?w.w:1; g+=`<text x="${X(wk)}" y="${H-12}" font-size="11" fill="var(--muted)" text-anchor="middle">${m}</text>`; });
+    // semana atual
+    const hw=isoWeek(hoje()); if(hw.y===year) g+=`<line x1="${X(hw.w)}" x2="${X(hw.w)}" y1="${T}" y2="${H-B}" stroke="var(--accent)" stroke-dasharray="2 4" opacity=".6"/><text x="${X(hw.w)}" y="${T+10}" font-size="10.5" fill="var(--accent)" text-anchor="middle">hoje</text>`;
+    const series=[["prova","var(--prova)"],["escola","var(--escola)"],["casa","var(--casa)"]];
+    let any=false;
+    for(const [gp,col] of series){
+      const by={}; rs.filter(r=>r.grupo===gp).forEach(r=>{ const w=isoWeek(r.data); if(w.y!==year) return; (by[w.w]=by[w.w]||[]).push(r); });
+      const pts=Object.keys(by).map(Number).sort((a,b)=>a-b).map(w=>({w, v:avg(by[w].map(r=>r.nota)), n:by[w]}));
+      if(!pts.length) continue; any=true;
+      g+=`<path d="${pts.map((p,i)=>(i?"L":"M")+X(p.w).toFixed(1)+" "+Y(p.v).toFixed(1)).join(" ")}" fill="none" stroke="${col}" stroke-width="2.2"/>`;
+      pts.forEach((p,i)=>{ const last=i===pts.length-1;
+        const tip=`Semana ${p.w}: ${f1(p.v)} · `+p.n.map(r=>`${r.tipo}${r.titulo?" – "+r.titulo:""} (${f1(r.nota)})`).join("; ");
+        g+=`<circle cx="${X(p.w)}" cy="${Y(p.v)}" r="${last?5:3.5}" fill="${last?col:"var(--surface)"}" stroke="${col}" stroke-width="2"><title>${esc(tip)}</title></circle>`;
+        if(last) g+=`<text x="${X(p.w)+8}" y="${Y(p.v)-8}" font-size="11.5" font-weight="600" fill="var(--ink)">${f1(p.v)}</text>`; });
+    }
+    if(!any){ el.innerHTML=`<div class="empty">Ainda não há notas de ${esc(materia)} em ${year}. Registre a primeira abaixo.</div>`; return; }
+    el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Notas semanais de ${esc(materia)}">${g}</svg>`;
+  }
+  function sparkline(rs){
+    const s=rs.slice().sort((a,b)=>a.data<b.data?-1:1).slice(-12);
+    if(s.length<1) return "";
+    const W=200,H=42,X=i=>s.length===1?W/2:4+i/(s.length-1)*(W-8),Y=v=>4+(1-v/10)*(H-8);
+    const d=s.map((r,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Y(r.nota).toFixed(1)).join(" ");
+    const l=s[s.length-1];
+    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="${W}" y1="${Y(7)}" y2="${Y(7)}" stroke="var(--line)" stroke-dasharray="3 3"/><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2" vector-effect="non-scaling-stroke"/><circle cx="${X(s.length-1)}" cy="${Y(l.nota)}" r="3" fill="var(--accent)"/></svg>`;
+  }
+  function pearson(xs,ys){ const n=xs.length; if(n<4) return null; const mx=avg(xs),my=avg(ys); let a=0,b=0,c=0; for(let i=0;i<n;i++){ a+=(xs[i]-mx)*(ys[i]-my); b+=(xs[i]-mx)**2; c+=(ys[i]-my)**2; } return b&&c? a/Math.sqrt(b*c) : null; }
+
+  function chartE0(el){
+    const ds=state.dias.filter(d=>d.cor);
+    if(!ds.length){ el.innerHTML='<div class="empty">Registre o visto do dia na aba Etapa 0. Começa na segunda, 19/10.</div>'; return; }
+    const by={}; ds.forEach(d=>{ const m=mondayOf(d.data); (by[m]=by[m]||{verde:0,amarelo:0,vermelho:0,preto:0})[d.cor]++; });
+    const ws=Object.keys(by).sort().slice(-13);
+    const W=520,H=210,L=26,R=8,T=12,B=30, step=(W-L-R)/Math.max(ws.length,1), bw=Math.min(30,step*.6), Y=v=>T+(1-v/5)*(H-T-B);
+    let g=""; for(const v of [0,1,2,3,4,5]) g+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${L-6}" y="${Y(v)+4}" text-anchor="end" font-size="10.5" fill="var(--muted)">${v}</text>`;
+    ws.forEach((m,i)=>{ let acc=0; const x=L+step*i+(step-bw)/2;
+      for(const c of ["verde","amarelo","vermelho","preto"]){ const n=by[m][c]; if(!n) continue; g+=`<rect x="${x}" y="${Y(acc+n)}" width="${bw}" height="${Y(acc)-Y(acc+n)}" fill="${COR[c]}"><title>Semana de ${fmtData(m)} · ${c}: ${n}</title></rect>`; acc+=n; }
+      if(i===0||i===ws.length-1||ws.length<=6) g+=`<text x="${x+bw/2}" y="${H-10}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${m.slice(8)}/${m.slice(5,7)}</text>`; });
+    el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Cor dos dias por semana">${g}</svg>`;
+  }
+
+  // ---------- render ----------
+  function render(){
+    const R=regs();
+    // anos
+    const anos=[...new Set([anoAtual, ...R.map(r=>isoWeek(r.data).y)])].sort();
+    $("ano").innerHTML=anos.map(a=>`<option ${a===ano?"selected":""}>${a}</option>`).join("");
+
+    // KPIs
+    const seg=mondayOf(hoje()); const semana=state.dias.filter(d=>mondayOf(d.data)===seg);
+    const bons=semana.filter(d=>d.cor==="verde"||d.cor==="amarelo").length;
+    $("k-e0").innerHTML = semana.length ? `${bons}<small> / ${semana.length} dias</small>` : "–";
+    const d30=new Date(Date.now()-30*864e5).toISOString().slice(0,10);
+    const br=state.dias.filter(d=>d.data>=d30).reduce((s,d)=>s+(+d.branco||0),0);
+    $("k-branco").textContent = state.dias.length ? br : "–";
+    const d28=new Date(Date.now()-28*864e5).toISOString().slice(0,10);
+    const rec=R.filter(r=>r.data>=d28); const mg=avg(rec.map(r=>r.nota));
+    $("k-media").textContent = f1(mg); $("k-media-foot").innerHTML = rec.length? `${rec.length} notas ${status(mg)}` : "Sem notas nas últimas 4 semanas";
+    const livrosAno=state.leitura.filter(l=>l.fim && l.fim.startsWith(String(anoAtual))); const ml=META_LIVROS[anoAtual]||20;
+    $("k-livros").innerHTML=`${livrosAno.length}<small> / ${ml}</small>`; $("k-livros-bar").style.width=Math.min(100,livrosAno.length/ml*100)+"%";
+    const periodos=[...new Set(state.metas.slice().sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(m=>m.periodo))];
+    const pAtual=periodos.find(p=>state.metas.some(m=>m.periodo===p&&m.status!=="feita"))||periodos[0];
+    const mp=state.metas.filter(m=>m.periodo===pAtual);
+    if(mp.length){ const f=mp.filter(m=>m.status==="feita").length; $("k-metas").innerHTML=`${f}<small> / ${mp.length}</small>`; $("k-metas-bar").style.width=(f/mp.length*100)+"%"; $("k-metas-foot").textContent=pAtual; }
+
+    // mini cards por matéria
+    const mats=[...new Set([...MATERIAS.slice(0,2), ...R.map(r=>r.materia)])];
+    $("minis").innerHTML = mats.map(m=>{ const rs=R.filter(r=>r.materia===m).sort((a,b)=>a.data<b.data?-1:1); const v=avg(rs.slice(-3).map(r=>r.nota));
+      return `<button class="mini" data-goto="${esc(m)}"><div class="top"><span class="name">${esc(m)}</span>${status(v)}</div><div class="top"><span class="avg num">${f1(v)}</span><span class="tag">${rs.length} nota${rs.length===1?"":"s"}</span></div>${sparkline(rs)}</button>`; }).join("");
+
+    // chips
+    const cnt={}; R.forEach(r=>cnt[r.materia]=(cnt[r.materia]||0)+1);
+    $("chips").innerHTML = MATERIAS.map(m=>`<button class="chip" aria-pressed="${m===materia}" data-mat="${m}">${m}${cnt[m]?`<span class="n">${cnt[m]}</span>`:""}</button>`).join("");
+    $("m-title").textContent=materia;
+    const rs=R.filter(r=>r.materia===materia);
+    chartMateria($("ch-materia"), rs, ano);
+
+    // kpis da matéria
+    const last=(gp,n)=>{ const s=rs.filter(r=>gp?r.grupo===gp:true).sort((a,b)=>a.data<b.data?-1:1); return avg(s.slice(-n).map(r=>r.nota)); };
+    const ap=last("prova",3), ae=last("escola",3), ac=last("casa",3);
+    const all=rs.slice().sort((a,b)=>a.data<b.data?-1:1); const rec3=avg(all.slice(-3).map(r=>r.nota)), prev3=avg(all.slice(-6,-3).map(r=>r.nota));
+    const tend = rec3!=null && prev3!=null ? rec3-prev3 : null;
+    $("m-kpis").innerHTML=[
+      ["Provas da escola", ap], ["Atividades da escola", ae], ["Em casa", ac]
+    ].map(([l,v])=>`<div class="kpi"><span class="label">${l}</span><span class="val num">${f1(v)}</span><span class="foot">Últimas 3 notas ${status(v)}</span></div>`).join("")
+    + `<div class="kpi"><span class="label">Tendência</span><span class="val num">${tend==null?"–":(tend>0?"+":"")+f1(tend)}</span><span class="foot">3 últimas notas x 3 anteriores</span></div>`;
+
+    // insight
+    let ins=[];
+    const geral=rec3;
+    if(!rs.length) ins.push(`Ainda sem notas de ${materia}. Comece registrando as atividades da escola e os exercícios feitos em casa.`);
+    else {
+      if(geral<7) ins.push(`<b>Reforço indicado:</b> a média das últimas notas está abaixo de 7.`);
+      else if(geral<8.5) ins.push(`<b>Atenção:</b> acima do mínimo, ainda abaixo da meta de 8,5.`);
+      else ins.push(`<b>No alvo:</b> as últimas notas estão na meta de excelência.`);
+      if(ac!=null && ap!=null && ac-ap>=1.5) ins.push(`Em casa ela rende mais do que na prova (${f1(ac)} x ${f1(ap)}): vale treinar tempo e prova sem ajuda.`);
+      if(ac!=null && ap!=null && ap-ac>=1.5) ins.push(`Na prova ela rende mais do que em casa (${f1(ap)} x ${f1(ac)}): os exercícios de casa podem estar mais difíceis do que a escola cobra.`);
+      // correlação semanal casa x escola
+      const byW=(gp)=>{ const o={}; rs.filter(r=>gp.includes(r.grupo)).forEach(r=>{ const w=isoWeek(r.data); const k=w.y+"-"+w.w; (o[k]=o[k]||[]).push(r.nota); }); return o; };
+      const cw=byW(["casa"]), sw=byW(["escola","prova"]); const ks=Object.keys(cw).filter(k=>sw[k]);
+      const r_=pearson(ks.map(k=>avg(cw[k])), ks.map(k=>avg(sw[k])));
+      ins.push(r_==null ? `Correlação casa x escola: precisa de pelo menos 4 semanas com nota nos dois (hoje: ${ks.length}).` : `Correlação casa x escola: <b>${f1(r_).replace(",0","")}</b> em ${ks.length} semanas (${r_>=.5?"forte: o estudo em casa acompanha a escola":r_>=.2?"moderada":"fraca: o que é feito em casa não está refletindo na escola"}).`);
+    }
+    $("m-insight").innerHTML=ins.join("<br>");
+
+    // tabela de registros da matéria
+    $("t-reg").innerHTML = rs.length ? '<div class="tablewrap"><table><thead><tr><th>Data</th><th>Tipo</th><th>Título</th><th class="r">Acertos</th><th class="r">Nota</th><th></th></tr></thead><tbody>'+
+      rs.slice().sort((a,b)=>a.data<b.data?1:-1).map(r=>`<tr><td class="num">${fmtData(r.data)}</td><td><span class="dot" style="background:var(--${r.grupo==="prova"?"prova":r.grupo==="casa"?"casa":"escola"})"></span>${esc(r.tipo)}</td><td>${esc(r.titulo||"")}${r.obs?`<div class="tag">${esc(r.obs)}</div>`:""}</td><td class="r num">${r.total?`${r.acertos}/${r.total}`:"–"}</td><td class="r num">${f1(r.nota)}</td><td class="r">${r._tent?`<a class="lnk" href="index.html#/adulto/tentativa/${encodeURIComponent(r._id)}">Abrir</a>`:delBtn("avaliacoes",r._id)}</td></tr>`).join("")+'</tbody></table></div>'
+      : '';
+
+    // Etapa 0
+    chartE0($("ch-e0")); chartE0($("ch-e0-g"));
+    const ds=state.dias.slice().sort((a,b)=>a.data<b.data?1:-1).slice(0,15);
+    const yn=v=>v?"✓":"–";
+    $("t-dias").innerHTML = ds.length ? '<div class="tablewrap"><table><thead><tr><th>Dia</th><th>Cor</th><th>Foto</th><th>Agenda</th><th>Cadernos</th><th>Contou</th><th class="r">Estrelas</th><th class="r">Branco</th><th>Obs.</th><th></th></tr></thead><tbody>'+
+      ds.map(d=>`<tr><td class="num">${fmtData(d.data)}</td><td><span class="dot" style="background:${COR[d.cor]||"var(--line)"}"></span>${esc(d.cor||"")}</td><td>${yn(d.foto)}</td><td>${yn(d.agenda)}</td><td>${yn(d.cadernos)}</td><td>${yn(d.aula)}</td><td class="r num">${d.estrelas??0}</td><td class="r num">${d.branco??0}</td><td>${esc(d.obs)}</td><td class="r">${delBtn("dias",d._id)}</td></tr>`).join("")+'</tbody></table></div>'
+      : '<div class="empty">Nenhum dia registrado ainda.</div>';
+
+    // boletim
+    $("t-notas").innerHTML = state.notas.length ? '<div class="tablewrap"><table><thead><tr><th>Ano</th><th>Período</th><th>Matéria</th><th class="r">Nota</th><th></th></tr></thead><tbody>'+
+      state.notas.slice().sort((a,b)=>(b.ano-a.ano)||String(a.periodo).localeCompare(b.periodo)||String(a.materia).localeCompare(b.materia)).map(n=>`<tr><td class="num">${n.ano}</td><td>${esc(n.periodo)}</td><td>${esc(n.materia)}</td><td class="r num">${f1(+n.nota)}</td><td class="r">${delBtn("notas",n._id)}</td></tr>`).join("")+'</tbody></table></div>'
+      : '<div class="empty">Quando sair o boletim, registre uma linha por matéria.</div>';
+
+    // leitura
+    $("t-livros").innerHTML = state.leitura.length ? '<div class="tablewrap"><table><thead><tr><th>Livro</th><th>Autor</th><th>Formato</th><th>Início</th><th>Fim</th><th></th></tr></thead><tbody>'+
+      state.leitura.slice().sort((a,b)=>(b.inicio||"")<(a.inicio||"")?-1:1).map(l=>`<tr><td>${esc(l.titulo)}${l.fim?"":' <span class="pill warn">lendo</span>'}</td><td>${esc(l.autor)}</td><td>${esc(l.formato||"")}</td><td class="num">${fmtData(l.inicio)}</td><td class="num">${l.fim?fmtData(l.fim):`<button class="btn ghost" data-fim="${esc(l._id)}">Terminei hoje</button>`}</td><td class="r">${delBtn("leitura",l._id)}</td></tr>`).join("")+'</tbody></table></div>'
+      : '<div class="empty">Comece pelos 3 livros do trimestre: Diário de um Banana, O Pequeno Príncipe (áudio) e O Menino Maluquinho.</div>';
+    $("t-med").innerHTML = state.medicoes.length ? '<div class="tablewrap"><table><thead><tr><th>Data</th><th class="r">Palavras/min</th><th class="r">Tabuada (s)</th><th class="r">Redação</th><th></th></tr></thead><tbody>'+
+      state.medicoes.slice().sort((a,b)=>a.data<b.data?1:-1).map(m=>`<tr><td class="num">${fmtData(m.data)}</td><td class="r num">${m.ppm??"–"}</td><td class="r num">${m.tabuadaSeg!=null&&m.tabuadaSeg!==""?f1(+m.tabuadaSeg):"–"}</td><td class="r num">${m.redacao!=null&&m.redacao!==""?f1(+m.redacao):"–"}</td><td class="r">${delBtn("medicoes",m._id)}</td></tr>`).join("")+'</tbody></table></div>'
+      : '<div class="empty">Linha de base: 1 minuto de leitura em voz alta, tabuada cronometrada e um texto curto.</div>';
+
+    // metas
+    const ms=state.metas;
+    $("t-metas").innerHTML = ms.length ? periodos.map(p=>{ const g=ms.filter(m=>m.periodo===p).sort((a,b)=>(a.ordem||0)-(b.ordem||0)); const f=g.filter(m=>m.status==="feita").length;
+      return `<div class="groupname"><span>${esc(p)}</span><span class="num" style="font-size:13px;color:var(--muted)">${f}/${g.length}</span></div><div class="metas">`+g.map(m=>`<label class="meta ${m.status==="feita"?"done":""}"><input type="checkbox" data-meta="${esc(m._id)}" ${m.status==="feita"?"checked":""}><span class="t">${esc(m.titulo)}<div class="tag">${esc(m.pilar)}</div></span>${delBtn("metas",m._id)}</label>`).join("")+'</div>'; }).join("")
+      : '<div class="empty">Nenhuma meta.</div>';
+    const ab=ms.filter(m=>m.status!=="feita").sort((a,b)=>(a.ordem||0)-(b.ordem||0)).slice(0,6);
+    $("g-metas").innerHTML = ab.length ? '<div class="metas">'+ab.map(m=>`<div class="meta"><div class="t">${esc(m.titulo)}<div class="tag">${esc(m.periodo)} · ${esc(m.pilar)}</div></div></div>`).join("")+'</div>' : '<div class="empty">Nenhuma meta em aberto.</div>';
+  }
+
+  // ---------- eventos ----------
+  document.addEventListener("click", async e=>{
+    const ch=e.target.closest("[data-mat]"); if(ch){ materia=ch.dataset.mat; try{localStorage.setItem("materia",materia)}catch(_){} render(); return; }
+    const go=e.target.closest("[data-goto]"); if(go){ materia=go.dataset.goto; try{localStorage.setItem("materia",materia)}catch(_){} show("materias"); render(); return; }
+    const cor=e.target.closest("#d-cor button"); if(cor){ document.querySelectorAll("#d-cor button").forEach(b=>b.setAttribute("aria-pressed", b===cor?"true":"false")); return; }
+    const d=e.target.closest("[data-del]");
+    if(d){ e.preventDefault(); if(!d.classList.contains("armed")){ d.classList.add("armed"); d.textContent="Confirmar"; setTimeout(()=>{d.classList.remove("armed");d.textContent="Excluir";},3000); return; }
+      try{ await db.collection(d.dataset.del).doc(d.dataset.id).delete(); }catch(err){ d.textContent="Erro"; } return; }
+    const f=e.target.closest("[data-fim]"); if(f){ try{ await db.collection("leitura").doc(f.dataset.fim).update({fim:hoje()}); }catch(err){ f.textContent="Erro"; } }
+  });
+  $("ano").addEventListener("change",e=>{ ano=+e.target.value; render(); });
+  document.addEventListener("change", async e=>{ const c=e.target.closest("[data-meta]"); if(!c||!db) return;
+    try{ await db.collection("metas").doc(c.dataset.meta).update({status:c.checked?"feita":"aberta", concluidaEm:c.checked?hoje():null}); }catch(err){ c.checked=!c.checked; } });
+
+  async function add(col,data,msg){ if(!db){ setMsg(msg,"Sem conexão com os dados."); return false; }
+    try{ await db.collection(col).add({...data, criadoEm:new Date().toISOString()}); setMsg(msg,"Salvo.",true); return true; }
+    catch(e){ setMsg(msg, e.code==="permission_denied"||e.code==="not_granted"?"Você só tem permissão de leitura.":"Não foi possível salvar. Tente de novo."); return false; } }
+  const num=id=>{ const v=$(id).value; return v===""?null:+v; };
+
+  $("f-reg").addEventListener("submit", async e=>{ e.preventDefault();
+    const ac=num("r-ac"), tot=num("r-tot"), nt=num("r-nota");
+    if(nt==null && (ac==null||tot==null)){ setMsg("m-reg","Informe acertos e total, ou a nota de 0 a 10."); return; }
+    if(ac!=null && tot!=null && ac>tot){ setMsg("m-reg","Acertos não pode ser maior que o total."); return; }
+    const nota = nt!=null ? nt : Math.round(ac/tot*100)/10;
+    const ok=await add("avaliacoes",{data:$("r-data").value, materia:$("r-mat").value, tipo:$("r-tipo").value, titulo:$("r-tit").value.trim(), acertos:ac, total:tot, nota}, "m-reg");
+    if(ok){ materia=$("r-mat").value; ["r-tit","r-ac","r-tot","r-nota"].forEach(i=>$(i).value=""); render(); } });
+  $("r-mat").addEventListener("focus",()=>{ $("r-mat").value=materia; }, {once:true});
+
+  $("f-dia").addEventListener("submit", async e=>{ e.preventDefault(); if(!db){ setMsg("m-dia","Sem conexão com os dados."); return; }
+    const sel=document.querySelector('#d-cor button[aria-pressed="true"]'); if(!sel){ setMsg("m-dia","Escolha a cor do dia."); return; }
+    const data=$("d-data").value;
+    try{ await db.collection("dias").doc(data).set({data, cor:sel.dataset.c, foto:$("d-foto").checked, agenda:$("d-agenda").checked, cadernos:$("d-cad").checked, aula:$("d-aula").checked, estrelas:+$("d-est").value||0, branco:+$("d-branco").value||0, obs:$("d-obs").value.trim(), atualizadoEm:new Date().toISOString()});
+      setMsg("m-dia","Dia salvo.",true); ["d-foto","d-agenda","d-cad","d-aula"].forEach(i=>$(i).checked=false); $("d-est").value=0; $("d-branco").value=0; $("d-obs").value=""; document.querySelectorAll("#d-cor button").forEach(b=>b.setAttribute("aria-pressed","false")); }
+    catch(err){ setMsg("m-dia","Não foi possível salvar. Tente de novo."); } });
+
+  $("f-nota").addEventListener("submit",async e=>{ e.preventDefault(); if(await add("notas",{ano:+$("n-ano").value,periodo:$("n-periodo").value,materia:$("n-materia").value,nota:+$("n-nota").value},"m-nota")) $("n-nota").value=""; });
+  $("f-livro").addEventListener("submit",async e=>{ e.preventDefault(); if(await add("leitura",{titulo:$("l-titulo").value.trim(),autor:$("l-autor").value.trim(),formato:$("l-fmt").value,inicio:$("l-inicio").value,fim:$("l-fim").value},"m-livro")) ["l-titulo","l-autor","l-inicio","l-fim"].forEach(i=>$(i).value=""); });
+  $("f-med").addEventListener("submit",async e=>{ e.preventDefault(); if(await add("medicoes",{data:$("q-data").value,ppm:num("q-ppm"),tabuadaSeg:num("q-tab"),redacao:num("q-red")},"m-med")) ["q-ppm","q-tab","q-red"].forEach(i=>$(i).value=""); });
+  $("f-meta").addEventListener("submit",async e=>{ e.preventDefault(); if(await add("metas",{periodo:$("t-periodo").value.trim(),pilar:$("t-pilar").value,titulo:$("t-titulo").value.trim(),status:"aberta",ordem:Date.now()},"m-meta")) $("t-titulo").value=""; });
+
+  // ---------- dados (Supabase via função api) ----------
+  const SESS = (()=>{ try{ return JSON.parse(localStorage.getItem("estudos-sessao")||"null"); }catch(e){ return null; } })();
+  if(!SESS || SESS.papel!=="adulto"){ location.replace("index.html#/entrar"); return; }
+  async function api(acao, dados={}){
+    const cfg=window.ESTUDOS||{};
+    const res=await fetch(cfg.url+"/rest/v1/rpc/api",{method:"POST",headers:{"Content-Type":"application/json",apikey:cfg.chave,Authorization:"Bearer "+cfg.chave},body:JSON.stringify({acao,dados:Object.assign({token:SESS.token},dados)})});
+    const r=await res.json();
+    if(!r.ok){ if(r.erro==="sessao"){ try{localStorage.removeItem("estudos-sessao")}catch(e){} location.replace("index.html#/entrar"); } const e=new Error(r.erro||"Erro"); e.code=r.erro; throw e; }
+    return r.dados;
+  }
+  const listeners={};
+  async function refresh(){
+    const [d,p]=await Promise.all([api("docs"), api("painelAdulto")]);
+    extra=p;
+    Object.keys(listeners).forEach(c=>listeners[c].forEach(fn=>fn({docs:(d[c]||[]).map(x=>{ const o={...x}; delete o._id; return {id:x._id, data:()=>o}; })})));
+    renderProvas();
+  }
+  db = { collection(col){ return {
+    onSnapshot(fn){ (listeners[col]=listeners[col]||[]).push(fn); return ()=>{}; },
+    async add(data){ await api("gravarDoc",{col,data}); await refresh(); },
+    doc(id){ return {
+      async set(data){ await api("gravarDoc",{col,id,data}); await refresh(); },
+      async update(data){ await api("gravarDoc",{col,id,data,merge:true}); await refresh(); },
+      async delete(){ await api("apagarDoc",{col,id}); await refresh(); } }; } }; } };
+  $("sair").addEventListener("click", async ()=>{ try{ await api("sair"); }catch(e){} try{localStorage.removeItem("estudos-sessao")}catch(e){} location.replace("index.html#/entrar"); });
+
+  // ---------- aba Provas em casa ----------
+  function renderProvas(){
+    const pc=extra.pendentesCorrecao||[];
+    const b=$("b-corr"); b.hidden=!pc.length; b.textContent=pc.length;
+    $("p-corr").innerHTML = pc.length
+      ? `<div class="row"><h2 style="margin:0">Respostas escritas para corrigir</h2><a class="btn" href="index.html#/adulto/correcao" style="text-decoration:none">Corrigir agora (${pc.length})</a></div>`
+      : `<h2 style="margin:0 0 4px">Correção</h2><div class="tag">Nenhuma resposta escrita esperando correção.</div>`;
+    const pv=extra.provas||[];
+    $("t-provas").innerHTML = pv.length ? '<div class="tablewrap"><table><thead><tr><th>Prova</th><th>Matéria</th><th>Criada</th><th class="r">Questões</th><th class="r">Feitas</th><th></th></tr></thead><tbody>'+
+      pv.map(p=>`<tr><td>${esc(p.titulo)}${p.arquivada?' <span class="pill na">arquivada</span>':p.feitas<p.permitidas?' <span class="pill warn">pendente</span>':''}</td><td>${esc(p.materia)}</td><td class="num">${fmtData(p.criadaEm)}</td><td class="r num">${p.totalQuestoes}</td><td class="r num">${p.feitas}/${p.permitidas}</td><td class="r"><a class="lnk" href="index.html#/adulto/ver/${encodeURIComponent(p.id)}">Ver com gabarito</a>${p.feitas>=p.permitidas?` · <button class="btn ghost" data-reabrir="${esc(p.id)}">Liberar nova tentativa</button>`:""}</td></tr>`).join("")+'</tbody></table></div>'
+      : '<div class="empty">Nenhuma prova ainda.</div>';
+    const tt=extra.tentativas||[];
+    $("t-tent").innerHTML = tt.length ? '<div class="tablewrap"><table><thead><tr><th>Data</th><th>Prova</th><th>Matéria</th><th class="r">Tempo</th><th class="r">Pontos</th><th class="r">Nota</th><th></th></tr></thead><tbody>'+
+      tt.map(t=>`<tr><td class="num">${fmtData(t.data)}</td><td>${esc(t.titulo)}${t.status==="aguardando"?' <span class="pill warn">corrigir</span>':''}${t.revisaoLiberada?' <span class="pill good">revisão liberada</span>':''}</td><td>${esc(t.materia)}</td><td class="r num">${t.minutos} min</td><td class="r num">${t.pontos}/${t.max}</td><td class="r num">${f1(+t.nota)}</td><td class="r"><a class="lnk" href="index.html#/adulto/tentativa/${encodeURIComponent(t.id)}">Abrir</a></td></tr>`).join("")+'</tbody></table></div>'
+      : '<div class="empty">Quando ela entregar a primeira prova, ela aparece aqui.</div>';
+    const H=(extra.habilidades||[]).slice().sort((a,b)=>a.materia.localeCompare(b.materia)||a.pct-b.pct);
+    $("t-hab").innerHTML = H.length ? '<div class="tablewrap"><table><thead><tr><th>Matéria</th><th>Habilidade</th><th class="r">Acertos</th><th class="r">%</th><th class="r">Provas</th><th>Situação</th></tr></thead><tbody>'+
+      H.map(h=>`<tr><td>${esc(h.materia)}</td><td>${esc(h.habilidade)}</td><td class="r num">${h.certas}/${h.total}</td><td class="r num">${h.pct}%</td><td class="r num">${h.provas}</td><td>${h.total<3?'<span class="pill na">poucos dados</span>':h.pct>=80?'<span class="pill good">dominada</span>':h.pct>=60?'<span class="pill warn">atenção</span>':'<span class="pill bad">reforço</span>'}</td></tr>`).join("")+'</tbody></table></div>'
+      : '<div class="empty">Sem dados ainda.</div>';
+    render();
+  }
+  document.addEventListener("click", async e=>{ const b=e.target.closest("[data-reabrir]"); if(!b) return; b.disabled=true; try{ await api("reabrir",{provaId:b.dataset.reabrir}); await refresh(); }catch(err){ b.textContent="Erro"; } });
+
+  render();
+  Object.keys(state).forEach(col=> db.collection(col).onSnapshot(s=>{ state[col]=s.docs.map(d=>({...d.data(), _id:d.id})); }));
+  refresh().then(()=>{ $("status").textContent=SESS.nome+" · dados sincronizados"; }).catch(e=>{ $("status").textContent="Erro ao carregar"; $("offline").hidden=false; });
+})();
+</script>
+</body>
+</html>

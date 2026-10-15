@@ -57,15 +57,16 @@ async function render() {
   const adulto = sess.papel === "adulto";
   app.className = "wrap" + (adulto && r[0] === "adulto" ? " wide" : "");
   try {
-    if (r[0] === "entrar") { location.hash = adulto ? "#/adulto" : "#/"; return; }
+    if (r[0] === "entrar") { if (adulto) { location.href = "painel.html"; return; } location.hash = "#/"; return; }
     if (r[0] === "prova") return await telaProva(decodeURIComponent(r[1]));
     if (r[0] === "resultado") return await telaResultado(decodeURIComponent(r[1]));
     if (r[0] === "adulto" && adulto) {
       if (r[1] === "tentativa") return await telaTentativaAdulto(decodeURIComponent(r[2]));
       if (r[1] === "ver") return await telaVerProva(decodeURIComponent(r[2]));
-      return await telaAdulto(r[1] || "geral", r[2]);
+      if (r[1] === "correcao") return await telaAdulto("correcao");
+      location.href = "painel.html"; return;
     }
-    if (adulto && !r[0]) { location.hash = "#/adulto"; return; }
+    if (adulto && !r[0]) { location.href = "painel.html"; return; }
     return await telaAluna(r[0] === "aluna" ? (r[1] || "provas") : (r[0] || "provas"));
   } catch (e) {
     app.innerHTML = topo() + `<div class="panel stack"><h2>Não consegui carregar</h2><p>${esc(e.message)}</p><div><button id="tentar">Tentar de novo</button></div></div>`;
@@ -73,7 +74,7 @@ async function render() {
   }
 }
 function topo(extra = "") {
-  return `<header class="top"><a class="brand" href="#/" style="text-decoration:none"><svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="8" fill="var(--accent)"/><path d="M6 9c3-1.5 5.5-1.5 8 0v11c-2.5-1.5-5-1.5-8 0zM22 9c-3-1.5-5.5-1.5-8 0v11c2.5-1.5 5-1.5 8 0z" fill="#fff"/></svg>Estudos em Casa</a><div class="row">${extra}<span class="muted hide-sm">${esc(sess.nome)}</span><button class="mini ghost" id="sair">Sair</button></div></header>`;
+  return `<header class="top"><a class="brand" href="${sess && sess.papel === "adulto" ? "painel.html" : "#/"}" style="text-decoration:none"><svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="8" fill="var(--accent)"/><path d="M6 9c3-1.5 5.5-1.5 8 0v11c-2.5-1.5-5-1.5-8 0zM22 9c-3-1.5-5.5-1.5-8 0v11c2.5-1.5 5-1.5 8 0z" fill="#fff"/></svg>Estudos em Casa</a><div class="row">${extra}<span class="muted hide-sm">${esc(sess.nome)}</span><button class="mini ghost" id="sair">Sair</button></div></header>`;
 }
 document.addEventListener("click", e => { if (e.target.id === "sair") sair(); });
 function carregando(msg = "Carregando…") { app.innerHTML = (sess ? topo() : "") + `<p class="muted" style="padding:30px 0">${msg}</p>`; }
@@ -93,7 +94,7 @@ function telaLogin() {
   const enviar = async () => {
     if (!pin) return;
     $("#erro").textContent = "Conferindo…";
-    try { const d = await api("login", { pin }); sess = d; store.set("estudos-sessao", d); location.hash = d.papel === "adulto" ? "#/adulto" : "#/"; render(); }
+    try { const d = await api("login", { pin }); sess = d; store.set("estudos-sessao", d); if (d.papel === "adulto") { location.href = "painel.html"; return; } location.hash = "#/"; render(); }
     catch (e) { $("#erro").textContent = e.message; pin = ""; desenha(); }
   };
   const tecla = k => { if (k === "⌫") pin = pin.slice(0, -1); else if (k === "OK") return enviar(); else if (pin.length < 8) pin += k; desenha(); };
@@ -132,7 +133,7 @@ function semanaISO(s) {
 function anel(n) {
   const r = 52, c = 2 * Math.PI * r, p = Math.max(0, Math.min(1, n / 10));
   const cor = n >= 8.5 ? "var(--ok)" : n >= 7 ? "var(--sun)" : "var(--bad)";
-  return `<svg class="ring" viewBox="0 0 130 130" aria-hidden="true"><circle cx="65" cy="65" r="${r}" fill="none" stroke="var(--line)" stroke-width="12"/><circle cx="65" cy="65" r="${r}" fill="none" stroke="${cor}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${c * p} ${c}" transform="rotate(-90 65 65)"/><text x="65" y="75" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="32" font-weight="600" fill="currentColor">${fmtN(n)}</text></svg>`;
+  return `<svg class="ring" viewBox="0 0 130 130" aria-hidden="true"><circle cx="65" cy="65" r="${r}" fill="none" stroke="var(--line)" stroke-width="12"/><circle cx="65" cy="65" r="${r}" fill="none" stroke="${cor}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${c * p} ${c}" transform="rotate(-90 65 65)"/><text x="65" y="75" text-anchor="middle" font-family="Bricolage Grotesque, Figtree, sans-serif" font-size="32" font-weight="600" fill="currentColor">${fmtN(n)}</text></svg>`;
 }
 
 /* ---------------- tela da aluna ---------------- */
@@ -142,11 +143,11 @@ async function telaAluna(aba) {
   cache.aluna = d;
   const primeiro = (d.nome || sess.nome || "").split(" ")[0];
   const tabs = [["provas", "Provas"], ["evolucao", "Minha evolução"], ["livros", "Livros"]];
-  const verComoAdulto = sess.papel === "adulto" ? `<a class="btn ghost mini" href="#/adulto">Voltar ao painel</a>` : "";
+  const verComoAdulto = sess.papel === "adulto" ? `<a class="btn ghost mini" href="painel.html">Voltar ao painel</a>` : "";
   let corpo = "";
   if (aba === "provas") {
     const corrigidas = d.historico.filter(h => h.status === "corrigida");
-    corpo = `<div class="hello"><h1>Oi, ${esc(primeiro)}!</h1><p class="muted">${d.pendentes.length ? `Você tem ${d.pendentes.length} ${d.pendentes.length > 1 ? "provas" : "prova"} para fazer.` : "Nenhuma prova pendente. Bom trabalho!"}${d.sequencia > 1 ? ` · ${d.sequencia} dias seguidos no verde ou amarelo` : ""}</p></div>
+    corpo = `<div class="hello"><h1>Oi, <span class="hl">${esc(primeiro)}</span>!</h1><p class="muted">${d.pendentes.length ? `Você tem ${d.pendentes.length} ${d.pendentes.length > 1 ? "provas" : "prova"} para fazer.` : "Nenhuma prova pendente. Bom trabalho!"}${d.sequencia > 1 ? ` · ${d.sequencia} dias seguidos no verde ou amarelo` : ""}</p></div>
     ${d.pendentes.length ? `<section class="stack"><h2>Para fazer</h2><div class="cards">${d.pendentes.map(p => `<div class="pcard"><div><span class="tag">${esc(p.materia)}</span><h3 style="margin-top:6px">${esc(p.titulo)}</h3><p class="muted">${p.totalQuestoes} questões${p.minutos ? ` · cerca de ${p.minutos} min` : ""}${p.prazo ? ` · até ${dataBR(p.prazo)}` : ""}</p></div><a class="btn" href="#/prova/${encodeURIComponent(p.id)}">${store.get("rasc-" + p.id) ? "Continuar" : "Começar"}</a></div>`).join("")}</div></section>` : ""}
     <section class="stack"><h2>Provas que eu já fiz</h2>${d.historico.length ? `<div class="panel list">${d.historico.map(h => `<a class="li" href="#/resultado/${encodeURIComponent(h.id)}"><div><b>${esc(h.titulo)}</b><div class="muted">${esc(h.materia)} · ${dataBR(h.data)}${h.status === "aguardando" ? " · esperando correção" : ""}${h.revisaoLiberada ? " · revisão liberada" : ""}</div></div><span class="score ${clsNota(h.nota)}">${fmtN(h.nota)}</span></a>`).join("")}</div>` : `<p class="muted">Quando você entregar a primeira prova, ela aparece aqui.</p>`}</section>
     ${corrigidas.length ? `<p class="muted">Média das provas em casa: <b>${fmtN(corrigidas.reduce((s, h) => s + h.nota, 0) / corrigidas.length)}</b></p>` : ""}`;
@@ -203,7 +204,7 @@ function quadroTirinha(fala, quem, personagens, extra) {
   const lines = []; let cur = "";
   String(fala).split(" ").forEach(w => { if ((cur + " " + w).trim().length > 24) { lines.push(cur.trim()); cur = w; } else cur += " " + w; }); lines.push(cur.trim());
   const h = lines.length * 14 + 14;
-  return `<svg viewBox="0 0 200 170" role="img" aria-label="${esc(fala)}"><rect x="8" y="6" width="184" height="${h}" rx="10" fill="#fff" stroke="#1F2B28"/><path d="M${tx - 6} ${h + 5} L${tx} ${h + 17} L${tx + 6} ${h + 5}" fill="#fff" stroke="#1F2B28"/><rect x="${tx - 5}" y="${h + 3}" width="10" height="4" fill="#fff"/>${lines.map((l, i) => `<text x="100" y="${22 + i * 14}" text-anchor="middle" font-size="11.5" font-family="Lexend, sans-serif" fill="#1F2B28">${esc(l)}</text>`).join("")}<line x1="10" y1="157" x2="190" y2="157" stroke="#C9CCD6"/>${a(60)}${b(140)}${extra ? `<circle cx="159" cy="132" r="5" fill="#F2B705"/>` : ""}</svg>`;
+  return `<svg viewBox="0 0 200 170" role="img" aria-label="${esc(fala)}"><rect x="8" y="6" width="184" height="${h}" rx="10" fill="#fff" stroke="#1F2B28"/><path d="M${tx - 6} ${h + 5} L${tx} ${h + 17} L${tx + 6} ${h + 5}" fill="#fff" stroke="#1F2B28"/><rect x="${tx - 5}" y="${h + 3}" width="10" height="4" fill="#fff"/>${lines.map((l, i) => `<text x="100" y="${22 + i * 14}" text-anchor="middle" font-size="11.5" font-family="Figtree, sans-serif" fill="#1F2B28">${esc(l)}</text>`).join("")}<line x1="10" y1="157" x2="190" y2="157" stroke="#C9CCD6"/>${a(60)}${b(140)}${extra ? `<circle cx="159" cy="132" r="5" fill="#F2B705"/>` : ""}</svg>`;
 }
 function renderTexto(t) {
   if (!t) return "";
@@ -340,8 +341,8 @@ async function telaAdulto(aba, sub) {
   cache.adulto = d;
   const tabs = [["geral", "Visão geral"], ["materias", "Matérias"], ["habilidades", "Habilidades"], ["correcao", "Correção", d.pendentesCorrecao.length], ["provas", "Provas"], ["etapa0", "Etapa 0"], ["escola", "Notas da escola"], ["livros", "Livros"], ["metas", "Metas"]];
   const f = { geral: adGeral, materias: adMaterias, habilidades: adHabilidades, correcao: adCorrecao, provas: adProvas, etapa0: adEtapa0, escola: adEscola, livros: adLivros, metas: adMetas }[aba] || adGeral;
-  app.innerHTML = topo(`<a class="btn ghost mini" href="#/aluna">Ver como ${esc((d.aluna || "aluna").split(" ")[0])}</a>`) +
-    `<nav class="tabs">${tabs.map(([k, l, n]) => `<a href="#/adulto/${k}" class="${aba === k ? "on" : ""}">${l}${n ? `<span class="n">${n}</span>` : ""}</a>`).join("")}</nav><div class="stack" id="corpo">${f(d, sub)}</div>`;
+  app.innerHTML = topo(`<a class="btn ghost mini" href="painel.html">Voltar ao painel</a>`) +
+    `<h2 style="margin:8px 0 14px">Correção das respostas escritas</h2><div class="stack" id="corpo">${f(d, sub)}</div>`;
   ligarAdulto(aba, d);
 }
 function pontosSerie(d) {
@@ -516,9 +517,9 @@ async function telaTentativaAdulto(tid) {
   const info = {}; d.respostas.forEach(r => info[r.questaoId] = r);
   const hab = {}; d.respostas.filter(r => r.status === "corrigida").forEach(r => { const k = r.habilidade || "—"; hab[k] = hab[k] || [0, 0]; hab[k][1]++; if (Number(r.pontos) >= Number(r.max)) hab[k][0]++; });
   app.className = "wrap wide";
-  app.innerHTML = topo(`<a class="btn ghost mini" href="#/adulto/provas">Voltar</a>`) + `<div class="stack">
+  app.innerHTML = topo(`<a class="btn ghost mini" href="painel.html">Voltar ao painel</a>`) + `<div class="stack">
    <div class="panel"><div class="row" style="gap:22px">${anel(t.nota)}<div class="stack" style="gap:6px;flex:1;min-width:220px"><span class="tag" style="justify-self:start">${esc(t.materia)}</span><h2>${esc(t.titulo)}</h2><p class="muted">${dataBR(t.data)} · ${t.pontos}/${t.max} pontos · ${t.minutos} min · ${t.status}</p>
-     <div class="row"><button id="rev">${t.revisaoLiberada ? "Esconder a revisão dela" : "Liberar revisão para ela"}</button><a class="btn ghost" href="#/adulto/correcao">Corrigir questões escritas</a></div></div></div></div>
+     <div class="row"><button id="rev">${t.revisaoLiberada ? "Esconder a revisão dela" : "Liberar revisão para ela"}</button>${t.status === "aguardando" ? `<a class="btn ghost" href="#/adulto/correcao">Corrigir questões escritas</a>` : ""}</div></div></div></div>
    <div class="panel stack"><h3>Por habilidade</h3><div class="scroll"><table class="t"><tr><th>Habilidade</th><th>Acertos</th></tr>${Object.keys(hab).map(k => `<tr><td>${esc(k)}</td><td class="${hab[k][0] === hab[k][1] ? "s-ok" : "s-bad"}"><b>${hab[k][0]}/${hab[k][1]}</b></td></tr>`).join("")}</table></div></div>
    <div class="stack">${(d.prova.blocos || []).map(b => `${b.lead ? `<div class="lead">${esc(b.lead)}</div>` : ""}${renderTexto(b.texto)}${(b.questoes || []).map(q => renderQuestao(q, d.respostasMarcadas[q.id], "revisao", info[q.id]) + (q.habilidade ? `<p class="muted small" style="margin-top:-8px">Habilidade: ${esc(q.habilidade)}${q.bncc ? " · " + esc(q.bncc) : ""}</p>` : "")).join("")}`).join("")}</div></div>`;
   $("#rev").onclick = async () => { try { await api("liberarRevisao", { id: tid, valor: !t.revisaoLiberada }); toast(t.revisaoLiberada ? "Revisão escondida." : "Revisão liberada para ela."); render(); } catch (e) { toast(e.message); } };
@@ -527,7 +528,7 @@ async function telaVerProva(id) {
   carregando();
   const p = await api("prova", { id });
   app.className = "wrap";
-  app.innerHTML = topo(`<a class="btn ghost mini" href="#/adulto/provas">Voltar</a>`) + `<div class="stack"><h1>${esc(p.titulo)}</h1><p class="muted">${esc(p.materia)} · ${p.totalQuestoes} questões · gabarito visível só para adultos</p>
+  app.innerHTML = topo(`<a class="btn ghost mini" href="painel.html">Voltar ao painel</a>`) + `<div class="stack"><h1>${esc(p.titulo)}</h1><p class="muted">${esc(p.materia)} · ${p.totalQuestoes} questões · gabarito visível só para adultos</p>
    ${(p.blocos || []).map(b => `${b.titulo ? `<h2>${esc(b.titulo)}</h2>` : ""}${b.lead ? `<div class="lead">${esc(b.lead)}</div>` : ""}${renderTexto(b.texto)}${(b.questoes || []).map(q => renderQuestao(q, q.tipo === "mc" || !q.tipo ? q.correta : "", "revisao", { correta: q.correta != null ? q.correta : (q.aceitas || []).join(" / ") || q.criterio, status: "corrigida", pontos: 1, max: 1 }) + `<p class="muted small" style="margin-top:-8px">${esc(q.habilidade || "")}${q.bncc ? " · " + esc(q.bncc) : ""}</p>`).join("")}`).join("")}</div>`;
 }
 

@@ -85,7 +85,10 @@ function doPost(e) {
       liberarRevisao: () => exige_(A) || liberarRevisao_(req.id, req.valor !== false),
       reabrir: () => exige_(A) || reabrir_(req.provaId),
       salvar: () => exige_(A) || salvar_(req.aba, req.dados),
-      excluir: () => exige_(A) || excluir_(req.aba, req.id)
+      excluir: () => exige_(A) || excluir_(req.aba, req.id),
+      docs: () => exige_(A) || docsJson_(),
+      gravarDoc: () => exige_(A) || gravarDoc_(req),
+      apagarDoc: () => exige_(A) || (delete (DOCS[req.col] || {})[req.id], {})
     };
     if (!rotas[acao]) return json_({ ok: false, erro: "Ação desconhecida." });
     const r = rotas[acao]();
@@ -418,3 +421,8 @@ function excluir_(aba, id) {
   }
   return {};
 }
+
+/* coleções do painel (imitação da tabela app.docs) */
+var DOCS = { avaliacoes: {}, notas: {}, leitura: {}, medicoes: {}, metas: {}, dias: {} };
+function docsJson_() { const o = {}; Object.keys(DOCS).forEach(c => o[c] = Object.keys(DOCS[c]).map(id => Object.assign({}, DOCS[c][id], { _id: id }))); return o; }
+function gravarDoc_(req) { const id = req.id || ("d" + Date.now() + Math.floor(Math.random() * 1000)); const c = DOCS[req.col]; if (!c) throw new Error("coleção inválida"); c[id] = req.merge ? Object.assign({}, c[id] || {}, req.data) : Object.assign({}, req.data); return { id }; }

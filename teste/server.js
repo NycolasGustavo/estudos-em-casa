@@ -22,6 +22,7 @@ const ctx={console,JSON,Math,Date,String,Number,Object,Array,Error,parseFloat,is
 vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(__dirname,'mock-api.gs'),'utf8'),ctx);
 vm.runInContext('configurar()',ctx);
+vm.runInContext(`DOCS.avaliacoes['a1']={data:'2026-10-07',materia:'Português',tipo:'Simulado (escola)',titulo:'Simulado 2',acertos:5,total:10,nota:5};DOCS.avaliacoes['a2']={data:'2026-10-08',materia:'Matemática',tipo:'Prova (casa)',titulo:'Contas',acertos:2,total:9,nota:2.2};DOCS.metas['m1']={periodo:'T4 2026',pilar:'Leitura',titulo:'Ler 3 livros',status:'aberta',ordem:1};`,ctx);
 sheets.Diario.appendRow(['2026-10-14','verde',true,true,true,true,0,0,'']);
 const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css'};
 http.createServer((req,res)=>{
