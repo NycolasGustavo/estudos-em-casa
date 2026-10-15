@@ -140,6 +140,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
 
   <nav class="tabs" role="tablist">
     <button role="tab" aria-selected="true" data-tab="geral">Visão geral</button>
+    <button role="tab" aria-selected="false" data-tab="plano">Plano e constância</button>
     <button role="tab" aria-selected="false" data-tab="materias">Matérias</button>
     <button role="tab" aria-selected="false" data-tab="etapa0">Etapa 0</button>
     <button role="tab" aria-selected="false" data-tab="boletim">Boletim</button>
@@ -154,6 +155,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
       <div class="row" style="margin-bottom:10px"><h2 style="margin:0">Matérias</h2><span class="tag">Média das últimas 3 notas · clique para abrir</span></div>
       <div class="minis" id="minis"></div>
     </div>
+    <div class="panel" id="g-hoje"></div>
     <div class="panel"><div class="row" style="margin-bottom:6px"><h2 style="margin:0">Agenda da escola</h2><span class="tag">Provas e trabalhos que a Isabella anotou · confira cada um</span></div><div id="g-agenda"></div></div>
     <div class="grid2">
       <div class="panel chart"><h3>Etapa 0 · cor dos dias por semana</h3><div id="ch-e0-g"></div></div>
@@ -295,6 +297,12 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
     </div>
   </section>
   <!-- PROVAS EM CASA -->
+  <section data-pane="plano" class="stack" hidden>
+    <div class="notice">O plano de cada manhã (45 min) é criado pelo Claude. Ciclo: <b>atividades</b> (aprender, não valem nota) → <b>simulado</b> (diagnóstico) → <b>reforço</b> → <b>prova</b> (vale nota). Só simulados e provas de casa entram no boletim.</div>
+    <div class="kpis" id="pl-kpis"></div>
+    <div class="panel"><h2>Dia a dia</h2><div id="pl-dias"></div></div>
+    <div class="panel"><h2>Gravações da Isabella</h2><p class="tag" style="margin:0">Leituras e explicações que ela gravou. O link para assistir vale por 1 hora.</p><div id="pl-grav"></div></div>
+  </section>
   <section data-pane="provas" class="stack" hidden>
     <div class="notice">As provas são criadas pelo Claude direto no banco. Peça numa conversa, por exemplo: "prova de Matemática sobre divisão com resto, 15 questões, para amanhã".</div>
     <div class="panel" id="p-corr"></div>
@@ -318,7 +326,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
   const META_LIVROS = {2026:3, 2027:12, 2028:18, 2029:20, 2030:24, 2031:24};
   const COR = {verde:"var(--good)", amarelo:"var(--warn)", vermelho:"var(--bad)", preto:"var(--black)"};
   const $ = id => document.getElementById(id);
-  const state = {avaliacoes:[], notas:[], leitura:[], medicoes:[], metas:[], dias:[], agenda:[]};
+  const state = {avaliacoes:[], notas:[], leitura:[], medicoes:[], metas:[], dias:[], agenda:[], plano:[], feitos:[], gravacoes:[]};
   let extra = {tentativas:[],provas:[],pendentesCorrecao:[],habilidades:[]};
   let db = null, materia = "Português", ano = new Date().getFullYear();
   const anoAtual = new Date().getFullYear();
@@ -341,7 +349,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
     let nota = a.nota!=null && a.nota!=="" ? +a.nota : (a.total ? (+a.acertos/+a.total)*10 : null);
     return {...a, tipo, materia:mat, nota, grupo: GRUPO[tipo] || "escola"};
   }
-  const regs = () => state.avaliacoes.concat((extra.tentativas||[]).filter(t=>t.status==="corrigida").map(t=>({_id:t.id, _tent:true, data:t.data, materia:t.materia, tipo:"Prova (casa)", titulo:t.titulo, acertos:t.pontos, total:t.max, nota:+t.nota}))).map(norm).filter(r=>r.nota!=null && r.data);
+  const regs = () => state.avaliacoes.concat((extra.tentativas||[]).filter(t=>t.status==="corrigida" && (t.tipo==="prova"||t.tipo==="simulado")).map(t=>({_id:t.id, _tent:true, data:t.data, materia:t.materia, tipo:"Prova (casa)", titulo:t.titulo, acertos:t.pontos, total:t.max, nota:+t.nota}))).map(norm).filter(r=>r.nota!=null && r.data);
 
   // tabs
   const tabs=[...document.querySelectorAll("nav.tabs button")];
@@ -599,8 +607,48 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
     $("t-hab").innerHTML = H.length ? '<div class="tablewrap"><table><thead><tr><th>Matéria</th><th>Habilidade</th><th class="r">Acertos</th><th class="r">%</th><th class="r">Provas</th><th>Situação</th></tr></thead><tbody>'+
       H.map(h=>`<tr><td>${esc(h.materia)}</td><td>${esc(h.habilidade)}</td><td class="r num">${h.certas}/${h.total}</td><td class="r num">${h.pct}%</td><td class="r num">${h.provas}</td><td>${h.total<3?'<span class="pill na">poucos dados</span>':h.pct>=80?'<span class="pill good">dominada</span>':h.pct>=60?'<span class="pill warn">atenção</span>':'<span class="pill bad">reforço</span>'}</td></tr>`).join("")+'</tbody></table></div>'
       : '<div class="empty">Sem dados ainda.</div>';
+    renderPlano();
     render();
   }
+
+  // ---------- plano e constância ----------
+  const MOM = {aquecimento:"Aquecimento", frio:"Revisão (frio)", quente:"Preparar aula (quente)", missao:"Missão", prova:"Prova", simulado:"Simulado", extra:"Extra", livro:"Livro"};
+  const DSEM = ["dom","seg","ter","qua","qui","sex","sáb"];
+  function statusItem(it){
+    if(it.provaId){ const p=(extra.provas||[]).find(x=>x.id===it.provaId); const t=(extra.tentativas||[]).filter(x=>x.provaId===it.provaId);
+      return {feito: !!(p ? p.feitas>0 : t.length), nota: t.length ? t[0].nota : null, tid: t.length ? t[0].id : null}; }
+    return {feito: state.feitos.some(f=>f._id===it.id)};
+  }
+  function renderPlano(){
+    const h=hoje(); const dias=state.plano.slice().sort((a,b)=>a._id.localeCompare(b._id));
+    const passados=dias.filter(d=>d._id<=h);
+    const pct=d=>{ const it=d.itens||[]; return it.length ? it.filter(i=>statusItem(i).feito).length/it.length : 0; };
+    const completos=passados.filter(d=>pct(d)===1).length;
+    let seq=0; for(const d of passados.slice().reverse()){ if(d._id===h && pct(d)<1) continue; if(pct(d)===1) seq++; else break; }
+    const tot=passados.reduce((s,d)=>s+(d.itens||[]).length,0), feitos=passados.reduce((s,d)=>s+(d.itens||[]).filter(i=>statusItem(i).feito).length,0);
+    const tab=state.medicoes.filter(m=>m.tabuadaSeg).sort((a,b)=>String(a.data).localeCompare(String(b.data)));
+    const ult=tab[tab.length-1];
+    $("pl-kpis").innerHTML=[["Dias completos",`${completos}/${passados.length}`],["Sequência atual",`${seq} dia${seq===1?"":"s"}`],["Itens feitos",tot?`${Math.round(feitos/tot*100)}%`:"–"],["Última tabuada",ult?`${ult.tabuadaAcertos}/${ult.tabuadaTotal} em ${ult.tabuadaSeg}s`:"–"]]
+      .map(([k,v])=>`<div class="panel"><div class="tag">${k}</div><div style="font-family:var(--display,inherit);font-size:26px;font-weight:700">${v}</div></div>`).join("");
+    $("pl-dias").innerHTML = dias.length ? '<div class="tablewrap"><table><thead><tr><th>Dia</th><th>O que estava no plano</th><th class="r">Feito</th></tr></thead><tbody>'+
+      dias.map(d=>{ const dt=new Date(d._id+"T12:00:00"); const futuro=d._id>h; const p=pct(d);
+        return `<tr${d._id===h?' style="background:var(--accent-soft,rgba(47,85,201,.07))"':''}><td class="num" style="white-space:nowrap;vertical-align:top"><b>${DSEM[dt.getDay()]} ${fmtData(d._id).slice(0,5)}</b>${d._id===h?'<div class="tag">hoje</div>':''}</td><td>${(d.itens||[]).map(i=>{ const s=statusItem(i);
+          return `<div style="padding:2px 0">${s.feito?'<span class="pill good">✓</span>':futuro?'<span class="pill na">·</span>':'<span class="pill bad">✗</span>'} <span class="tag">${MOM[i.momento]||""}</span> ${esc(i.titulo)}${s.nota!=null?` · nota <b>${f1(+s.nota)}</b>`:''}${s.tid?` <a class="lnk" href="index.html#/adulto/tentativa/${encodeURIComponent(s.tid)}">abrir</a>`:''}</div>`; }).join("")}</td>
+          <td class="r num" style="vertical-align:top">${futuro?'–':Math.round(p*100)+'%'}</td></tr>`; }).join("")+'</tbody></table></div>' : '<div class="empty">Nenhum plano criado ainda.</div>';
+    const gs=state.gravacoes.slice().sort((a,b)=>String(b.data).localeCompare(String(a.data)));
+    $("pl-grav").innerHTML = gs.length ? '<div class="tablewrap"><table><thead><tr><th>Data</th><th>O quê</th><th class="r">Duração</th><th></th></tr></thead><tbody>'+
+      gs.map(g=>`<tr><td class="num">${fmtData(g.data)}</td><td>${esc(g.titulo||g.tipo||"Gravação")}</td><td class="r num">${g.segundos?Math.floor(g.segundos/60)+":"+String(g.segundos%60).padStart(2,"0"):"–"}</td><td class="r"><button class="btn ghost" data-assistir="${esc(g.caminho)}">Assistir</button></td></tr>`).join("")+'</tbody></table></div>'
+      : '<div class="empty">Nenhuma gravação ainda.</div>';
+    const hp=dias.find(d=>d._id===h);
+    $("g-hoje").innerHTML = `<div class="row" style="margin-bottom:6px"><h2 style="margin:0">Estudo de hoje</h2><span class="tag">${hp?`${Math.round(pct(hp)*100)}% feito`:"sem plano hoje"}</span></div>`+
+      (hp?(hp.itens||[]).map(i=>{ const s=statusItem(i); return `<div style="padding:2px 0">${s.feito?'<span class="pill good">✓</span>':'<span class="pill na">·</span>'} ${esc(i.titulo)}${s.nota!=null?` · nota <b>${f1(+s.nota)}</b>`:''}</div>`; }).join(""):'<div class="tag">Nada planejado para hoje.</div>');
+  }
+  document.addEventListener("click", async e=>{ const b=e.target.closest("[data-assistir]"); if(!b) return;
+    const w=window.open("about:blank","_blank"); b.disabled=true; b.textContent="Abrindo…";
+    try{ const cfg=window.ESTUDOS||{}; const r=await fetch(cfg.url+"/functions/v1/gravacoes",{method:"POST",headers:{"Content-Type":"application/json",apikey:cfg.chave,Authorization:"Bearer "+cfg.chave},body:JSON.stringify({token:SESS.token,acao:"link",caminho:b.dataset.assistir})});
+      const j=await r.json(); const u=j.dados&&j.dados.url; if(!u) throw new Error(j.erro||"sem link"); if(w) w.location=u; else location.href=u; b.textContent="Assistir"; }
+    catch(err){ if(w) w.close(); b.textContent="Erro: "+err.message; }
+    b.disabled=false; });
   document.addEventListener("click", async e=>{ const x=e.target.closest("[data-delprova]"); if(!x) return;
     if(!x.classList.contains("armed")){ x.classList.add("armed"); x.textContent="Apagar prova e tentativas?"; setTimeout(()=>{x.classList.remove("armed");x.textContent="Excluir";},4000); return; }
     x.disabled=true; try{ await api("excluirProva",{id:x.dataset.delprova}); await refresh(); }catch(err){ x.textContent="Erro"; } });

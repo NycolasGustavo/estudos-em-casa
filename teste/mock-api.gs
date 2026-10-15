@@ -80,6 +80,9 @@ function doPost(e) {
       livroTerminar: () => acaoAluna_("livroTerminar", req, sess),
       agendaAdicionar: () => acaoAluna_("agendaAdicionar", req, sess),
       agendaRemover: () => acaoAluna_("agendaRemover", req, sess),
+      marcarFeito: () => acaoAluna_("marcarFeito", req, sess),
+      registrarTabuada: () => acaoAluna_("registrarTabuada", req, sess),
+      registrarGravacao: () => acaoAluna_("registrarGravacao", req, sess),
       prova: () => provaParaAluna_(req.id, A),
       entregar: () => entregar_(req, sess),
       tentativa: () => tentativaDetalhe_(req.id, A),
@@ -431,7 +434,7 @@ var DOCS = { avaliacoes: {}, notas: {}, leitura: {}, medicoes: {}, metas: {}, di
 function docsJson_() { const o = {}; Object.keys(DOCS).forEach(c => o[c] = Object.keys(DOCS[c]).map(id => Object.assign({}, DOCS[c][id], { _id: id }))); return o; }
 function gravarDoc_(req) { const id = req.id || ("d" + Date.now() + Math.floor(Math.random() * 1000)); const c = DOCS[req.col]; if (!c) throw new Error("coleção inválida"); c[id] = req.merge ? Object.assign({}, c[id] || {}, req.data) : Object.assign({}, req.data); return { id }; }
 
-DOCS.agenda = {};
+DOCS.agenda = {}; DOCS.plano = {}; DOCS.feitos = {}; DOCS.gravacoes = {};
 function inicioAlunaV2_() {
   const b = inicioAluna_();
   const h = hoje_();
@@ -440,6 +443,10 @@ function inicioAlunaV2_() {
   b.agenda = Object.keys(DOCS.agenda).map(id => Object.assign({ id }, DOCS.agenda[id])).sort((x, y) => x.data.localeCompare(y.data));
   b.livros = Object.keys(DOCS.leitura).map(id => { const l = DOCS.leitura[id]; return Object.assign({ id, status: l.fim ? "lido" : "lendo" }, l); });
   b.pendentes = b.pendentes.map(p => Object.assign(p, { assuntos: ["Multiplicação", "Escrita de números"] }));
+  const tent = linhas_("Tentativas");
+  b.provas = todasProvas_().filter(p => !p.arquivada).map(p => Object.assign(meta_(p), { feita: tent.some(t => t.provaId === p.id), liberada: !p.liberarEm || p.liberarEm <= h }));
+  b.plano = Object.keys(DOCS.plano).sort().map(id => Object.assign({}, DOCS.plano[id], { _id: id }));
+  b.feitos = Object.keys(DOCS.feitos);
   return b;
 }
 function acaoAluna_(acao, d, sess) {
@@ -448,5 +455,8 @@ function acaoAluna_(acao, d, sess) {
   if (acao === "livroTerminar") Object.assign(DOCS.leitura[d.id], { fim: h, estrelas: d.estrelas, frase: d.frase });
   if (acao === "agendaAdicionar") DOCS.agenda[id] = { data: d.data, materia: d.materia, tipo: d.tipo, conteudo: d.conteudo, confirmado: false, criadoPor: sess.nome };
   if (acao === "agendaRemover") delete DOCS.agenda[d.id];
+  if (acao === "marcarFeito") DOCS.feitos[String(d.item).slice(0, 80)] = { data: h, quem: sess.nome };
+  if (acao === "registrarTabuada") { DOCS.medicoes[id] = { data: h, tabuadaSeg: d.segundos, tabuadaAcertos: d.acertos, tabuadaTotal: d.total }; DOCS.feitos[d.item || h + "-tabuada"] = { data: h }; }
+  if (acao === "registrarGravacao") { DOCS.gravacoes[id] = { data: h, tipo: d.tipo, titulo: d.titulo, caminho: d.caminho, segundos: d.segundos, quem: sess.nome }; DOCS.feitos[d.item || h + "-gravar"] = { data: h }; }
   return { id };
 }

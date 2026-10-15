@@ -1,6 +1,6 @@
 // Servidor de teste: serve o site e imita a API do banco (POST /rest/v1/rpc/api) com uma implementação em JS do mesmo contrato.
 const http=require('http'),fs=require('fs'),path=require('path'),vm=require('vm');
-const SITE=path.join(__dirname,'../docs'), PROVAS=path.join(__dirname,'provas');
+const SITE=path.join(__dirname,'../docs'), PROVAS=process.env.PROVAS||path.join(__dirname,'provas');
 const sheets={}; const props={}; const mails=[];
 function parts(d){const f=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});const o={};f.formatToParts(d).forEach(p=>o[p.type]=p.value);if(o.hour==='24')o.hour='00';return o;}
 function toCell(v){ if(typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)) return new Date(v+'T12:00:00-03:00'); return v; }
@@ -23,6 +23,8 @@ vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(__dirname,'mock-api.gs'),'utf8'),ctx);
 vm.runInContext('configurar()',ctx);
 vm.runInContext(`DOCS.avaliacoes['a1']={data:'2026-10-07',materia:'Português',tipo:'Simulado (escola)',titulo:'Simulado 2',acertos:5,total:10,nota:5};DOCS.avaliacoes['a2']={data:'2026-10-08',materia:'Matemática',tipo:'Prova (casa)',titulo:'Contas',acertos:2,total:9,nota:2.2};DOCS.metas['m1']={periodo:'T4 2026',pilar:'Leitura',titulo:'Ler 3 livros',status:'aberta',ordem:1};`,ctx);
+if(process.env.HOJE) vm.runInContext(`hoje_=function(){return '${process.env.HOJE}'}`,ctx);
+{const pj=path.join(__dirname,'../conteudo/saida/plano.json'); if(fs.existsSync(pj)) JSON.parse(fs.readFileSync(pj,'utf8')).forEach(d=>{ctx.__d=d; vm.runInContext('DOCS.plano[__d.id]=__d.data',ctx);});}
 sheets.Diario.appendRow(['2026-10-14','verde',true,true,true,true,0,0,'']);
 const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css'};
 http.createServer((req,res)=>{

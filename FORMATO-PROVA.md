@@ -49,3 +49,31 @@ Todas aceitam `enunciado`, `habilidade`, `assunto`, `bncc`, `pontos` (padrão 1)
 | `aberta` | adulto corrige no site | `criterio`, `linhas` |
 
 A `habilidade` é o que alimenta o mapa de habilidades. Use sempre o mesmo nome para a mesma habilidade.
+
+## Atividades com lição (`licao`)
+
+Antes das questões, uma atividade pode ter uma lição em partes (`licao: [...]`). Cada parte tem `tipo` e `titulo`, e pode ter `paragrafos`, `html` (visual) e `destaque`. Todas as partes, menos o jogo, têm botão **Ouvir** (voz do navegador; `lang: "en-US"` para inglês). As questões finais (`blocos`) nunca têm áudio, exceto o ditado.
+
+| tipo | campos | o que faz |
+|---|---|---|
+| `explica` | paragrafos, html, destaque | explicação |
+| `exemplo` | enunciado, passos[] | exemplo resolvido, um passo por clique |
+| `blocos` | numero | peças de centena/dezena/unidade para trocar (empresta um) |
+| `fracao` | partes | barra para pintar frações |
+| `pratica` | questoes[{enunciado, opcoes, correta:"A"} ou {enunciado, resposta:[...]}, dica, explicacao, falar?, lang?] | "fazer junto" com correção na hora |
+| `jogo` | questoes[{p, opcoes, correta: índice}], segundos, instrucao | desafio cronometrado |
+
+Questão `ditado` (nos blocos): `{tipo:"ditado", falar:"palavra", correta:"palavra"}`.
+
+`tipo` da prova: `atividade`, `revisao`, `aquecimento`, `reforco` (não valem nota) e `simulado`, `prova` (valem nota e entram no boletim).
+
+## Plano do dia (`app.docs`, col `plano`, id = data)
+
+```json
+{"data":"2026-10-16","minutos":45,"itens":[
+  {"id":"2026-10-16-tabuada","momento":"aquecimento","titulo":"Tabuada relâmpago","minutos":5,"acao":"tabuada"},
+  {"id":"<id da prova>","momento":"frio|quente|missao|prova|simulado|extra","titulo":"...","minutos":10,"provaId":"<id da prova>"},
+  {"id":"2026-10-16-gravar","momento":"extra","titulo":"Gravar a leitura","acao":"gravar","texto":"texto para ler"},
+  {"id":"2026-10-16-livro","momento":"livro","titulo":"Ler o meu livro","acao":"livro"}]}
+```
+Item com `provaId` fica feito quando ela entrega a prova. Os outros, quando ela marca (ou termina a tabuada / envia a gravação).
