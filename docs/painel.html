@@ -413,7 +413,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
 
   function chartE0(el){
     const ds=state.dias.filter(d=>d.cor);
-    if(!ds.length){ el.innerHTML='<div class="empty">Registre o visto do dia na aba Etapa 0. Começa na segunda, 19/10.</div>'; return; }
+    if(!ds.length){ el.innerHTML='<div class="empty">Registre o visto do dia na aba Café da tarde. Começa na segunda, 19/10.</div>'; return; }
     const by={}; ds.forEach(d=>{ const m=mondayOf(d.data); (by[m]=by[m]||{verde:0,amarelo:0,vermelho:0,preto:0})[d.cor]++; });
     const ws=Object.keys(by).sort().slice(-13);
     const W=520,H=210,L=26,R=8,T=12,B=30, step=(W-L-R)/Math.max(ws.length,1), bw=Math.min(30,step*.6), Y=v=>T+(1-v/5)*(H-T-B);
