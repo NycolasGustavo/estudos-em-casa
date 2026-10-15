@@ -444,3 +444,35 @@ a.nl:hover{background:var(--bg)}
 .rc-dots{display:flex;gap:6px}.rc-dots i{width:22px;height:22px;border-radius:50%;background:var(--line)}.rc-dots i.on{background:var(--ok)}
 .sem-grid .sdia{min-height:120px}
 .itens{gap:8px}.item{padding:10px 12px}
+/* v6: caderno da agenda mais organizado (tudo sobre as linhas, sem etiquetas) */
+.cad-folha{padding:15px 16px 18px 56px;font-size:19px;line-height:30px;background-image:linear-gradient(90deg,transparent 44px,#F2A0A8 44px 46px,transparent 46px),repeating-linear-gradient(180deg,transparent 0 29px,#CFE0F5 29px 30px);background-position:0 15px}
+.cad-mes{font-size:26px;line-height:30px;color:#2F55C9;text-transform:capitalize;margin:0 0 0}
+.cad-mes small{font-size:16px;color:#8A94A6}
+.cad-mes.pequeno{font-size:22px}
+.cd-dia{display:grid;grid-template-columns:46px minmax(0,1fr);margin-left:-50px}
+.cd-data{display:flex;flex-direction:column;align-items:center;line-height:30px}
+.cd-data b{font-size:26px;color:#C2413A;line-height:30px}.cd-data span{font-size:15px;color:#8A94A6;line-height:0;margin-top:2px}
+.cd-dia.passou .cd-data b{color:#B8BDC9}
+.cd-corpo{padding-left:12px}
+.cd-quando{display:block;font-size:15px;color:#8A94A6;line-height:30px}
+.cd-corpo ul{list-style:none;margin:0;padding:0}
+.cd-i{position:relative;line-height:30px;padding-left:16px}
+.cd-i::before{content:"•";position:absolute;left:2px;top:0}
+.cd-txt b{font-weight:400;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:4px}
+.t-vermelha{color:#B8302A}.t-azul{color:#2649B5}.t-verde{color:#177A4C}.t-preta{color:#1C2140}
+.cd-dia.passou .cd-i{color:#8A94A6}
+.cd-visto{display:inline-block;margin-left:8px;font-size:14px;line-height:18px;padding:0 7px;border:2px solid #177A4C;border-radius:50%;color:#177A4C;transform:rotate(-8deg);vertical-align:2px}
+.cd-esp{margin-left:8px;font-size:13px;color:#A3A8B8;vertical-align:1px}
+.cd-apagar{margin-left:6px;background:none;border:0;padding:0;font-family:inherit;font-size:14px;color:#B8BDC9;text-decoration:underline;cursor:pointer;opacity:0;transition:opacity .15s}
+.cd-i:hover .cd-apagar,.cd-apagar.armado,.cd-apagar:focus{opacity:1}.cd-apagar.armado{color:#C2413A;font-weight:700}
+.cad-vazio{margin:0;color:#8A94A6}
+.cad-sep{margin-top:30px;color:#8A94A6;font-size:15px;line-height:30px;text-transform:uppercase;letter-spacing:.06em}
+.cad-nova{margin-top:30px}
+.cn-linha{display:flex;gap:14px;line-height:30px}
+.cn-linha label{display:flex;align-items:baseline;gap:6px;color:#8A94A6;font-size:15px;flex:1;min-width:0}
+.cn-linha label.lg{flex:1}
+.cn-linha input,.cn-linha select{flex:1;min-width:0;font-family:"Patrick Hand",var(--body);font-size:19px;line-height:26px;height:28px;background:transparent;border:0;border-radius:0;padding:0 2px;color:#1C2140;box-shadow:none}
+.cn-linha input:focus,.cn-linha select:focus{outline:none;background:rgba(47,85,201,.06)}
+.cn-btn{display:block;margin-top:2px;height:30px;line-height:28px;padding:0 14px;font-family:"Patrick Hand",var(--body);font-size:19px;background:#2F55C9;color:#fff;border-radius:8px}
+.cn-dica{margin:0;font-size:15px;color:#8A94A6;line-height:30px}
+.cad-mes.pequeno{text-transform:none}.cn-linha input[type=date]{min-width:150px}

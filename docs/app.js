@@ -244,7 +244,7 @@ function cartaoAgenda(a, podeApagar) {
   const n = diasAte(a.data);
   return `<div class="acard ${n < 0 ? "passou" : ""}" style="--mc:${corMat(a.materia)}"><div class="adata"><b>${dataBR(a.data)}</b><span>${quando(n)}</span></div>
     <div style="flex:1;min-width:0"><div class="row" style="gap:6px"><span class="mchip" style="--mc:${corMat(a.materia)}">${esc(a.materia)}</span><b>${esc(a.tipo)}</b></div>
-    ${a.conteudo ? `<div class="small">${esc(a.conteudo)}</div>` : ""}<span class="muted small">${a.confirmado ? "✓ conferido por um adulto" : "esperando um adulto conferir"}</span></div>
+    ${a.conteudo ? `<div class="small">${esc(a.conteudo)}</div>` : ""}<span class="muted small">${a.confirmado ? "✓ visto por um adulto" : "aguardando o visto de um adulto"}</span></div>
     ${podeApagar && !a.confirmado ? `<button class="mini ghost" data-agdel="${esc(a.id)}">Apagar</button>` : ""}</div>`;
 }
 
@@ -568,24 +568,36 @@ function minhaSemana(d) {
 /* ---------- Minhas aulas ---------- */
 /* ---------- Agenda: semana + caderno de anotações ---------- */
 const TIPOS_AG = ["Prova", "Trabalho", "Simulado", "Apresentação", "Atividade avaliada", "Dever de casa", "Recado", "Material para levar"];
+const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+function fraseAgenda(a) {
+  const m = a.materia && a.materia !== "Geral" ? a.materia : "";
+  const det = a.conteudo ? esc(a.conteudo) : "";
+  if (a.tipo === "Material para levar") return { tinta: "verde", html: `<b>Levar:</b> ${det || esc(m)}` };
+  if (a.tipo === "Recado") return { tinta: "preta", html: `<b>Recado${m ? ` de ${esc(m)}` : ""}:</b> ${det}` };
+  if (a.tipo === "Dever de casa") return { tinta: "azul", html: `<b>Dever${m ? ` de ${esc(m)}` : ""}</b>${det ? ` — ${det}` : ""}` };
+  return { tinta: "vermelha", html: `<b>${esc(a.tipo)}${m ? ` de ${esc(m)}` : ""}</b>${det ? ` — ${det}` : ""}` };
+}
 function cadernoAgenda(d) {
-  const h = d.hoje || hoje();
-  const futuras = d.agenda.filter(a => a.data >= h), passadas = d.agenda.filter(a => a.data < h).slice(-6).reverse();
+  const h = d.hoje || hoje(), adulto = sess.papel === "adulto";
+  const futuras = d.agenda.filter(a => a.data >= h), passadas = d.agenda.filter(a => a.data < h).slice(-5).reverse();
   const porDia = {}; futuras.forEach(a => (porDia[a.data] = porDia[a.data] || []).push(a));
-  const linha = (a, apagar) => `<div class="cad-l"><span class="cad-tipo" style="--mc:${corMat(a.materia)}">${esc(a.tipo)}</span><span class="cad-txt"><b>${esc(a.materia)}</b>${a.conteudo ? ` — ${esc(a.conteudo)}` : ""}</span><span class="cad-ok" title="${a.confirmado ? "conferido por um adulto" : "esperando um adulto conferir"}">${a.confirmado ? "✓" : "…"}</span>${apagar && !a.confirmado ? `<button class="cad-x" data-agdel="${esc(a.id)}" title="Apagar">×</button>` : ""}</div>`;
+  const entrada = (a, ativa) => { const f = fraseAgenda(a); const pode = ativa && (adulto || !a.confirmado);
+    return `<li class="cd-i t-${f.tinta}"><span class="cd-txt">${f.html}</span>${a.confirmado ? `<span class="cd-visto" title="Um adulto já viu">visto</span>` : `<span class="cd-esp" title="Esperando um adulto ver">aguardando visto</span>`}${pode ? `<button class="cd-apagar" data-agdel="${esc(a.id)}" title="Apagar esta anotação">apagar</button>` : ""}</li>`; };
+  const dia = (dt, itens, ativa) => `<div class="cd-dia ${ativa ? "" : "passou"}"><div class="cd-data"><b>${dt.slice(8, 10)}</b><span>${DCURTO[diaSem(dt)].toLowerCase()}</span></div><div class="cd-corpo"><span class="cd-quando">${ativa ? quando(diasAte(dt)) : "já passou"}</span><ul>${itens.map(a => entrada(a, ativa)).join("")}</ul></div></div>`;
+  const mes = MESES[+h.slice(5, 7) - 1];
   return `<aside class="caderno"><div class="cad-capa"><span class="cad-etq">Minha agenda · 4º ano</span></div><div class="cad-espiral" aria-hidden="true"></div>
     <div class="cad-folha">
-      <div class="cad-form">
-        <b class="cad-h">Anotar</b>
-        <label>Quando<input type="date" id="ag-data" min="${h}"></label>
-        <label>Matéria<select id="ag-mat">${[...MATERIAS, "Geral"].map(m => `<option>${m}</option>`).join("")}</select></label>
-        <label>O que é<select id="ag-tipo">${TIPOS_AG.map(t => `<option>${t}</option>`).join("")}</select></label>
-        <label class="lg">Detalhes<input id="ag-cont" placeholder="ex.: frações, páginas 40 a 52"></label>
-        <button id="ag-salvar">Anotar na agenda</button>
+      <div class="cad-mes">${mes} <small>${h.slice(0, 4)}</small></div>
+      ${Object.keys(porDia).sort().map(dt => dia(dt, porDia[dt], true)).join("") || `<p class="cad-vazio">Nada anotado ainda. Ouviu a professora falar de prova, trabalho, dever ou recado? Escreva aqui embaixo!</p>`}
+      ${passadas.length ? `<div class="cad-sep">o que já passou</div>${passadas.map(a => dia(a.data, [a], false)).join("")}` : ""}
+      <div class="cad-nova">
+        <div class="cad-mes pequeno">Nova anotação</div>
+        <div class="cn-linha"><label>dia<input type="date" id="ag-data" min="${h}"></label><label>matéria<select id="ag-mat">${[...MATERIAS, "Geral"].map(m => `<option>${m}</option>`).join("")}</select></label></div>
+        <div class="cn-linha"><label>o que é<select id="ag-tipo">${TIPOS_AG.map(t => `<option>${t}</option>`).join("")}</select></label></div>
+        <div class="cn-linha"><label class="lg">detalhes<input id="ag-cont" placeholder="ex.: frações, páginas 40 a 52"></label></div>
+        <button id="ag-salvar" class="cn-btn">✎ Anotar na agenda</button>
+        <p class="cn-dica">Um adulto vê a sua anotação e dá o <b>visto</b>.</p>
       </div>
-      <b class="cad-h">Próximas anotações</b>
-      ${Object.keys(porDia).sort().map(dia => `<div class="cad-dia">${DCURTO[diaSem(dia)]} ${dataBR(dia)} <small>${quando(diasAte(dia))}</small></div>${porDia[dia].map(a => linha(a, true)).join("")}`).join("") || `<div class="cad-l vazio-l">Nada anotado ainda. Ouviu a professora falar de prova, trabalho ou recado? Anote aqui!</div>`}
-      ${passadas.length ? `<b class="cad-h passou">Já passou</b>${passadas.map(a => `<div class="cad-dia passou">${DCURTO[diaSem(a.data)]} ${dataBR(a.data)}</div>${linha(a, false)}`).join("")}` : ""}
     </div></aside>`;
 }
 function abaAulas(d) {
@@ -845,7 +857,7 @@ function ligarAluna(d) {
     else if (b.dataset.lvedit) { const f = corpo.querySelector(`[data-edit-form="${b.dataset.lvedit}"]`); f.hidden = !f.hidden; }
     else if (b.dataset.lvsalvar) { const id = b.dataset.lvsalvar, v = k => corpo.querySelector(`[data-ed-${k}="${id}"]`).value; exec("livroEditar", { id, titulo: v("tit"), autor: v("aut"), inicio: v("ini") }, "Livro atualizado.", b); }
     else if (b.id === "ag-salvar") { const data = $("#ag-data").value; if (!data) return toast("Escolha a data."); exec("agendaAdicionar", { data, materia: $("#ag-mat").value, tipo: $("#ag-tipo").value, conteudo: $("#ag-cont").value }, "Anotado! Um adulto vai conferir.", b); }
-    else if (b.dataset.agdel) { if (b.dataset.conf) exec("agendaRemover", { id: b.dataset.agdel }, "Apagado.", b); else { b.dataset.conf = 1; b.textContent = "Confirmar"; } }
+    else if (b.dataset.agdel) { if (b.dataset.conf) { if (sess.papel === "adulto") exec("apagarDoc", { col: "agenda", id: b.dataset.agdel }, "Apagado.", b); else exec("agendaRemover", { id: b.dataset.agdel }, "Apagado.", b); } else { b.dataset.conf = 1; b.textContent = "apagar mesmo?"; b.classList.add("armado"); setTimeout(() => { if (b.isConnected) { delete b.dataset.conf; b.textContent = "apagar"; b.classList.remove("armado"); } }, 4000); } }
     else if (b.id === "lv-comecar") { const t = $("#lv-titulo").value.trim(); if (!t) return toast("Escreva o nome do livro."); exec("livroComecar", { titulo: t, autor: $("#lv-autor").value, formato: $("#lv-fmt").value, inicio: $("#lv-ini").value }, "Bom livro!", b); }
     else if (b.dataset.terminar) { const f = corpo.querySelector(`[data-fim-form="${b.dataset.terminar}"]`); f.hidden = !f.hidden; }
     else if (b.dataset.st) { const box = b.parentElement; box.dataset.val = b.dataset.st; box.querySelectorAll("button").forEach(x => x.classList.toggle("on", Number(x.dataset.st) <= Number(b.dataset.st))); }

@@ -6,33 +6,39 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Painel da Isabella</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
 <style>
 /* Layout: boletim de bolso — faixa de resumo, abas; aba Matérias = gráfico semanal por matéria com 3 linhas */
 :root{
   color-scheme:light;
-  --bg:#FAF9F5; --surface:#FFFFFF; --side:#F0EEE6; --ink:#141413; --muted:#73726C; --line:#E6E3D8;
-  --accent:#C6613F; --accent-soft:#F5E6DE; --mark:#F0D9A8;
-  --good:#3F7D58; --warn:#B7791F; --bad:#B8453A; --black:#2A2A2A;
-  --good-s:#E5F0E8; --warn-s:#F8EDD6; --bad-s:#F6E1DD; --black-s:#E7E5DF;
-  --prova:#2F55C9; --escola:#7C93D9; --casa:#3F7D58;
-  --display:"Source Serif 4", Georgia, serif;
-  --body:"Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --bg:#F5F6FA; --surface:#FFFFFF; --side:#FFFFFF; --ink:#1C2140; --muted:#5E6483; --line:#DFE2EC;
+  --accent:#2F55C9; --accent-soft:#E6ECFB; --mark:#F5D547;
+  --good:#1E8A5A; --warn:#B7791F; --bad:#C2413A; --black:#2A2A2A;
+  --good-s:#E3F4EA; --warn-s:#FBF1D4; --bad-s:#FBE3E1; --black-s:#E7E7E7;
+  --prova:#2F55C9; --escola:#7C93D9; --casa:#1E8A5A;
+  --display:"Bricolage Grotesque", "Figtree", system-ui, sans-serif;
+  --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
 }
+@media (prefers-color-scheme: dark){:root{
+  --bg:#12152A; --surface:#1B1F38; --side:#1B1F38; --ink:#E9EBF5; --muted:#A3A8C4; --line:#2E3354;
+  --accent:#8AA6FF; --accent-soft:#25305C; --mark:#E8C93A;
+  --good:#4CC28A; --warn:#E3A84A; --bad:#F07A72; --black:#C9CBD6;
+  --good-s:#173A2A; --warn-s:#3D3216; --bad-s:#43211F; --black-s:#2C2F45;
+  --prova:#8AA6FF; --escola:#A9B8F0; --casa:#4CC28A; color-scheme:dark}}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
 .app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100vh}
 .sidebar{position:sticky;top:0;height:100vh;background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:14px;padding:18px 12px}
-.sb-brand{display:flex;gap:10px;align-items:center;padding:0 8px;font-family:var(--display);font-size:19px;font-weight:600;line-height:1.1}
+.sb-brand{display:flex;gap:10px;align-items:center;padding:0 8px;font-family:var(--display);font-size:18px;font-weight:700;line-height:1.1}
 .sb-brand i{width:30px;height:30px;border-radius:8px;background:var(--accent);display:grid;place-items:center;color:#fff;font-style:normal;font-family:var(--body);font-weight:700}
 .sidebar nav.tabs{flex-direction:column;border:0;margin:0;gap:2px;overflow:visible}
-.sidebar nav.tabs button{display:flex;align-items:center;gap:10px;text-align:left;border:0;border-radius:8px;padding:9px 10px;color:var(--ink);font-weight:500;font-size:14.5px}
+.sidebar nav.tabs button{display:flex;align-items:center;gap:10px;text-align:left;border:0;border-radius:12px;padding:10px 12px;color:var(--muted);font-weight:600;font-size:15px}
 .sidebar nav.tabs button svg{flex:none;opacity:.7}
-.sidebar nav.tabs button:hover{background:rgba(20,20,19,.05)}
-.sidebar nav.tabs button[aria-selected="true"]{background:var(--surface);box-shadow:0 1px 2px rgba(20,20,19,.08);font-weight:600}
-.sidebar nav.tabs button[aria-selected="true"] svg{opacity:1;color:var(--accent)}
+.sidebar nav.tabs button:hover{background:var(--accent-soft)}
+.sidebar nav.tabs button[aria-selected="true"]{background:var(--accent);color:#fff;font-weight:700}
+.sidebar nav.tabs button[aria-selected="true"] svg{opacity:1;color:#fff}
 .sb-foot{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding:0 8px;font-size:13px;color:var(--muted)}
 .sb-foot a,.sb-foot button{font:inherit;font-weight:600;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;text-decoration:none;text-align:left;cursor:pointer}
 .wrap{max-width:1560px;width:100%;margin:0 auto;padding:22px 28px 48px}
@@ -526,7 +532,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
     const dd = d => Math.round((new Date(d+"T12:00:00")-new Date(hoje()+"T12:00:00"))/864e5);
     $("g-agenda").innerHTML = agv.length ? '<div class="tablewrap"><table><thead><tr><th>Data</th><th>Matéria</th><th>O que é</th><th>O que vai cair</th><th>Situação</th><th></th></tr></thead><tbody>'+agv.map(a=>{ const n=dd(a.data); const st=R.filter(r=>r.materia===a.materia).sort((x,y)=>x.data<y.data?-1:1).slice(-3); const v=avg(st.map(r=>r.nota));
       const alerta = n>=0 && n<=5 && v!=null && v<8.5 ? `<div class="tag" style="color:var(--bad)">Faltam ${n} dia${n===1?"":"s"} e ${esc(a.materia)} está em ${f1(v)}: peça ao Claude uma prova de reforço.</div>` : "";
-      return `<tr><td class="num">${fmtData(a.data)}<div class="tag">${n===0?"hoje":n>0?"em "+n+" dia"+(n===1?"":"s"):"passou"}</div></td><td>${esc(a.materia)}</td><td>${esc(a.tipo)}</td><td>${esc(a.conteudo||"")}${alerta}</td><td>${a.confirmado?'<span class="pill good">conferido</span>':'<span class="pill warn">conferir</span>'}</td><td class="r">${a.confirmado?"":`<button class="btn ghost" data-agok="${esc(a._id)}">Confirmar</button> `}${delBtn("agenda",a._id)}</td></tr>`; }).join("")+'</tbody></table></div>'
+      return `<tr><td class="num">${fmtData(a.data)}<div class="tag">${n===0?"hoje":n>0?"em "+n+" dia"+(n===1?"":"s"):"passou"}</div></td><td>${esc(a.materia)}</td><td>${esc(a.tipo)}</td><td>${esc(a.conteudo||"")}${alerta}</td><td>${a.confirmado?'<span class="pill good">visto</span>':'<span class="pill warn">aguardando visto</span>'}</td><td class="r">${a.confirmado?"":`<button class="btn ghost" data-agok="${esc(a._id)}">Dar visto</button> `}${delBtn("agenda",a._id)}</td></tr>`; }).join("")+'</tbody></table></div>'
       : '<div class="empty">Nada anotado. A Isabella anota as provas e os trabalhos na aba Agenda do app dela.</div>';
 
     // Etapa 0
@@ -565,7 +571,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
     const go=e.target.closest("[data-goto]"); if(go){ materia=go.dataset.goto; try{localStorage.setItem("materia",materia)}catch(_){} show("materias"); render(); return; }
     const cor=e.target.closest("#d-cor button"); if(cor){ document.querySelectorAll("#d-cor button").forEach(b=>b.setAttribute("aria-pressed", b===cor?"true":"false")); return; }
     const d=e.target.closest("[data-del]");
-    if(d){ e.preventDefault(); if(!d.classList.contains("armed")){ d.classList.add("armed"); d.textContent="Confirmar"; setTimeout(()=>{d.classList.remove("armed");d.textContent="Excluir";},3000); return; }
+    if(d){ e.preventDefault(); if(!d.classList.contains("armed")){ d.classList.add("armed"); d.textContent="Apagar mesmo?"; setTimeout(()=>{d.classList.remove("armed");d.textContent="Excluir";},3000); return; }
       try{ await db.collection(d.dataset.del).doc(d.dataset.id).delete(); }catch(err){ d.textContent="Erro"; } return; }
     const ag=e.target.closest("[data-agok]"); if(ag){ ag.disabled=true; try{ await db.collection("agenda").doc(ag.dataset.agok).update({confirmado:true}); }catch(err){ ag.textContent="Erro"; } return; }
     const f=e.target.closest("[data-fim]"); if(f){ try{ await db.collection("leitura").doc(f.dataset.fim).update({fim:hoje()}); }catch(err){ f.textContent="Erro"; } }
@@ -639,7 +645,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
     const ag=state.agenda.filter(a=>!a.confirmado && a.data>=dia).sort((a,b)=>a.data<b.data?-1:1);
     const prox=state.agenda.filter(a=>a.data>=dia && a.data<=addD(dia,5) && /prova|trabalho|simulado|apresenta|avaliad/i.test(a.tipo||"")).sort((a,b)=>a.data<b.data?-1:1);
     $("vc-conferir").innerHTML=`<h2>Conferir junto</h2>
-      <h3>Ela anotou e ainda não foi conferido</h3>${ag.length?ag.map(a=>`<div class="row" style="padding:5px 0;border-top:1px solid var(--line)"><span><b>${fmtData(a.data)}</b> · ${esc(a.tipo)} de ${esc(a.materia)}${a.conteudo?` — ${esc(a.conteudo)}`:""}</span><span><button class="btn ghost" data-agok="${esc(a._id)}">Confirmar</button> ${delBtn("agenda",a._id)}</span></div>`).join(""):'<div class="tag">Nada pendente.</div>'}
+      <h3>Ela anotou e ainda não foi conferido</h3>${ag.length?ag.map(a=>`<div class="row" style="padding:5px 0;border-top:1px solid var(--line)"><span><b>${fmtData(a.data)}</b> · ${esc(a.tipo)} de ${esc(a.materia)}${a.conteudo?` — ${esc(a.conteudo)}`:""}</span><span><button class="btn ghost" data-agok="${esc(a._id)}">Dar visto</button> ${delBtn("agenda",a._id)}</span></div>`).join(""):'<div class="tag">Nada pendente.</div>'}
       <h3 style="margin-top:12px">Provas e trabalhos nos próximos 5 dias</h3>${prox.length?prox.map(a=>`<div class="alerta"><span class="ic warn">!</span><span><b>${fmtData(a.data)}</b> · ${esc(a.tipo)} de ${esc(a.materia)}${a.conteudo?` (${esc(a.conteudo)})`:""}. Ela já estudou para isso? Se precisar, peça ao Claude um reforço.</span></div>`).join(""):'<div class="tag">Nenhuma nos próximos 5 dias.</div>'}`;
     const r=state.recompensa||{};
     $("vc-recomp").innerHTML=`<h2>Recompensa da semana</h2><p class="tag" style="margin:0 0 8px">Aparece na tela dela com o placar de dias verdes da semana, que se completa sozinho com este checklist.</p>
