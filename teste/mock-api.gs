@@ -78,6 +78,7 @@ function doPost(e) {
       inicioAluna: () => inicioAlunaV2_(),
       livroComecar: () => acaoAluna_("livroComecar", req, sess),
       livroTerminar: () => acaoAluna_("livroTerminar", req, sess),
+      livroEditar: () => acaoAluna_("livroEditar", req, sess),
       agendaAdicionar: () => acaoAluna_("agendaAdicionar", req, sess),
       agendaRemover: () => acaoAluna_("agendaRemover", req, sess),
       marcarFeito: () => acaoAluna_("marcarFeito", req, sess),
@@ -451,7 +452,8 @@ function inicioAlunaV2_() {
 }
 function acaoAluna_(acao, d, sess) {
   const id = "x" + Date.now(); const h = hoje_();
-  if (acao === "livroComecar") DOCS.leitura[id] = { titulo: d.titulo, autor: d.autor || "", formato: d.formato, inicio: h, fim: "", criadoPor: sess.nome };
+  if (acao === "livroComecar") DOCS.leitura[id] = { titulo: d.titulo, autor: d.autor || "", formato: d.formato, inicio: d.inicio && d.inicio <= h ? d.inicio : h, fim: "", criadoPor: sess.nome };
+  if (acao === "livroEditar") Object.assign(DOCS.leitura[d.id], { titulo: d.titulo, autor: d.autor, inicio: d.inicio && d.inicio <= h ? d.inicio : h });
   if (acao === "livroTerminar") Object.assign(DOCS.leitura[d.id], { fim: h, estrelas: d.estrelas, frase: d.frase });
   if (acao === "agendaAdicionar") DOCS.agenda[id] = { data: d.data, materia: d.materia, tipo: d.tipo, conteudo: d.conteudo, confirmado: false, criadoPor: sess.nome };
   if (acao === "agendaRemover") delete DOCS.agenda[d.id];

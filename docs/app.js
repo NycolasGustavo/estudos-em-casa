@@ -151,7 +151,7 @@ const DIAS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sáb
 const AULAS = { 1: ["Disciplinar", "Educação Física"], 2: ["Inglês", "PLE · Leitura e Escrita"], 3: ["Artes", "Informática"], 4: ["Português"], 5: ["Matemática"] };
 const MANHA = {
   1: [["Revisão de ontem", "Matemática de sexta"], ["Preparar a aula", "Disciplinar"], ["Missão do dia", "Português"]],
-  2: [["Revisão de ontem", "Disciplinar"], ["Preparar a aula", "Leitura e Inglês"], ["Extra", "Gravar a leitura"]],
+  2: [["Revisão de ontem", "Disciplinar"], ["Preparar a aula", "Leitura e Inglês"], ["Extra", "Ler em voz alta"]],
   3: [["Revisão de ontem", "Leitura de terça"], ["Missão do dia", "Matemática"]],
   4: [["Revisão de ontem", "Matemática de quarta"], ["Preparar a aula", "Português"]],
   5: [["Revisão de ontem", "Português de quinta"], ["Preparar a aula", "Matemática"]],
@@ -168,6 +168,7 @@ const ICO = {
   escola: '<path d="M3 21h18M5 21V10l7-5 7 5v11M9 21v-5h6v5M12 8.5v.01"/>',
   casa: '<path d="M3 11l9-7 9 7M5 9.5V21h14V9.5M10 21v-6h4v6"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7"/>',
+  cadeado: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   som: '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/>'
 };
 const ico = (n, s = 22) => `<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICO[n]}</svg>`;
@@ -210,7 +211,7 @@ function widgetAula() {
 setInterval(() => { const w = document.getElementById("aula-w"); if (w) w.outerHTML = widgetAula(); }, 30000);
 
 /* concha da aluna: menu lateral */
-const NAV = [["hoje", "Hoje"], ["aulas", "Minhas aulas"], ["notas", "Minhas notas"], ["materias", "Matérias"], ["agenda", "Agenda"], ["livros", "Livros"], ["gravar", "Gravar leitura"]];
+const NAV = [["hoje", "Hoje"], ["aulas", "Minhas aulas"], ["notas", "Minhas notas"], ["materias", "Matérias"], ["agenda", "Agenda"], ["livros", "Livros"]];
 function concha(aba, titulo, corpo) {
   const base = sess.papel === "adulto" ? "#/aluna/" : "#/";
   return `<div class="shell"><aside class="side"><a class="brand" href="${base}hoje"><svg width="30" height="30" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="8" fill="var(--accent)"/><path d="M6 9c3-1.5 5.5-1.5 8 0v11c-2.5-1.5-5-1.5-8 0zM22 9c-3-1.5-5.5-1.5-8 0v11c2.5-1.5 5-1.5 8 0z" fill="#fff"/></svg><span>Estudos<br>em Casa</span></a>
@@ -251,116 +252,221 @@ function cartaoAgenda(a, podeApagar) {
 
 async function telaAluna(aba) {
   app.className = "shell-wrap";
-  if (!NAV.some(t => t[0] === aba)) aba = "hoje";
+  if (!NAV.some(t => t[0] === aba) && aba !== "ler") aba = "hoje";
+  if (telaAluna.ultima !== aba) { semanaOff = 0; telaAluna.ultima = aba; }
   if (!cache.aluna) app.innerHTML = `<p class="muted" style="padding:40px">Carregando…</p>`;
   const d = await api("inicioAluna");
   cache.aluna = d;
   const primeiro = (d.nome || sess.nome || "").split(" ")[0];
-  const T = { hoje: `Oi, <span class="hl">${esc(primeiro)}</span>!`, aulas: "Minhas aulas", notas: "Minhas notas", materias: "Matérias", agenda: "Agenda", livros: "Livros", gravar: "Gravar leitura" };
-  const f = { hoje: abaHoje, aulas: abaAulas, notas: abaNotas, materias: abaMaterias, agenda: abaAgenda, livros: abaLivros, gravar: abaGravar }[aba];
-  app.innerHTML = concha(aba, T[aba], f(d));
+  const T = { hoje: `Oi, <span class="hl">${esc(primeiro)}</span>!`, aulas: "Minhas aulas", notas: "Minhas notas", materias: "Matérias", agenda: "Agenda", livros: "Livros", ler: "Ler em voz alta" };
+  const f = { hoje: abaHoje, aulas: abaAulas, notas: abaNotas, materias: abaMaterias, agenda: abaAgenda, livros: abaLivros, ler: abaLer }[aba];
+  app.innerHTML = concha(aba === "ler" ? "hoje" : aba, T[aba], f(d));
   ligarAluna(d);
-  if (aba === "gravar") ligarGravador(d);
 }
 
+/* ---------- datas e estado dos itens do plano ---------- */
+const addDias = (iso, n) => { const x = new Date(iso + "T12:00:00"); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };
+const segundaDe = iso => { const x = new Date(iso + "T12:00:00"); return addDias(iso, -((x.getDay() + 6) % 7)); };
+const DCURTO = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const diaSem = iso => new Date(iso + "T12:00:00").getDay();
+let semanaOff = 0;
 function itemFeito(d, plano, it) {
   if (it.provaId) { const p = d.provas.find(x => x.id === it.provaId); return !!(p && p.feita); }
   return d.feitos.includes(it.id);
 }
-const MOMENTO = { aquecimento: ["Aquecimento", "#B8860B"], frio: ["Revisão de ontem · sangue frio", "#0E7C86"], quente: ["Preparar a aula de hoje · sangue quente", "#D2632A"], missao: ["Missão do dia", "#7A4FD6"], prova: ["Prova da semana", "#C2413A"], simulado: ["Simulado", "#C2413A"], extra: ["Extra", "#5E6483"], livro: ["Livro", "#5E6483"] };
-function linhaItem(d, plano, it, i, ativo) {
-  const feito = itemFeito(d, plano, it);
+// feito | hoje | atrasado | bloqueado
+function estadoItem(d, dia, it) {
+  if (itemFeito(d, null, it)) return "feito";
+  const h = d.hoje || hoje();
+  if (dia > h) return "bloqueado";
+  return dia < h ? "atrasado" : "hoje";
+}
+const urlLer = it => `#/${sess.papel === "adulto" ? "aluna/" : ""}ler?item=${encodeURIComponent(it.id)}`;
+function acaoItem(d, it) {
+  if (it.provaId) return `<a class="btn" href="#/prova/${encodeURIComponent(it.provaId)}">${store.get("rasc-" + it.provaId) ? "Continuar" : "Começar"}</a>`;
+  if (it.acao === "tabuada") return `<a class="btn" href="#/tabuada/${encodeURIComponent(it.id)}">Jogar</a>`;
+  if (it.acao === "gravar" || it.acao === "ler") return `<a class="btn" href="${urlLer(it)}">Ler</a>`;
+  if (it.acao === "livro") return `<button class="ghost" data-feito="${esc(it.id)}">Li hoje</button>`;
+  return `<button class="ghost" data-feito="${esc(it.id)}">Marcar feito</button>`;
+}
+const MOMENTO = { aquecimento: ["Aquecimento", "#B8860B"], frio: ["Revisão de ontem · sangue frio", "#0E7C86"], quente: ["Preparar a aula de hoje · sangue quente", "#D2632A"], missao: ["Missão do dia", "#7A4FD6"], prova: ["Prova · vale nota", "#C2413A"], simulado: ["Simulado · vale nota", "#C2413A"], extra: ["Extra", "#5E6483"], livro: ["Livro", "#5E6483"] };
+function linhaItem(d, dia, it, i, ativo) {
+  const st = estadoItem(d, dia, it);
   const m = MOMENTO[it.momento] || ["Atividade", "#5E6483"];
-  const prova = it.provaId ? d.provas.find(x => x.id === it.provaId) : null;
-  let botao = "";
-  if (feito) botao = `<span class="feito">${ico("check", 18)} Feito</span>`;
-  else if (it.provaId && prova) botao = `<a class="btn" href="#/prova/${encodeURIComponent(it.provaId)}">${store.get("rasc-" + it.provaId) ? "Continuar" : "Começar"}</a>`;
-  else if (it.acao === "tabuada") botao = `<a class="btn" href="#/tabuada/${encodeURIComponent(it.id)}">Jogar</a>`;
-  else if (it.acao === "gravar") botao = `<a class="btn" href="#/${sess.papel === "adulto" ? "aluna/" : ""}gravar?item=${encodeURIComponent(it.id)}">Gravar</a>`;
-  else if (it.acao === "livro") botao = `<button class="ghost" data-feito="${esc(it.id)}">Li hoje</button>`;
-  else botao = `<button class="ghost" data-feito="${esc(it.id)}">Marcar feito</button>`;
-  return `<div class="item ${feito ? "ok" : ""} ${ativo ? "ativo" : ""}"><div class="inum">${feito ? ico("check", 20) : i + 1}</div>
+  let botao;
+  if (st === "feito") botao = `<span class="feito">${ico("check", 18)} Feito</span>`;
+  else if (st === "bloqueado") botao = `<span class="trava">${ico("cadeado", 18)} Abre ${DCURTO[diaSem(dia)].toLowerCase()} ${dataBR(dia)}</span>`;
+  else botao = acaoItem(d, it);
+  return `<div class="item ${st === "feito" ? "ok" : ""} ${st === "bloqueado" ? "lock" : ""} ${ativo ? "ativo" : ""}"><div class="inum">${st === "feito" ? ico("check", 20) : st === "bloqueado" ? ico("cadeado", 18) : i + 1}</div>
     <div class="ibody"><span class="mom" style="--mm:${m[1]}">${m[0]}${it.minutos ? ` · ${it.minutos} min` : ""}</span><b>${esc(it.titulo)}</b>${it.descricao ? `<span class="muted small">${esc(it.descricao)}</span>` : ""}</div>${botao}</div>`;
 }
+
+/* ---------- Hoje ---------- */
 function abaHoje(d) {
   const h = d.hoje || hoje();
   const plano = d.plano.find(p => p._id === h);
-  const dt = new Date(h + "T12:00:00");
-  const dataTxt = `${DIAS[dt.getDay()]}, ${dataBR(h)}`;
+  const dataTxt = `${DIAS[diaSem(h)]}, ${dataBR(h)}`;
   let estudo;
   if (plano && plano.itens && plano.itens.length) {
     const feitos = plano.itens.filter(it => itemFeito(d, plano, it)).length;
     const prox = plano.itens.findIndex(it => !itemFeito(d, plano, it));
-    estudo = `<section class="painel-mundo" style="--w:var(--casa)">${faixa("casa", `Estudo de hoje de manhã · ${plano.minutos || 45} minutos`)}
-      <div class="pm-corpo"><div class="row between"><span class="muted">${feitos === plano.itens.length ? "<b>Tudo feito hoje! Parabéns!</b>" : `Faça na ordem, de cima para baixo. ${feitos} de ${plano.itens.length} feitos.`}</span></div>
+    estudo = `<section class="painel-mundo" style="--w:var(--casa)">${faixa("casa", `Estudo de hoje · ${plano.minutos || 45} minutos`)}
+      <div class="pm-corpo"><span class="muted">${feitos === plano.itens.length ? "<b>Tudo feito hoje! Parabéns!</b>" : `Faça na ordem, de cima para baixo. ${feitos} de ${plano.itens.length} feitos.`}</span>
       <div class="bar" style="height:12px"><i style="width:${feitos / plano.itens.length * 100}%;background:var(--casa)"></i></div>
-      <div class="itens">${plano.itens.map((it, i) => linhaItem(d, plano, it, i, i === prox)).join("")}</div></div></section>`;
+      <div class="itens">${plano.itens.map((it, i) => linhaItem(d, h, it, i, i === prox)).join("")}</div></div></section>`;
   } else {
-    estudo = `<section class="painel-mundo" style="--w:var(--casa)">${faixa("casa", "Estudo de hoje")}<div class="pm-corpo"><p>${dt.getDay() === 0 ? "Domingo é dia de descanso. Aproveite!" : "Ainda não tem estudo marcado para hoje."}</p></div></section>`;
+    const prox = d.plano.filter(p => p._id > h && (p.itens || []).length).sort((a, b) => a._id.localeCompare(b._id))[0];
+    estudo = `<section class="painel-mundo" style="--w:var(--casa)">${faixa("casa", "Estudo de hoje")}<div class="pm-corpo">
+      <p>${diaSem(h) === 0 ? "Domingo é dia de descanso. Aproveite!" : "Hoje não tem estudo marcado."}</p>
+      ${prox ? `<p><b>O próximo estudo abre ${DIAS[diaSem(prox._id)].toLowerCase()}, ${dataBR(prox._id)}</b> (${prox.itens.length} atividades, ${prox.minutos || 45} minutos):</p><div class="itens">${prox.itens.map((it, i) => linhaItem(d, prox._id, it, i, false)).join("")}</div>` : ""}</div></section>`;
   }
-  const atrasadas = d.pendentes.filter(p => p.liberarEm && p.liberarEm < h);
-  const aula = infoAula(), prox = d.agenda.filter(a => diasAte(a.data) >= 0).slice(0, 4);
-  const semana = d.diario.slice(0, 7).slice().reverse();
+  const atrasados = [];
+  d.plano.filter(p => p._id < h).forEach(p => (p.itens || []).forEach(it => { if (estadoItem(d, p._id, it) === "atrasado" && it.provaId) atrasados.push([p._id, it]); }));
+  const aula = infoAula(), proxEsc = d.agenda.filter(a => diasAte(a.data) >= 0).slice(0, 3);
   const lendo = d.livros.filter(l => l.status === "lendo");
   return `<p class="hoje-data">${dataTxt}</p>
    <div class="home"><div class="stack col-main">${estudo}
-    ${atrasadas.length ? `<section class="stack"><h2>Ficou para trás</h2><p class="muted small">Atividades de dias anteriores que ainda não foram feitas.</p><div class="cards one">${atrasadas.map(cartaoProva).join("")}</div></section>` : ""}
+    ${atrasados.length ? `<section class="painel-mundo" style="--w:var(--bad)"><div class="faixa" style="--w:var(--bad)"><b>FICOU PARA TRÁS</b><span>faça quando terminar o de hoje</span></div><div class="pm-corpo"><div class="itens">${atrasados.slice(-4).map(([dia, it], i) => linhaItem(d, dia, Object.assign({}, it, { descricao: `Era para ${DCURTO[diaSem(dia)].toLowerCase()}, ${dataBR(dia)}` }), i, false)).join("")}</div></div></section>` : ""}
    </div><aside class="stack col-side">
     <section class="painel-mundo" style="--w:var(--escola)">${faixa("escola", "Hoje à tarde")}<div class="pm-corpo">${aula.aulas.length ? `${aula.aulas.map(a => `<div class="aula-l"><span class="mchip" style="--mc:${corMat(a.split(" ")[0])}">${esc(a)}</span></div>`).join("")}<span class="muted small">13:15 às 17:15 · ${esc(aula.linha)}</span>` : `<span>${esc(aula.linha)}</span>`}
-      <h3 style="margin-top:8px">Vem aí na escola</h3>${prox.length ? prox.map(a => cartaoAgenda(a, false)).join("") : `<span class="muted small">Nenhuma prova anotada. Ouviu falar de prova? Anote na Agenda.</span>`}</div></section>
-    <section class="panel stack"><h3>Minha semana</h3>${semana.length ? `<div class="dias">${semana.map(x => `<span class="d-${esc(x.cor)}" title="${dataBR(x.data)}: ${esc(x.cor)}"></span>`).join("")}</div>` : `<span class="muted small">As cores dos seus dias aparecem aqui.</span>`}</section>
-    <section class="panel stack"><h3>Lendo agora</h3>${lendo.length ? lendo.map(l => `<b>${esc(l.titulo)}</b>`).join("") : `<span class="muted small">Nenhum livro. Comece um na aba Livros.</span>`}</section>
-   </aside></div>`;
+      <h3 style="margin-top:8px">Vem aí na escola</h3>${proxEsc.length ? proxEsc.map(a => cartaoAgenda(a, false)).join("") : `<span class="muted small">Nenhuma prova anotada. Ouviu falar de prova? Anote na Agenda.</span>`}</div></section>
+    <section class="panel stack"><h3>Lendo agora</h3>${lendo.length ? lendo.map(l => `<div><b>${esc(l.titulo)}</b><div class="muted small">desde ${dataBR(l.inicio)}</div></div>`).join("") : `<span class="muted small">Nenhum livro. Comece um na aba Livros.</span>`}</section>
+   </aside></div>
+   ${minhaSemana(d)}`;
 }
-function abaAulas() {
-  const hd = new Date().getDay();
-  return `<p class="muted">As aulas da escola são sempre à tarde, das <b>13:15 às 17:15</b>. De manhã, em casa, você estuda para chegar afiada.</p>
-   <div class="grade">${[1, 2, 3, 4, 5].map(dw => `<div class="gcol ${dw === hd ? "hoje" : ""}"><div class="ghead">${DIAS[dw]}${dw === hd ? " · hoje" : ""}</div>
-     <div class="gbloco" style="--w:var(--escola)">${faixa("escola", "13:15 às 17:15")}<div class="gaulas">${AULAS[dw].map(a => `<div class="gaula" style="--mc:${corMat(a.split(" ")[0])}">${esc(a)}</div>`).join("")}</div></div>
-     <div class="gbloco" style="--w:var(--casa)">${faixa("casa", "de manhã · 45 min")}<div class="gaulas">${MANHA[dw].map(([k, v]) => `<div class="gm"><span>${k}</span><b>${esc(v)}</b></div>`).join("")}</div></div></div>`).join("")}</div>
-   <div class="grid2"><div class="painel-mundo" style="--w:var(--casa)">${faixa("casa", "Sábado")}<div class="pm-corpo">${MANHA[6].map(([k, v]) => `<div class="gm"><span>${k}</span><b>${esc(v)}</b></div>`).join("")}</div></div>
-   <div class="panel"><h3>Domingo</h3><p class="muted">Descanso. Só 10 minutos com um adulto para olhar a semana.</p></div></div>`;
+function navSemana(ini) {
+  const fim = addDias(ini, 6);
+  return `<div class="semnav"><button class="ghost mini" data-sem="-1" ${semanaOff <= -1 ? "disabled" : ""}>‹ Anterior</button><b>${semanaOff === 0 ? "Esta semana" : semanaOff > 0 ? "Próxima semana" : "Semana passada"} · ${dataBR(ini)} a ${dataBR(fim)}</b><button class="ghost mini" data-sem="1" ${semanaOff >= 1 ? "disabled" : ""}>Próxima ›</button></div>`;
 }
-let filtroMat = "Todas", filtroMundo = "tudo";
+function minhaSemana(d) {
+  const h = d.hoje || hoje(), ini = addDias(segundaDe(h), 7 * semanaOff);
+  const dias = Array.from({ length: 7 }, (_, i) => addDias(ini, i));
+  const cor = Object.fromEntries((d.diario || []).map(x => [x.data, x.cor]));
+  const col = dia => {
+    const p = d.plano.find(x => x._id === dia), its = (p && p.itens) || [];
+    const esc_ = d.agenda.filter(a => a.data === dia);
+    const feitos = its.filter(it => itemFeito(d, p, it)).length;
+    const lista = its.map(it => {
+      const st = estadoItem(d, dia, it);
+      const ic = st === "feito" ? ico("check", 15) : st === "bloqueado" ? ico("cadeado", 14) : st === "atrasado" ? "!" : "•";
+      const tit = `<span class="si-ic">${ic}</span><span class="si-t">${esc(it.titulo)}</span>`;
+      const pode = (st === "hoje" || st === "atrasado") && (it.provaId || it.acao === "tabuada" || it.acao === "gravar" || it.acao === "ler");
+      const href = it.provaId ? `#/prova/${encodeURIComponent(it.provaId)}` : it.acao === "tabuada" ? `#/tabuada/${encodeURIComponent(it.id)}` : urlLer(it);
+      return pode ? `<a class="sitem s-${st}" href="${href}">${tit}</a>` : `<div class="sitem s-${st}" ${st === "bloqueado" ? `title="Abre no dia ${dataBR(dia)}"` : ""}>${tit}</div>`;
+    }).join("");
+    return `<div class="sdia ${dia === h ? "hoje" : ""} ${dia < h ? "passado" : ""}"><div class="sd-h"><b>${DCURTO[diaSem(dia)]}</b><span>${dataBR(dia)}</span>${cor[dia] ? `<i class="sd-cor d-${esc(cor[dia])}" title="cor do dia"></i>` : ""}</div>
+      ${its.length ? `<div class="sd-prog">${dia > h ? `${ico("cadeado", 13)} ${dia === addDias(h, 1) ? "abre amanhã" : "ainda fechado"}` : `${feitos} de ${its.length} feitos`}</div>` : ""}
+      <div class="sd-lista">${lista || `<span class="muted small">${diaSem(dia) === 0 ? "Descanso" : "Sem estudo"}</span>`}</div>
+      ${esc_.map(a => `<div class="sd-esc" style="--mc:${corMat(a.materia)}">${ico("escola", 13)} ${esc(a.tipo)} de ${esc(a.materia)}</div>`).join("")}</div>`;
+  };
+  return `<section class="panel stack"><div class="row between"><h2>Minha semana</h2>${navSemana(ini)}</div>
+    <p class="muted small" style="margin:0">${ico("check", 13)} feito · ! ficou para trás · ${ico("cadeado", 12)} ainda não abriu: cada atividade abre no dia dela.</p>
+    <div class="sem-grid">${dias.map(col).join("")}</div></section>`;
+}
+
+/* ---------- Minhas aulas ---------- */
+function abaAulas(d) {
+  const h = d.hoje || hoje(), ini = addDias(segundaDe(h), 7 * semanaOff);
+  const dias = [0, 1, 2, 3, 4].map(i => addDias(ini, i));
+  const rot = (m, t, s) => `<div class="ag-rot" style="--w:${m === "casa" ? "var(--casa)" : "var(--escola)"}">${ico(m, 22)}<b>${t}</b>${s ? `<span>${s}</span>` : ""}</div>`;
+  const head = dias.map(x => `<div class="ag-head ${x === h ? "hoje" : ""}"><b>${DIAS[diaSem(x)]}</b><span>${dataBR(x)}${x === h ? " · hoje" : ""}</span></div>`).join("");
+  const aulas = dias.map(x => `<div class="ag-cel ${x === h ? "hoje" : ""}">${AULAS[diaSem(x)].map(a => `<div class="gaula" style="--mc:${corMat(a.split(" ")[0])}">${esc(a)}</div>`).join("")}</div>`).join("");
+  const provas = dias.map(x => { const ag = d.agenda.filter(a => a.data === x); return `<div class="ag-cel ${x === h ? "hoje" : ""}">${ag.map(a => `<div class="ag-ev" style="--mc:${corMat(a.materia)}"><b>${esc(a.tipo)}</b><span>${esc(a.materia)}</span>${a.conteudo ? `<small>${esc(a.conteudo)}</small>` : ""}</div>`).join("") || `<span class="vazio">—</span>`}</div>`; }).join("");
+  const casa = dias.map(x => { const p = d.plano.find(y => y._id === x); const its = p ? p.itens : MANHA[diaSem(x)].map(([k, v]) => ({ titulo: v, momento: k })); return `<div class="ag-cel ${x === h ? "hoje" : ""}">${its.map(it => `<div class="gm"><span>${esc(MOMENTO[it.momento] ? MOMENTO[it.momento][0].split(" · ")[0] : it.momento || "")}</span><b>${esc(it.titulo)}</b></div>`).join("")}</div>`; }).join("");
+  const fds = [5, 6].map(i => addDias(ini, i)).map(x => { const p = d.plano.find(y => y._id === x); return `<div class="panel stack"><h3>${DIAS[diaSem(x)]} · ${dataBR(x)}</h3>${p ? p.itens.map(it => `<div class="gm"><span>${esc(MOMENTO[it.momento] ? MOMENTO[it.momento][0].split(" · ")[0] : "")}</span><b>${esc(it.titulo)}</b></div>`).join("") : `<span class="muted">${diaSem(x) === 0 ? "Descanso. Só 10 minutos com um adulto para olhar a semana." : "Simulado ou prova e um pouco de livro."}</span>`}</div>`; }).join("");
+  return `<div class="row between"><p class="muted" style="margin:0">Escola sempre à tarde, das <b>13:15 às 17:15</b>. De manhã, em casa, você estuda para chegar afiada.</p>${navSemana(ini)}</div>
+   <div class="agrid"><div></div>${head}
+     ${rot("escola", "Aulas", "13:15 às 17:15")}${aulas}
+     ${rot("escola", "Provas e trabalhos", "da sua Agenda")}${provas}
+     ${rot("casa", "De manhã", "45 minutos")}${casa}</div>
+   <div class="grid2">${fds}</div>`;
+}
+
+/* ---------- Minhas notas ---------- */
+let filtroMat = "Todas", filtroClasse = "prova";
+const ehProvaEscola = t => /prova|simulado|olimp/i.test(t || "");
+function todasNotas(d) {
+  const L = d.avaliacoes.filter(a => !ehCasa(a.tipo)).map(a => ({ data: a.data, materia: a.materia, tipo: tipoCurto(a.tipo), titulo: a.titulo, nota: Number(a.nota), comentario: a.comentario, origem: "escola", classe: ehProvaEscola(a.tipo) ? "prova" : "atividade" }));
+  d.historico.filter(x => x.status === "corrigida").forEach(x => L.push({ data: x.data, materia: x.materia, tipo: TIPO_PROVA[x.tipo] || "Atividade", titulo: x.titulo, nota: Number(x.nota), origem: "casa", classe: VALE_NOTA(x.tipo) ? "prova" : "atividade", tentativa: x.id }));
+  return L.filter(n => !isNaN(n.nota)).sort((a, b) => String(b.data).localeCompare(String(a.data)));
+}
 function abaNotas(d) {
-  const notas = todasNotas(d);
-  const mats = ["Todas", ...new Set(notas.map(n => n.materia))];
-  const vis = notas.filter(n => (filtroMat === "Todas" || n.materia === filtroMat) && (filtroMundo === "tudo" || n.origem === filtroMundo));
-  const meses = {}; vis.forEach(n => { const k = String(n.data).slice(0, 7); (meses[k] = meses[k] || []).push(n); });
-  const NM = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  const todas = todasNotas(d);
+  const mats = ["Todas", ...new Set(todas.map(n => n.materia))];
+  const notas = todas.filter(n => filtroMat === "Todas" || n.materia === filtroMat);
   const med = a => a.length ? a.reduce((s, n) => s + n.nota, 0) / a.length : null;
-  const nE = notas.filter(n => n.origem === "escola"), nC = notas.filter(n => n.origem === "casa");
-  const mE = med(nE), mC = med(nC);
-  return `<p class="muted" style="max-width:900px">Aqui aparece <b>tudo</b> o que vale nota. As notas da <b style="color:var(--escola)">ESCOLA</b> (atividades da sala, tarefas, trabalhos e provas) são registradas pelos adultos. As notas de <b style="color:var(--casa)">CASA</b> são as provas e os simulados que você faz aqui.</p>
-   <div class="mundos">
-     <button class="mbtn ${filtroMundo === "tudo" ? "on" : ""}" data-fmundo="tudo" style="--w:var(--accent)">${ico("notas", 28)}<div><b>Tudo</b><span>${notas.length} notas</span></div></button>
-     <button class="mbtn ${filtroMundo === "escola" ? "on" : ""}" data-fmundo="escola" style="--w:var(--escola)">${ico("escola", 28)}<div><b>Escola</b><span>${nE.length} notas · média ${mE != null ? fmtN(mE) : "–"}</span></div></button>
-     <button class="mbtn ${filtroMundo === "casa" ? "on" : ""}" data-fmundo="casa" style="--w:var(--casa)">${ico("casa", 28)}<div><b>Casa</b><span>${nC.length} notas · média ${mC != null ? fmtN(mC) : "–"}</span></div></button></div>
-   <div class="chips">${mats.map(m => `<button data-fmat="${esc(m)}" class="${m === filtroMat ? "on" : ""}">${esc(m)}</button>`).join("")}</div>
-   ${Object.keys(meses).sort().reverse().map(k => `<section class="stack" style="gap:10px"><h3 class="mes">${NM[+k.slice(5, 7) - 1]} de ${k.slice(0, 4)}</h3><div class="cards">${meses[k].map(cartaoNota).join("")}</div></section>`).join("") || `<div class="panel muted">Nenhuma nota aqui ainda.</div>`}`;
+  const q = (o, c) => { const a = notas.filter(n => n.origem === o && n.classe === c); const m = med(a); return `<button class="q4-c ${filtroClasse === c ? "on" : ""}" data-fclasse="${c}" style="--w:var(--${o})"><b class="${m != null ? clsNota(m) : ""}">${m != null ? fmtN(m) : "–"}</b><span>${a.length} nota${a.length === 1 ? "" : "s"}</span></button>`; };
+  const serie = notas.filter(n => n.classe === filtroClasse).slice().reverse();
+  const xs = serie.map(n => n.data);
+  const graf = serie.length ? grafico([{ nome: "Escola", cor: "var(--escola)", vals: serie.map(n => n.origem === "escola" ? n.nota : null), ligar: true }, { nome: "Casa", cor: "var(--casa)", vals: serie.map(n => n.origem === "casa" ? n.nota : null), ligar: true }], { xs, rotulos: xs.map(dataBR), refs: [{ v: 8.5, cor: "var(--sun)" }], altura: 230 }) : `<p class="muted">Ainda não tem ${filtroClasse === "prova" ? "provas" : "atividades"} com nota${filtroMat !== "Todas" ? " em " + esc(filtroMat) : ""}.</p>`;
+  return `<div class="chips">${mats.map(m => `<button data-fmat="${esc(m)}" class="${m === filtroMat ? "on" : ""}">${esc(m)}</button>`).join("")}</div>
+   <div class="notas-top"><div class="q4"><span></span><div class="q4-h" style="--w:var(--escola)">${ico("escola", 18)} Escola</div><div class="q4-h" style="--w:var(--casa)">${ico("casa", 18)} Casa</div>
+     <div class="q4-r">Provas e simulados<small>valem nota</small></div>${q("escola", "prova")}${q("casa", "prova")}
+     <div class="q4-r">Atividades<small>para treinar</small></div>${q("escola", "atividade")}${q("casa", "atividade")}</div>
+   <div class="panel stack"><div class="row between"><h3>${filtroClasse === "prova" ? "Provas e simulados" : "Atividades"} ao longo do tempo</h3><div class="seg"><button data-fclasse="prova" class="${filtroClasse === "prova" ? "on" : ""}">Provas</button><button data-fclasse="atividade" class="${filtroClasse === "atividade" ? "on" : ""}">Atividades</button></div></div>
+     ${graf}<div class="legend"><span><i style="background:var(--escola)"></i>Escola</span><span><i style="background:var(--casa)"></i>Casa</span><span><i style="background:var(--sun)"></i>Meta 8,5</span></div></div></div>
+   <section class="panel stack"><h3>Todas as notas</h3><div class="nlist">${notas.map(n => { const l = `<span class="nl-d">${dataBR(n.data)}</span><span class="nl-o" style="--w:var(--${n.origem})">${n.origem === "casa" ? "Casa" : "Escola"}</span><span class="nl-t"><b>${esc(n.titulo || n.tipo)}</b><small>${esc(n.materia)} · ${esc(n.tipo)}${n.classe === "prova" ? " · vale nota" : ""}</small></span><span class="nl-n ${clsNota(n.nota)}">${fmtN(n.nota)}</span>`; return n.tentativa ? `<a class="nl" href="#/resultado/${encodeURIComponent(n.tentativa)}">${l}</a>` : `<div class="nl">${l}</div>`; }).join("") || `<p class="muted">Nenhuma nota ainda.</p>`}</div></section>`;
 }
+
+/* ---------- Matérias e superpoderes ---------- */
+const PODERES = [
+  [/causa|conectivo|por que/i, "Caçadora de Porquês", "descobre o motivo das coisas que acontecem no texto"],
+  [/operação|problemas de compara/i, "Detetive das Contas", "lê um problema e descobre qual conta resolve"],
+  [/tempos? verb/i, "Viajante do Tempo", "sabe se uma ação já aconteceu, está acontecendo ou ainda vai acontecer"],
+  [/vai um|adição/i, "Mestra do Vai-Um", "soma números grandes sem se perder, mesmo quando a conta passa de 9"],
+  [/zeros|empresta|subtra/i, "Domadora do Empresta-Um", "faz contas de menos até quando aparece zero no meio"],
+  [/resto/i, "Divisora Justa", "reparte as coisas igualzinho e ainda sabe quanto sobra"],
+  [/divis/i, "Divisora Justa", "reparte as coisas em partes iguais"],
+  [/multiplica/i, "Multiplicadora Turbo", "descobre rapidinho quanto dá quando grupos iguais se repetem"],
+  [/numeração/i, "Guardiã dos Números", "lê números grandes e sabe quanto vale cada algarismo"],
+  [/geometr/i, "Arquiteta das Formas", "reconhece formas e sólidos de olhos fechados"],
+  [/fraç/i, "Rainha das Frações", "entende pedaços de um inteiro, como fatias de pizza"],
+  [/medidas de tempo|hora/i, "Senhora do Relógio", "calcula quanto tempo as coisas duram"],
+  [/monet|dinheiro/i, "Caixa do Mercado", "faz contas com dinheiro e troco"],
+  [/localizar/i, "Olho de Águia", "acha no texto exatamente a informação que a pergunta pede"],
+  [/infer|figurad|contexto/i, "Leitora de Mentes", "entende o que o texto quer dizer, mesmo quando não está escrito"],
+  [/finalidade|gênero/i, "Descobridora de Textos", "sabe para que serve cada texto: aviso, convite, receita ou história"],
+  [/pontua/i, "Voz do Texto", "entende o que cada sinal (. ? ! ,) faz com a frase"],
+  [/plural/i, "Mestra dos Plurais", "escreve o plural certinho, até das palavras difíceis em -ão"],
+  [/adjetivo/i, "Pintora de Palavras", "encontra as palavras que dizem como as coisas são"],
+  [/substantivo/i, "Dona dos Nomes", "reconhece as palavras que dão nome a tudo"],
+  [/ortografia|acentu/i, "Escritora Caprichosa", "escreve as palavras do jeito certo, com acento e tudo"],
+  [/humor|moral|tema/i, "Leitora Esperta", "entende a graça e a lição das histórias"],
+  [/fato/i, "Juíza da Verdade", "separa o que é fato do que é opinião"],
+  [/pronome|referência/i, "Ligadora de Pistas", "descobre de quem ou do que o texto está falando"],
+  [/polu|ambiente/i, "Protetora do Planeta", "sabe o que suja o ambiente e como cuidar dele"],
+  [/cardea|regiões/i, "Exploradora de Mapas", "se localiza pelo Sol e pelos pontos cardeais"],
+  [/vocabul|inglês/i, "Poliglota", "entende palavras em inglês"]
+];
+const poderDe = hab => { const p = PODERES.find(([re]) => re.test(hab)); return p ? { nome: p[1], frase: p[2] } : { nome: hab, frase: `acerta "${hab}" quase sempre` }; };
+const nivel = n => n >= 10 ? ["Ouro", "#C99A06"] : n >= 5 ? ["Prata", "#8A94A6"] : ["Bronze", "#B0703C"];
 function abaMaterias(d) {
   const notas = todasNotas(d);
   const mats = [...new Set(["Português", "Matemática", ...notas.map(n => n.materia)])];
   const med = a => a.length ? a.reduce((s, n) => s + n.nota, 0) / a.length : null;
   const cards = mats.map(m => {
-    const ns = notas.filter(n => n.materia === m).slice().reverse();
+    const ns = notas.filter(n => n.materia === m && n.classe === "prova").slice().reverse();
     const e = med(ns.filter(n => n.origem === "escola").slice(-5)), c = med(ns.filter(n => n.origem === "casa").slice(-5));
     const prox = d.agenda.find(a => a.materia === m && diasAte(a.data) >= 0);
-    const xs = ns.map(n => n.data);
-    return `<div class="panel stack" style="border-top:5px solid ${corMat(m)}"><div class="row between"><h3 style="color:${corMat(m)};font-size:20px">${esc(m)}</h3><span class="muted small">${ns.length} nota${ns.length === 1 ? "" : "s"}</span></div>
+    return `<div class="panel stack" style="border-top:5px solid ${corMat(m)}"><div class="row between"><h3 style="color:${corMat(m)};font-size:20px">${esc(m)}</h3><span class="muted small">média das provas</span></div>
       <div class="row" style="gap:12px"><div class="mini-m" style="--w:var(--escola)">${ico("escola", 18)}<div><b class="${e != null ? clsNota(e) : ""}">${e != null ? fmtN(e) : "–"}</b><span>na escola</span></div></div><div class="mini-m" style="--w:var(--casa)">${ico("casa", 18)}<div><b class="${c != null ? clsNota(c) : ""}">${c != null ? fmtN(c) : "–"}</b><span>em casa</span></div></div></div>
-      ${ns.length > 1 ? grafico([{ nome: "Na escola", cor: "var(--escola)", vals: ns.map(n => n.origem === "escola" ? n.nota : null), ligar: true }, { nome: "Em casa", cor: "var(--casa)", vals: ns.map(n => n.origem === "casa" ? n.nota : null), ligar: true }], { xs, rotulos: xs.map(dataBR), refs: [{ v: 8.5, cor: "var(--sun)" }], altura: 170 }) + `<div class="legend"><span><i style="background:var(--escola)"></i>Escola</span><span><i style="background:var(--casa)"></i>Casa</span><span><i style="background:var(--sun)"></i>Meta 8,5</span></div>` : ""}
       ${prox ? `<div class="expl">Próxima na escola: <b>${esc(prox.tipo)}</b> ${quando(diasAte(prox.data))} (${dataBR(prox.data)})${prox.conteudo ? ` · ${esc(prox.conteudo)}` : ""}</div>` : ""}</div>`;
   }).join("");
-  const hab = d.habilidades.filter(h => h.total >= 2);
-  const fortes = hab.filter(h => h.pct >= 85).sort((a, b) => b.pct - a.pct).slice(0, 6);
-  const treinar = hab.filter(h => h.pct < 70).sort((a, b) => a.pct - b.pct).slice(0, 6);
-  const itemH = h => `<div class="li"><div><b>${esc(h.habilidade)}</b><div class="muted small">${esc(h.materia)} · acertou ${h.certas} de ${h.total}</div></div><div style="width:90px"><div class="bar"><i style="width:${h.pct}%;background:${h.pct >= 85 ? "var(--ok)" : h.pct >= 70 ? "var(--sun)" : "var(--bad)"}"></i></div></div></div>`;
-  return `<div class="grid2">${cards}</div>
-   <div class="grid2"><div class="panel stack"><h3>Meus superpoderes</h3><p class="muted small">O que você acerta quase sempre nas atividades e provas de casa.</p>${fortes.length ? `<div class="list">${fortes.map(itemH).join("")}</div>` : `<p class="muted small">Ainda não tem: acerte a mesma coisa em atividades diferentes.</p>`}</div>
-   <div class="panel stack"><h3>Estou treinando</h3><p class="muted small">O que você ainda erra. É nisso que vêm os próximos treinos.</p>${treinar.length ? `<div class="list">${treinar.map(itemH).join("")}</div>` : `<p class="muted small">Nada para treinar agora.</p>`}</div></div>`;
+  // agrupa habilidades no mesmo superpoder
+  const G = {};
+  d.habilidades.forEach(h => { const p = poderDe(h.habilidade); const k = h.materia + "|" + p.nome; const g = G[k] = G[k] || { materia: h.materia, nome: p.nome, frase: p.frase, certas: 0, total: 0 }; g.certas += Number(h.certas); g.total += Number(h.total); });
+  const lista = Object.values(G).map(g => Object.assign(g, { pct: Math.round(g.certas / g.total * 100) }));
+  const poderes = lista.filter(g => g.total >= 2 && g.pct >= 85).sort((a, b) => b.total - a.total);
+  const construcao = lista.filter(g => g.pct < 85).sort((a, b) => b.pct - a.pct).slice(0, 6);
+  const estrela = '<svg width="34" height="34" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z" fill="currentColor"/></svg>';
+  return `<section class="poderes stack"><div><h2>Meus superpoderes</h2><p class="muted" style="margin:4px 0 0">Cada superpoder é uma coisa que você <b>já sabe fazer muito bem</b>: acertou pelo menos 85% das vezes. Quanto mais você acerta, mais ele sobe de nível: Bronze, Prata e Ouro.</p></div>
+    ${poderes.length ? `<div class="pgrid">${poderes.map(g => { const nv = nivel(g.total); return `<div class="poder" style="--mc:${corMat(g.materia)}"><div class="pd-top"><span class="pd-ic">${estrela}</span><span class="pd-nv" style="--nv:${nv[1]}">${nv[0]}</span></div><b class="pd-nome">${esc(g.nome)}</b><p>Você ${esc(g.frase)}.</p><span class="pd-rod">${esc(g.materia)} · acertou ${g.certas} de ${g.total}</span></div>`; }).join("")}</div>` : `<div class="panel muted">Seu primeiro superpoder aparece quando você acertar a mesma coisa em atividades diferentes.</div>`}
+   </section>
+   ${construcao.length ? `<section class="panel stack"><h2>Superpoderes em construção</h2><p class="muted small" style="margin:0">Quando a barra passar da linha amarela, vira superpoder! É nisso que vêm os próximos treinos.</p>
+     <div class="list">${construcao.map(g => `<div class="li"><div style="flex:1;min-width:0"><b>${esc(g.nome)}</b><div class="muted small">${esc(g.materia)} · você ${esc(g.frase)} · acertou ${g.certas} de ${g.total}</div><div class="bar meta85"><i style="width:${Math.max(4, g.pct)}%"></i><em></em></div></div></div>`).join("")}</div></section>` : ""}
+   <h2>Minhas matérias</h2><div class="grid2">${cards}</div>`;
 }
+
 function abaAgenda(d) {
   const futuras = d.agenda.filter(a => diasAte(a.data) >= 0), passadas = d.agenda.filter(a => diasAte(a.data) < 0);
   return `<div class="home"><div class="stack col-main"><section class="stack"><h2>Próximas provas e trabalhos</h2>${futuras.length ? `<div class="cards one">${futuras.map(a => cartaoAgenda(a, true)).join("")}</div>` : `<div class="panel muted">Nada anotado ainda.</div>`}</section>
@@ -373,33 +479,38 @@ function abaAgenda(d) {
      <button id="ag-salvar">Anotar</button></div></div></div></aside></div>`;
 }
 function estrelas(n) { n = Number(n) || 0; return `<span class="estrelas" aria-label="${n} de 5 estrelas">${"★".repeat(n)}<span>${"★".repeat(5 - n)}</span></span>`; }
+
+/* ---------- Livros ---------- */
 function abaLivros(d) {
-  const ano = hoje().slice(0, 4);
+  const h = d.hoje || hoje(), ano = h.slice(0, 4);
   const lidosAno = d.livros.filter(l => l.status === "lido" && String(l.fim).startsWith(ano)).length;
   const meta = d.metaLivros || 0;
   const lendo = d.livros.filter(l => l.status === "lendo"), lidos = d.livros.filter(l => l.status === "lido");
   return `<div class="panel stack"><div class="row between"><h2>Meus livros de ${ano}</h2><b style="font-family:var(--display);font-size:24px">${lidosAno}${meta ? ` de ${meta}` : ""}</b></div>${meta ? `<div class="bar"><i style="width:${Math.min(100, lidosAno / meta * 100)}%"></i></div>` : ""}</div>
    <div class="home"><div class="stack col-main">
-   <section class="stack"><h2>Lendo agora</h2>${lendo.length ? lendo.map(l => `<div class="panel stack"><div class="row between"><div><b>${esc(l.titulo)}</b><div class="muted small">${esc(l.autor || "")}${l.autor ? " · " : ""}${esc(l.formato || "")} · começou em ${dataBR(l.inicio)}</div></div><button class="ghost mini" data-terminar="${esc(l.id)}">Terminei!</button></div>
+   <section class="stack"><h2>Lendo agora</h2>${lendo.length ? lendo.map(l => `<div class="panel stack"><div class="row between"><div><b>${esc(l.titulo)}</b><div class="muted small">${esc(l.autor || "")}${l.autor ? " · " : ""}${esc(l.formato || "")} · comecei em ${dataBR(l.inicio)}</div></div><div class="row"><button class="ghost mini" data-lvedit="${esc(l.id)}">Corrigir</button><button class="mini" data-terminar="${esc(l.id)}">Terminei!</button></div></div>
+      <div class="form" data-edit-form="${esc(l.id)}" hidden><label class="f" style="grid-column:1/-1">Nome do livro<input data-ed-tit="${esc(l.id)}" value="${esc(l.titulo)}"></label><label class="f">Autor<input data-ed-aut="${esc(l.id)}" value="${esc(l.autor || "")}"></label><label class="f">Comecei a ler em<input type="date" data-ed-ini="${esc(l.id)}" value="${esc(l.inicio)}" max="${h}"></label><div><button data-lvsalvar="${esc(l.id)}">Salvar</button></div></div>
       <div class="stack" data-fim-form="${esc(l.id)}" hidden><span class="small">Quantas estrelas você dá para este livro?</span><div class="stars" data-stars="${esc(l.id)}">${[1, 2, 3, 4, 5].map(i => `<button type="button" data-st="${i}" aria-label="${i} estrelas">★</button>`).join("")}</div>
       <label class="f">Uma frase sobre o livro<input data-frase="${esc(l.id)}" placeholder="ex.: Gostei quando..."></label><div><button data-fim-ok="${esc(l.id)}">Salvar</button></div></div></div>`).join("") : `<div class="panel muted">Nenhum livro em andamento.</div>`}</section>
-   <section class="stack"><h2>Já li</h2>${lidos.length ? `<div class="panel list">${lidos.map(l => `<div class="li"><div><b>${esc(l.titulo)}</b><div class="muted small">${esc(l.autor || "")}${l.fim ? " · terminou em " + dataBR(l.fim) : ""}</div>${l.frase ? `<div class="small">“${esc(l.frase)}”</div>` : ""}</div>${l.estrelas ? estrelas(l.estrelas) : ""}</div>`).join("")}</div>` : `<div class="panel muted">O primeiro livro terminado aparece aqui.</div>`}</section></div>
+   <section class="stack"><h2>Já li</h2>${lidos.length ? `<div class="panel list">${lidos.map(l => `<div class="li"><div><b>${esc(l.titulo)}</b><div class="muted small">${esc(l.autor || "")}${l.autor ? " · " : ""}de ${dataBR(l.inicio)} a ${dataBR(l.fim)}</div>${l.frase ? `<div class="small">“${esc(l.frase)}”</div>` : ""}</div>${l.estrelas ? estrelas(l.estrelas) : ""}</div>`).join("")}</div>` : `<div class="panel muted">O primeiro livro terminado aparece aqui.</div>`}</section></div>
    <aside class="col-side"><div class="panel stack"><h3>Comecei um livro</h3><div class="form"><label class="f" style="grid-column:1/-1">Nome do livro<input id="lv-titulo"></label><label class="f">Autor<input id="lv-autor"></label>
+     <label class="f">Comecei a ler em<input type="date" id="lv-ini" value="${h}" max="${h}"></label>
      <label class="f">Como estou lendo<select id="lv-fmt"><option>Papel</option><option>Áudio</option></select></label><button id="lv-comecar">Começar</button></div></div></aside></div>`;
 }
-function abaGravar(d) {
+
+/* ---------- Ler em voz alta (sem gravação por enquanto) ---------- */
+function abaLer(d) {
   const q = new URLSearchParams((location.hash.split("?")[1] || ""));
   const itemId = q.get("item") || "";
-  let texto = "", titulo = "Leitura livre";
+  let texto = "", titulo = "Leitura em voz alta", feito = d.feitos.includes(itemId);
   d.plano.forEach(p => (p.itens || []).forEach(it => { if (it.id === itemId) { texto = it.texto || ""; titulo = it.titulo; } }));
+  const volta = sess.papel === "adulto" ? "#/aluna/hoje" : "#/hoje";
   return `<div class="home"><div class="stack col-main"><div class="panel stack"><h2>${esc(titulo)}</h2>
-     ${texto ? `<div class="texto"><div class="leia">${esc(texto).replace(/\n/g, "<br>")}</div></div>` : `<p class="muted">Escolha um trecho do livro que você está lendo e leia em voz alta para a câmera.</p>`}</div></div>
-   <aside class="col-side"><div class="panel stack"><h3>Câmera</h3><video id="gv" autoplay muted playsinline class="gvid"></video>
-     <div class="row"><button id="g-ligar">Ligar a câmera</button><button id="g-rec" hidden>● Gravar</button><button id="g-stop" class="ghost" hidden>■ Parar</button></div>
-     <div id="g-prev" hidden class="stack"><span class="small">Ficou bom? Assista antes de enviar.</span><video id="gp" controls playsinline class="gvid"></video><div class="row"><button id="g-env">Enviar para os adultos</button><button id="g-ref" class="ghost">Gravar de novo</button></div></div>
-     <span class="muted small" id="g-st">Dica: leia devagar, com a voz clara, respeitando os pontos e as vírgulas.</span>
-     <input type="hidden" id="g-item" value="${esc(itemId)}"><input type="hidden" id="g-tit" value="${esc(titulo)}"></div></aside></div>`;
+     ${texto ? `<div class="texto"><div class="leia">${esc(texto).replace(/\n/g, "<br>")}</div></div>` : `<p class="muted">Pegue o livro que você está lendo e escolha uma página.</p>`}</div></div>
+   <aside class="col-side"><div class="panel stack"><h3>Como fazer</h3><ol class="passos"><li>Leia o texto uma vez em silêncio.</li><li>Agora leia <b>em voz alta</b>, para um adulto ou para você mesma.</li><li>Voz de pergunta no <b>?</b>, voz forte no <b>!</b> e uma voz diferente para cada personagem.</li></ol>
+     ${feito ? `<span class="feito">${ico("check", 18)} Feito</span>` : itemId ? `<button data-feito="${esc(itemId)}" data-volta="${volta}">Li em voz alta</button>` : ""}<a class="btn ghost" href="${volta}">Voltar para Hoje</a></div></aside></div>`;
 }
+
 function ligarGravador() {
   let stream = null, rec = null, partes = [], blob = null, t0 = 0;
   const st = m => { const e = $("#g-st"); if (e) e.textContent = m; };
@@ -439,11 +550,14 @@ function ligarAluna(d) {
   corpo.onclick = e => {
     const b = e.target.closest("button"); if (!b) return;
     if (b.dataset.fmat) { filtroMat = b.dataset.fmat; render(); }
-    else if (b.dataset.fmundo) { filtroMundo = b.dataset.fmundo; render(); }
-    else if (b.dataset.feito) exec("marcarFeito", { item: b.dataset.feito }, "Muito bem!", b);
+    else if (b.dataset.fclasse) { filtroClasse = b.dataset.fclasse; render(); }
+    else if (b.dataset.sem) { semanaOff = Math.max(-1, Math.min(1, semanaOff + Number(b.dataset.sem))); render(); }
+    else if (b.dataset.feito) { if (b.dataset.volta) { b.disabled = true; api("marcarFeito", { item: b.dataset.feito }).then(() => { toast("Muito bem!"); location.hash = b.dataset.volta; }).catch(e => { toast(e.message); b.disabled = false; }); } else exec("marcarFeito", { item: b.dataset.feito }, "Muito bem!", b); }
+    else if (b.dataset.lvedit) { const f = corpo.querySelector(`[data-edit-form="${b.dataset.lvedit}"]`); f.hidden = !f.hidden; }
+    else if (b.dataset.lvsalvar) { const id = b.dataset.lvsalvar, v = k => corpo.querySelector(`[data-ed-${k}="${id}"]`).value; exec("livroEditar", { id, titulo: v("tit"), autor: v("aut"), inicio: v("ini") }, "Livro atualizado.", b); }
     else if (b.id === "ag-salvar") { const data = $("#ag-data").value; if (!data) return toast("Escolha a data."); exec("agendaAdicionar", { data, materia: $("#ag-mat").value, tipo: $("#ag-tipo").value, conteudo: $("#ag-cont").value }, "Anotado! Um adulto vai conferir.", b); }
     else if (b.dataset.agdel) { if (b.dataset.conf) exec("agendaRemover", { id: b.dataset.agdel }, "Apagado.", b); else { b.dataset.conf = 1; b.textContent = "Confirmar"; } }
-    else if (b.id === "lv-comecar") { const t = $("#lv-titulo").value.trim(); if (!t) return toast("Escreva o nome do livro."); exec("livroComecar", { titulo: t, autor: $("#lv-autor").value, formato: $("#lv-fmt").value }, "Bom livro!", b); }
+    else if (b.id === "lv-comecar") { const t = $("#lv-titulo").value.trim(); if (!t) return toast("Escreva o nome do livro."); exec("livroComecar", { titulo: t, autor: $("#lv-autor").value, formato: $("#lv-fmt").value, inicio: $("#lv-ini").value }, "Bom livro!", b); }
     else if (b.dataset.terminar) { const f = corpo.querySelector(`[data-fim-form="${b.dataset.terminar}"]`); f.hidden = !f.hidden; }
     else if (b.dataset.st) { const box = b.parentElement; box.dataset.val = b.dataset.st; box.querySelectorAll("button").forEach(x => x.classList.toggle("on", Number(x.dataset.st) <= Number(b.dataset.st))); }
     else if (b.dataset.fimOk) { const id = b.dataset.fimOk; const st = Number(corpo.querySelector(`[data-stars="${id}"]`).dataset.val || 0); if (!st) return toast("Escolha as estrelas."); exec("livroTerminar", { id, estrelas: st, frase: corpo.querySelector(`[data-frase="${id}"]`).value }, "Parabéns por terminar o livro!", b); }

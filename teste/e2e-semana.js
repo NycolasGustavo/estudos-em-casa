@@ -10,7 +10,7 @@ const { chromium } = require('playwright');
   await p.screenshot({ path: 'teste/s-hoje.png' }); await p.screenshot({ path: 'teste/s-hoje-full.png', fullPage: true });
   console.log('itens hoje:', await p.$$eval('.item b', a => a.map(x => x.textContent)));
   await p.hover('.aula-w'); await p.waitForTimeout(200); await p.screenshot({ path: 'teste/s-widget.png', clip: { x: 800, y: 0, width: 566, height: 380 } });
-  for (const aba of ['aulas', 'notas', 'materias', 'agenda', 'livros', 'gravar']) { await p.goto(U + '#/' + aba); await p.waitForSelector('.main'); await p.waitForTimeout(250); await p.screenshot({ path: `teste/s-${aba}.png`, fullPage: true }); }
+  for (const aba of ['aulas', 'notas', 'materias', 'agenda', 'livros', 'ler']) { await p.goto(U + '#/' + aba); await p.waitForSelector('.main'); await p.waitForTimeout(250); await p.screenshot({ path: `teste/s-${aba}.png`, fullPage: true }); }
   await p.click('[data-fmundo="casa"]').catch(() => {});
   // marcar livro como feito
   await p.goto(U + '#/hoje'); await p.waitForSelector('.item'); if (await p.$('[data-feito]')) { await p.click('[data-feito]'); await p.waitForTimeout(400); }
