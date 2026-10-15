@@ -61,6 +61,7 @@ async function render() {
     if (r[0] === "prova") return await telaProva(decodeURIComponent(r[1]));
     if (r[0] === "resultado") return await telaResultado(decodeURIComponent(r[1]));
     if (r[0] === "tabuada") return await telaTabuada(decodeURIComponent(r[1] || ""));
+    if (r[0] === "revisar") return await telaRevisar();
     if (r[0] === "adulto" && adulto) {
       if (r[1] === "tentativa") return await telaTentativaAdulto(decodeURIComponent(r[2]));
       if (r[1] === "ver") return await telaVerProva(decodeURIComponent(r[2]));
@@ -168,6 +169,7 @@ const ICO = {
   escola: '<path d="M3 21h18M5 21V10l7-5 7 5v11M9 21v-5h6v5M12 8.5v.01"/>',
   casa: '<path d="M3 11l9-7 9 7M5 9.5V21h14V9.5M10 21v-6h4v6"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7"/>',
+  erros: '<path d="M5 3h11l3 3v15H5z"/><path d="M9 10l6 6M15 10l-6 6"/>',
   cadeado: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   som: '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/>'
 };
@@ -211,12 +213,13 @@ function widgetAula() {
 setInterval(() => { const w = document.getElementById("aula-w"); if (w) w.outerHTML = widgetAula(); }, 30000);
 
 /* concha da aluna: menu lateral */
-const NAV = [["hoje", "Hoje"], ["aulas", "Minhas aulas"], ["notas", "Minhas notas"], ["materias", "Matérias"], ["agenda", "Agenda"], ["livros", "Livros"]];
-function concha(aba, titulo, corpo) {
+const NAV = [["hoje", "Hoje"], ["aulas", "Minhas aulas"], ["notas", "Minhas notas"], ["materias", "Matérias"], ["agenda", "Agenda"], ["livros", "Livros"], ["erros", "Caderno de erros"]];
+function concha(aba, titulo, corpo, d) {
+  const of = d ? ofensiva(d) : null;
   const base = sess.papel === "adulto" ? "#/aluna/" : "#/";
   return `<div class="shell"><aside class="side"><a class="brand" href="${base}hoje"><svg width="30" height="30" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="8" fill="var(--accent)"/><path d="M6 9c3-1.5 5.5-1.5 8 0v11c-2.5-1.5-5-1.5-8 0zM22 9c-3-1.5-5.5-1.5-8 0v11c2.5-1.5 5-1.5 8 0z" fill="#fff"/></svg><span>Estudos<br>em Casa</span></a>
     <nav class="snav">${NAV.map(([k, l]) => `<a href="${base}${k}" class="${aba === k ? "on" : ""}">${ico(k)}<span>${l}</span></a>`).join("")}</nav>
-    <div class="side-foot">${sess.papel === "adulto" ? `<a class="btn ghost mini" href="painel.html">Painel dos adultos</a>` : ""}<span>${esc(sess.nome)}</span><button class="mini ghost" id="sair">Sair</button></div></aside>
+    ${of ? `<a class="side-of" href="${base}hoje" title="Ofensiva: dias seguidos com todo o estudo feito">${chamaSVG(of.hojeOk || of.dias > 0, 26)}<b>${of.dias}</b><span>${of.dias === 1 ? "dia" : "dias"} de ofensiva</span></a>` : ""}<div class="side-foot">${sess.papel === "adulto" ? `<a class="btn ghost mini" href="painel.html">Painel dos adultos</a>` : ""}<span>${esc(sess.nome)}</span><button class="mini ghost" id="sair">Sair</button></div></aside>
     <main class="main"><div class="mtop"><h1>${titulo}</h1>${widgetAula()}</div><div class="stack" id="corpo">${corpo}</div></main></div>`;
 }
 
@@ -258,9 +261,9 @@ async function telaAluna(aba) {
   const d = await api("inicioAluna");
   cache.aluna = d;
   const primeiro = (d.nome || sess.nome || "").split(" ")[0];
-  const T = { hoje: `Oi, <span class="hl">${esc(primeiro)}</span>!`, aulas: "Minhas aulas", notas: "Minhas notas", materias: "Matérias", agenda: "Agenda", livros: "Livros", ler: "Ler em voz alta" };
-  const f = { hoje: abaHoje, aulas: abaAulas, notas: abaNotas, materias: abaMaterias, agenda: abaAgenda, livros: abaLivros, ler: abaLer }[aba];
-  app.innerHTML = concha(aba === "ler" ? "hoje" : aba, T[aba], f(d));
+  const T = { hoje: `Oi, <span class="hl">${esc(primeiro)}</span>!`, aulas: "Minhas aulas", notas: "Minhas notas", materias: "Matérias", agenda: "Agenda", livros: "Livros", ler: "Ler em voz alta", erros: "Caderno de erros" };
+  const f = { hoje: abaHoje, aulas: abaAulas, notas: abaNotas, materias: abaMaterias, agenda: abaAgenda, livros: abaLivros, ler: abaLer, erros: abaErros }[aba];
+  app.innerHTML = concha(aba === "ler" ? "hoje" : aba, T[aba], f(d), d);
   ligarAluna(d);
 }
 
@@ -277,6 +280,7 @@ function itemFeito(d, plano, it) {
 // feito | hoje | atrasado | bloqueado
 function estadoItem(d, dia, it) {
   if (itemFeito(d, null, it)) return "feito";
+  if (descartado(d, it)) return "descartado";
   const h = d.hoje || hoje();
   if (dia > h) return "bloqueado";
   return dia < h ? "atrasado" : "hoje";
@@ -285,6 +289,7 @@ const urlLer = it => `#/${sess.papel === "adulto" ? "aluna/" : ""}ler?item=${enc
 function acaoItem(d, it) {
   if (it.provaId) return `<a class="btn" href="#/prova/${encodeURIComponent(it.provaId)}">${store.get("rasc-" + it.provaId) ? "Continuar" : "Começar"}</a>`;
   if (it.acao === "tabuada") return `<a class="btn" href="#/tabuada/${encodeURIComponent(it.id)}">Jogar</a>`;
+  if (it.acao === "erros") return `<a class="btn" href="#/revisar">Revisar</a>`;
   if (it.acao === "gravar" || it.acao === "ler") return `<a class="btn" href="${urlLer(it)}">Ler</a>`;
   if (it.acao === "livro") return `<button class="ghost" data-feito="${esc(it.id)}">Li hoje</button>`;
   return `<button class="ghost" data-feito="${esc(it.id)}">Marcar feito</button>`;
@@ -301,10 +306,209 @@ function linhaItem(d, dia, it, i, ativo) {
     <div class="ibody"><span class="mom" style="--mm:${m[1]}">${m[0]}${it.minutos ? ` · ${it.minutos} min` : ""}</span><b>${esc(it.titulo)}</b>${it.descricao ? `<span class="muted small">${esc(it.descricao)}</span>` : ""}</div>${botao}</div>`;
 }
 
+/* ---------- Sol, a gatinha, e a ofensiva ---------- */
+function dataFeito(d, it) {
+  if (it.provaId) { const ts = d.historico.filter(x => x.provaId === it.provaId).map(x => x.data).sort(); return ts[0] || null; }
+  const f = (d.feitosInfo || {})[it.id]; return f ? f.data : null;
+}
+function itensDoDia(d, dia) {
+  const p = d.plano.find(x => x._id === dia); const its = p && p.itens ? p.itens.slice() : [];
+  const h = d.hoje || hoje();
+  if (dia === h && its.length && ((d.erros && d.erros.devidos > 0) || d.feitos.includes(h + "-erros")))
+    its.splice(Math.min(1, its.length), 0, { id: h + "-erros", momento: "aquecimento", titulo: "Revisar meus erros", descricao: "Questões que você errou antes e voltaram para você vencer.", minutos: 5, acao: "erros" });
+  return its;
+}
+const descartado = (d, it) => { const a = (d.feitosInfo || {})["adiado-" + it.id]; return !!(a && a.acao === "descartar"); };
+function avaliacaoDe(d, dia) { return (d.diario || []).find(x => x.data === dia) || null; }
+// ok | falhou | pendente | neutro
+function statusDia(d, dia) {
+  const h = d.hoje || hoje(), its = itensDoDia(d, dia).filter(it => !descartado(d, it));
+  const av = avaliacaoDe(d, dia);
+  if (!its.length || (av && av.folga)) return "neutro";
+  const ok = its.every(it => { const f = dataFeito(d, it); return f && f <= dia; });
+  if (ok) return "ok";
+  if (dia === h) return "pendente";
+  return diaSem(dia) === 0 ? "neutro" : "falhou";
+}
+function ofensiva(d) {
+  const h = d.hoje || hoje(); const primeiro = d.plano.length ? d.plano[0]._id : h;
+  let n = 0, quebrouOntem = false, dia = h, primeiroVisto = true;
+  while (dia >= primeiro) {
+    const st = statusDia(d, dia);
+    if (st === "ok") n++;
+    else if (st === "falhou") { if (primeiroVisto) quebrouOntem = true; break; }
+    if (st !== "neutro" && st !== "pendente") primeiroVisto = false;
+    if (dia !== h && st === "neutro") { /* folga não conta nem quebra */ }
+    dia = addDias(dia, -1);
+  }
+  return { dias: n, quebrouOntem, hojeOk: statusDia(d, h) === "ok" };
+}
+function comidaHoje(d) {
+  const h = d.hoje || hoje(), its = itensDoDia(d, h);
+  const feitosHoje = new Set(Object.keys(d.feitosInfo || {}).filter(k => (d.feitosInfo[k] || {}).data === h && !k.startsWith("adiado-")));
+  d.historico.filter(x => x.data === h).forEach(x => feitosHoje.add("prova:" + x.provaId));
+  const deHoje = its.filter(it => { const f = dataFeito(d, it); return f === h; }).length;
+  return { comeu: feitosHoje.size, plano: its.length, deHoje };
+}
+function humorSol(d) {
+  const h = d.hoje || hoje(), of = ofensiva(d), c = comidaHoje(d);
+  const ontem = avaliacaoDe(d, addDias(h, -1));
+  if (of.hojeOk) return ["feliz", "A Sol está de barriga cheia e muito feliz. Obrigada por cuidar dela!"];
+  if (!c.plano) return ["dormindo", diaSem(h) === 0 ? "Domingo a Sol tira uma soneca. Até amanhã!" : "Hoje não tem estudo. A Sol está tirando uma soneca."];
+  if (ontem && (ontem.cor === "vermelho" || ontem.cor === "preto") && !c.comeu) return ["preocupada", "A Sol ficou preocupada com ontem. Vamos fazer um dia verde hoje?"];
+  if (of.quebrouOntem && !c.comeu) return ["triste", "A Sol sentiu sua falta ontem. Vamos recomeçar a ofensiva hoje?"];
+  if (c.comeu) return ["comendo", `Nham! Faltam ${Math.max(0, c.plano - c.deHoje)} atividade${c.plano - c.deHoje === 1 ? "" : "s"} para a Sol ficar de barriga cheia.`];
+  return ["fome", "A Sol está com fome e esperando você. Cada atividade é uma porção de ração!"];
+}
+function solSVG(humor, cheio = 0, tam = 150) {
+  const olhos = {
+    feliz: `<path d="M63 57q5-6 10 0M87 57q5-6 10 0" stroke="#2B2B3A" stroke-width="3" fill="none" stroke-linecap="round"/>`,
+    comendo: `<path d="M63 57q5-6 10 0M87 57q5-6 10 0" stroke="#2B2B3A" stroke-width="3" fill="none" stroke-linecap="round"/>`,
+    dormindo: `<path d="M63 57q5 5 10 0M87 57q5 5 10 0" stroke="#2B2B3A" stroke-width="3" fill="none" stroke-linecap="round"/>`,
+    triste: `<circle cx="68" cy="58" r="4.5" fill="#2B2B3A"/><circle cx="92" cy="58" r="4.5" fill="#2B2B3A"/><path d="M61 52l11-4M99 52l-11-4" stroke="#2B2B3A" stroke-width="2.5" stroke-linecap="round"/><path d="M66 64q-2 6 1 8" stroke="#5BA8F0" stroke-width="3" fill="none" stroke-linecap="round"/>`,
+    preocupada: `<circle cx="68" cy="58" r="4.5" fill="#2B2B3A"/><circle cx="92" cy="58" r="4.5" fill="#2B2B3A"/><path d="M62 50l11-3M98 50l-11-3" stroke="#2B2B3A" stroke-width="2.5" stroke-linecap="round"/>`,
+    fome: `<circle cx="68" cy="58" r="5" fill="#2B2B3A"/><circle cx="92" cy="58" r="5" fill="#2B2B3A"/><circle cx="69.5" cy="56.5" r="1.6" fill="#fff"/><circle cx="93.5" cy="56.5" r="1.6" fill="#fff"/>`
+  }[humor];
+  const boca = humor === "triste" || humor === "preocupada" ? `<path d="M74 75q6-5 12 0" stroke="#2B2B3A" stroke-width="2.2" fill="none" stroke-linecap="round"/>`
+    : humor === "comendo" ? `<ellipse cx="80" cy="73" rx="4" ry="3.5" fill="#E2687E"/>`
+    : `<path d="M74 70q3 4 6 0q3 4 6 0" stroke="#2B2B3A" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+  const extra = humor === "dormindo" ? `<text x="112" y="34" font-size="16" font-weight="800" fill="#8A94A6">z</text><text x="122" y="22" font-size="12" font-weight="800" fill="#8A94A6">z</text>`
+    : humor === "feliz" ? `<path d="M118 26c-4-6-12-2-8 5l8 7 8-7c4-7-4-11-8-5z" fill="#E2687E"/>`
+    : humor === "fome" ? `<g><ellipse cx="124" cy="28" rx="16" ry="11" fill="#fff" stroke="#C9CCD6"/><circle cx="106" cy="40" r="3" fill="#fff" stroke="#C9CCD6"/><path d="M116 28c4-4 9-4 12 0c-3 4-8 4-12 0zM128 28l4-3v6z" fill="#F2A33A"/></g>` : "";
+  const nivel = 129 - 12 * Math.max(0, Math.min(1, cheio));
+  return `<svg viewBox="0 0 160 150" width="${tam}" height="${Math.round(tam * 150 / 160)}" role="img" aria-label="Sol, a gatinha (${humor})">
+    <path d="M118 112c22-4 26-30 10-36" stroke="#E9ECF2" stroke-width="10" fill="none" stroke-linecap="round"/><path d="M118 112c22-4 26-30 10-36" stroke="#C9CCD6" stroke-width="1.5" fill="none" stroke-linecap="round" transform="translate(0,0)" opacity=".0"/>
+    <ellipse cx="80" cy="108" rx="40" ry="28" fill="#fff" stroke="#C9CCD6" stroke-width="2"/>
+    <ellipse cx="62" cy="132" rx="9" ry="6" fill="#fff" stroke="#C9CCD6" stroke-width="2"/><ellipse cx="96" cy="132" rx="9" ry="6" fill="#fff" stroke="#C9CCD6" stroke-width="2"/>
+    <path d="M54 44L49 14L74 33z" fill="#fff" stroke="#C9CCD6" stroke-width="2" stroke-linejoin="round"/><path d="M106 44L111 14L86 33z" fill="#fff" stroke="#C9CCD6" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M56 38L53 21L67 32z" fill="#F7B6C2"/><path d="M104 38L107 21L93 32z" fill="#F7B6C2"/>
+    <circle cx="80" cy="60" r="31" fill="#fff" stroke="#C9CCD6" stroke-width="2"/>
+    ${humor === "feliz" || humor === "comendo" ? `<circle cx="61" cy="68" r="5" fill="#F7B6C2" opacity=".8"/><circle cx="99" cy="68" r="5" fill="#F7B6C2" opacity=".8"/>` : ""}
+    ${olhos}<path d="M77 64h6l-3 3.5z" fill="#E2687E"/>${boca}
+    <path d="M52 66l-16-3M52 70l-15 3M108 66l16-3M108 70l15 3" stroke="#B8BDC9" stroke-width="1.5" stroke-linecap="round"/>
+    <g transform="translate(0,0)"><path d="M110 129h34l-4 13h-26z" fill="#2F55C9"/><rect x="113" y="${nivel}" width="28" height="${129 - nivel}" fill="#B5763A" rx="2"/><rect x="108" y="127" width="38" height="4" rx="2" fill="#24439F"/></g>
+    ${extra}</svg>`;
+}
+const chamaSVG = (acesa, t = 22) => `<svg width="${t}" height="${t}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 1.5-5 3-6c0 2 1 3 2 3c0-4-1-6 1-9z" fill="${acesa ? "#FF8A1F" : "#C9CCD6"}"/><path d="M12 12c.5 2 3 3 3 5.5a3 3 0 0 1-6 0c0-1.5.8-2.5 1.5-3c0 1 .5 1.5 1 1.5c0-2 0-3 .5-4z" fill="${acesa ? "#FFD34A" : "#E9ECF2"}"/></svg>`;
+function cardSol(d) {
+  const of = ofensiva(d), c = comidaHoje(d), [humor, frase] = humorSol(d);
+  const h = d.hoje || hoje();
+  const verdes = (d.diario || []).filter(x => x.cor === "verde" && x.data > addDias(h, -7)).length;
+  const chave = "sol-comeu-" + h, antes = store.get(chave, 0), nham = c.comeu > antes;
+  store.set(chave, c.comeu);
+  return `<section class="sol-card ${nham ? "nham" : ""}"><div class="sol-ofensiva">${chamaSVG(of.hojeOk || of.dias > 0, 30)}<div><b>${of.dias}</b><span>dia${of.dias === 1 ? "" : "s"} de ofensiva</span></div></div>
+    <div class="sol-pet">${solSVG(humor, c.plano ? c.deHoje / c.plano : 0, 170)}${nham ? `<span class="sol-nham">Nham! Você alimentou a Sol!</span>` : ""}</div>
+    <p class="sol-frase">${esc(frase)}</p>
+    ${c.plano ? `<div class="sol-tigela"><span>Tigela de hoje</span><div class="bar" style="height:12px"><i style="width:${c.deHoje / c.plano * 100}%;background:#B5763A"></i></div><b>${c.deHoje} de ${c.plano}</b></div>` : ""}
+    <div class="sol-cora" title="Dias verdes nos últimos 7 dias">${Array.from({ length: 5 }, (_, i) => `<span class="${i < verdes ? "on" : ""}">♥</span>`).join("")}<small>dias verdes da semana</small></div>
+    <p class="muted small" style="margin:0">A chama acende quando você termina <b>todo</b> o estudo do dia, no próprio dia. Domingo e dias de folga não apagam a chama.</p></section>`;
+}
+const CHECK = [
+  ["caderno", "Copiou toda a matéria no caderno, com capricho", "Copie toda a matéria no caderno e capriche na letra."],
+  ["sala", "Terminou as atividades de sala, sem nada em branco", "Termine as atividades da sala antes de guardar o caderno."],
+  ["deveres", "Mostrou os deveres de casa feitos (ou combinou quando vai fazer)", "Faça os deveres de casa e mostre para um adulto."],
+  ["agenda", "Anotou na agenda os recados e as provas da professora", "Preste atenção nos recados da professora e anote tudo na agenda."],
+  ["aula", "Explicou com clareza o que aprendeu na aula", "Preste atenção na aula para conseguir explicar o que aprendeu."],
+  ["estudo", "Fez todo o estudo da manhã no app", "Faça todo o estudo da manhã antes de ir para a aula."],
+  ["ontem", "Cumpriu o que ficou devendo do dia anterior", "Não esqueça o que ficou devendo."]
+];
+const COR_DIA = { verde: ["Dia verde", "var(--ok)", "Mandou muito bem! Tudo certo hoje."], amarelo: ["Dia amarelo", "var(--sun)", "Quase lá! Faltou só um pouquinho."], vermelho: ["Dia vermelho", "var(--bad)", "Esse dia precisou de ajuda. Amanhã é uma nova chance."], preto: ["Dia preto", "#2A2A2A", "Um exercício ficou escondido em branco. Vamos conversar."], folga: ["Dia de folga", "var(--soft)", "Descanse bem."] };
+function ultimaAvaliacao(d, antesDe) { return (d.diario || []).filter(x => antesDe ? x.data < antesDe : true).sort((a, b) => b.data.localeCompare(a.data))[0] || null; }
+function cardDia(d) {
+  const h = d.hoje || hoje();
+  const av = (d.diario || []).filter(x => x.data <= h).sort((a, b) => b.data.localeCompare(a.data))[0];
+  if (!av) return `<section class="panel stack"><h3>Como foi o seu dia</h3><span class="muted small">No café da tarde, um adulto confere o seu dia. A cor aparece aqui.</span></section>`;
+  const cor = av.folga ? COR_DIA.folga : COR_DIA[av.cor] || ["Dia avaliado", "var(--soft)", ""];
+  const quando_ = av.data === h ? "Hoje" : av.data === addDias(h, -1) ? "Ontem" : `${DIAS[diaSem(av.data)]}, ${dataBR(av.data)}`;
+  let lista = "";
+  if (av.itens) lista = CHECK.filter(([k]) => av.itens[k] != null).map(([k, t]) => `<li class="${av.itens[k] ? "sim" : "nao"}">${av.itens[k] ? ico("check", 16) : "✕"} ${t}</li>`).join("");
+  else { const chk = (v, t) => v == null ? "" : `<li class="${v ? "sim" : "nao"}">${v ? ico("check", 16) : "✕"} ${t}</li>`; lista = chk(av.agenda, "Agenda completa") + chk(av.cadernos, "Cadernos em dia") + chk(av.aula, "Contou como foi a aula"); }
+  if (av.escondeu) lista += `<li class="nao">✕ Escondeu um exercício em branco</li>`;
+  return `<section class="dia-card" style="--dc:${cor[1]}"><div class="dc-top"><span class="dc-bola"></span><div><span class="dc-q">${quando_} · conferido no café da tarde</span><b>${cor[0]}</b><span>${esc(cor[2])}</span></div></div>
+    <ul class="dc-lista">${lista}</ul>
+    ${av.obs ? `<div class="dc-recado"><b>Recado de casa</b>${esc(av.obs)}</div>` : ""}${av.combinado ? `<div class="dc-recado comb"><b>Combinado</b>${esc(av.combinado)}</div>` : ""}</section>`;
+}
+// o que ficou devendo do último dia avaliado (aparece no dia seguinte)
+function cardDevendo(d) {
+  const h = d.hoje || hoje(), av = ultimaAvaliacao(d, h);
+  if (!av || av.folga) return "";
+  const lembretes = av.devendo || [], deveres = av.deveres || [];
+  if (!lembretes.length && !deveres.length) return "";
+  return `<section class="painel-mundo" style="--w:#B8860B"><div class="faixa" style="--w:#B8860B"><b>FICOU DEVENDO</b><span>de ${av.data === addDias(h, -1) ? "ontem" : dataBR(av.data)} · o adulto vai conferir hoje à tarde</span></div><div class="pm-corpo">
+    ${lembretes.length ? `<ul class="dev-l">${lembretes.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}
+    ${deveres.length ? `<div class="itens">${deveres.map((t, i) => { const id = `${av.data}-dever-${i}`, ok = d.feitos.includes(id); return `<div class="item ${ok ? "ok" : ""}"><div class="inum">${ok ? ico("check", 20) : i + 1}</div><div class="ibody"><span class="mom" style="--mm:#B8860B">Dever de casa</span><b>${esc(t)}</b></div>${ok ? `<span class="feito">${ico("check", 18)} Feito</span>` : `<button class="ghost" data-feito="${esc(id)}">Fiz</button>`}</div>`; }).join("")}</div>` : ""}</div></section>`;
+}
+
+/* ---------- caderno de erros ---------- */
+function abaErros(d) {
+  const e = d.erros || { devidos: 0, ativos: 0, vencidos: 0, porHabilidade: [] };
+  const porMat = {}; e.porHabilidade.forEach(x => (porMat[x.materia] = porMat[x.materia] || []).push(x));
+  return `<div class="erros-top"><div class="panel stack"><h2>${e.devidos ? `${e.devidos} para revisar hoje` : "Nada para revisar hoje"}</h2>
+      <p class="muted" style="margin:0">Toda questão que você erra vem para este caderno. Ela volta depois de <b>1 dia</b>, <b>3 dias</b>, <b>7 dias</b> e <b>21 dias</b>. Acertou 4 vezes seguidas? <b>Venceu!</b> Errou? Ela volta amanhã.</p>
+      ${e.devidos ? `<div><a class="btn" href="#/revisar">Revisar agora</a></div>` : ""}</div>
+    <div class="kpi-e"><b>${e.ativos}</b><span>no caderno</span></div><div class="kpi-e ok"><b>${e.vencidos}</b><span>vencidos</span></div></div>
+   ${Object.keys(porMat).map(m => `<section class="panel stack" style="border-top:5px solid ${corMat(m)}"><h3 style="color:${corMat(m)}">${esc(m)}</h3><div class="list">${porMat[m].map(x => `<div class="li"><div><b>${esc(poderDe(x.habilidade).nome)}</b><div class="muted small">${esc(x.habilidade)}</div></div><div class="row" style="gap:6px">${x.devidos ? `<span class="tag warn">${x.devidos} hoje</span>` : ""}${x.ativos ? `<span class="tag">${x.ativos} no caderno</span>` : ""}${x.vencidos ? `<span class="tag ok">${x.vencidos} vencido${x.vencidos > 1 ? "s" : ""}</span>` : ""}</div></div>`).join("")}</div></section>`).join("") || `<div class="panel muted">Seu caderno está vazio. Os erros das próximas atividades aparecem aqui.</div>`}`;
+}
+async function telaRevisar() {
+  app.className = "wrap";
+  carregando("Buscando seus erros…");
+  const qs = await api("errosHoje");
+  const volta = sess.papel === "adulto" ? "#/aluna/hoje" : "#/hoje";
+  const h = (cache.aluna && cache.aluna.hoje) || hoje();
+  let i = 0, res = null, acertos = 0, valor = "", enviando = false;
+  const desenha = () => {
+    if (!qs.length) { app.innerHTML = `<div class="tab-wrap"><div class="tab-card stack"><h1>Nada para revisar agora</h1><p>Os erros voltam no dia certo. Volte amanhã!</p><a class="btn" href="${volta}">Voltar para Hoje</a></div></div>`; return; }
+    if (i >= qs.length) {
+      app.innerHTML = `<div class="tab-wrap"><div class="tab-card stack"><h1>${acertos} de ${qs.length}!</h1><p>${acertos === qs.length ? "Você venceu todos de hoje!" : "Os que você errou voltam amanhã para uma nova chance."}</p><span class="muted small" id="rv-s">Salvando…</span><a class="btn" href="${volta}">Voltar para Hoje</a></div></div>`;
+      api("marcarFeito", { item: h + "-erros" }).then(() => { const s = $("#rv-s"); if (s) s.textContent = "A Sol ganhou mais uma porção!"; }).catch(() => { });
+      return;
+    }
+    const e = qs[i], q = e.questao, tipo = q.tipo || "mc";
+    let corpo;
+    if (tipo === "mc") corpo = `<div class="opts">${(q.opcoes || []).map((o, j) => { const L = "ABCDEFG"[j]; return `<button class="opt optb ${valor === L ? "sel" : ""} ${res && valor === L ? (res.certo ? "certa" : "errada") : ""}" data-rv="${L}" ${res ? "disabled" : ""}><span class="l">${L}</span><span>${esc(o)}</span></button>`; }).join("")}</div>`;
+    else corpo = `<div class="row">${tipo === "ditado" ? `<button class="ouvir" data-fala="${esc(q.falar || "")}">${ico("som", 18)} Ouvir</button>` : ""}<div class="resp-in"><input id="rv-in" value="${esc(valor)}" placeholder="Sua resposta" autocomplete="off" spellcheck="false" ${res ? "readonly" : ""}>${q.unidade ? `<span>${esc(q.unidade)}</span>` : ""}</div></div>`;
+    const fb = res ? `<div class="fb ${res.certo ? "ok" : "no"}">${res.certo ? (res.resolvido ? "<b>Venceu!</b> Essa questão saiu do caderno." : `<b>Isso mesmo!</b> Ela volta no dia ${dataBR(res.proxima)} para você confirmar.`) : `<b>Ainda não.</b> A resposta certa é <b>${esc(res.correta)}</b>. Ela volta amanhã.`}${res.explicacao ? `<div style="margin-top:6px">${md(res.explicacao)}</div>` : ""}</div>` : "";
+    app.innerHTML = `<div class="ptop"><div class="row between"><b style="font-family:var(--display);color:var(--accent)">Caderno de erros</b><span class="muted">${i + 1} de ${qs.length}</span></div><div class="pbar"><i style="width:${(i + (res ? 1 : 0)) / qs.length * 100}%"></i></div></div>
+      <div class="stack" style="max-width:900px;margin:0 auto">
+      <div class="row" style="gap:6px"><span class="mchip" style="--mc:${corMat(e.materia)}">${esc(e.materia)}</span><span class="tag">${esc(poderDe(e.habilidade || "").nome)}</span>${e.vezes > 1 ? `<span class="tag warn">já errou ${e.vezes} vezes</span>` : ""}</div>
+      ${q._lead ? `<div class="lead">${esc(q._lead)}</div>` : ""}${q._texto ? renderTexto(q._texto) : ""}
+      <div class="q"><div class="q-h"><span class="num">${i + 1}</span><span>${md(q.enunciado)}</span></div>${q.apoio ? renderTexto(q.apoio) : ""}${corpo}${fb}</div>
+      <div class="nav">${res ? `<span></span><button id="rv-prox">${i === qs.length - 1 ? "Terminar" : "Próxima"}</button>` : `<a class="btn ghost" href="${volta}">Sair</a><button id="rv-ok" ${enviando ? "disabled" : ""}>Conferir</button>`}</div></div>`;
+    const inp = $("#rv-in"); if (inp && !res) inp.focus();
+  };
+  app.onkeydown = ev => { if (ev.key === "Enter" && ev.target.id === "rv-in") { const b = $("#rv-ok"); if (b) b.click(); } };
+  app.onclick = async ev => {
+    const b = ev.target.closest("button"); if (!b) return;
+    if (b.dataset.fala != null) { falar(b.dataset.fala); return; }
+    if (b.dataset.rv) { valor = b.dataset.rv; desenha(); return; }
+    if (b.id === "rv-ok") {
+      const inp = $("#rv-in"); if (inp) valor = inp.value;
+      if (!String(valor).trim()) return toast("Responda primeiro.");
+      enviando = true; desenha();
+      try { res = await api("responderErro", { id: qs[i].id, resposta: valor }); if (res.certo) acertos++; } catch (e) { toast(e.message); }
+      enviando = false; desenha(); return;
+    }
+    if (b.id === "rv-prox") { i++; res = null; valor = ""; desenha(); window.scrollTo({ top: 0 }); }
+  };
+  desenha();
+}
+
+/* flashcards */
+function cartoesHTML(s) {
+  const cs = s.cartoes || [];
+  if (!s._fila) { s._fila = cs.map((_, i) => i); s._sabia = 0; s._virado = false; }
+  if (!s._fila.length) return `<div class="fc-fim stack"><h3>Você sabe todos os ${cs.length} cartões!</h3><div><button data-fc="de-novo">Embaralhar de novo</button></div></div>`;
+  const c = cs[s._fila[0]];
+  return `<div class="fc-wrap"><span class="muted small">${cs.length - s._fila.length} de ${cs.length} já sabe · faltam ${s._fila.length}</span>
+    <button class="fc ${s._virado ? "virado" : ""}" data-fc="virar" aria-label="Virar o cartão"><span class="fc-lado">${s._virado ? "verso" : "frente"}</span><b>${md(s._virado ? c.verso : c.frente)}</b><small>${s._virado ? "" : "clique para virar"}</small></button>
+    ${s._virado ? `<div class="row" style="justify-content:center;gap:10px"><button class="ghost" data-fc="nao">Ainda não</button><button data-fc="sabia">Eu sabia!</button></div>` : ""}</div>`;
+}
+
 /* ---------- Hoje ---------- */
 function abaHoje(d) {
   const h = d.hoje || hoje();
-  const plano = d.plano.find(p => p._id === h);
+  const plano0 = d.plano.find(p => p._id === h);
+  const plano = plano0 ? Object.assign({}, plano0, { itens: itensDoDia(d, h) }) : null;
   const dataTxt = `${DIAS[diaSem(h)]}, ${dataBR(h)}`;
   let estudo;
   if (plano && plano.itens && plano.itens.length) {
@@ -321,13 +525,13 @@ function abaHoje(d) {
       ${prox ? `<p><b>O próximo estudo abre ${DIAS[diaSem(prox._id)].toLowerCase()}, ${dataBR(prox._id)}</b> (${prox.itens.length} atividades, ${prox.minutos || 45} minutos):</p><div class="itens">${prox.itens.map((it, i) => linhaItem(d, prox._id, it, i, false)).join("")}</div>` : ""}</div></section>`;
   }
   const atrasados = [];
-  d.plano.filter(p => p._id < h).forEach(p => (p.itens || []).forEach(it => { if (estadoItem(d, p._id, it) === "atrasado" && it.provaId) atrasados.push([p._id, it]); }));
+  d.plano.filter(p => p._id < h).forEach(p => (p.itens || []).forEach(it => { const ad = (d.feitosInfo || {})["adiado-" + it.id]; if (estadoItem(d, p._id, it) === "atrasado" && it.provaId && (p._id >= addDias(h, -3) || (ad && ad.acao === "refazer" && ad.ate >= h))) atrasados.push([p._id, it]); }));
   const aula = infoAula(), proxEsc = d.agenda.filter(a => diasAte(a.data) >= 0).slice(0, 3);
   const lendo = d.livros.filter(l => l.status === "lendo");
   return `<p class="hoje-data">${dataTxt}</p>
-   <div class="home"><div class="stack col-main">${estudo}
+   <div class="home"><div class="stack col-main">${cardDevendo(d)}${estudo}
     ${atrasados.length ? `<section class="painel-mundo" style="--w:var(--bad)"><div class="faixa" style="--w:var(--bad)"><b>FICOU PARA TRÁS</b><span>faça quando terminar o de hoje</span></div><div class="pm-corpo"><div class="itens">${atrasados.slice(-4).map(([dia, it], i) => linhaItem(d, dia, Object.assign({}, it, { descricao: `Era para ${DCURTO[diaSem(dia)].toLowerCase()}, ${dataBR(dia)}` }), i, false)).join("")}</div></div></section>` : ""}
-   </div><aside class="stack col-side">
+   </div><aside class="stack col-side">${cardSol(d)}${cardDia(d)}
     <section class="painel-mundo" style="--w:var(--escola)">${faixa("escola", "Hoje à tarde")}<div class="pm-corpo">${aula.aulas.length ? `${aula.aulas.map(a => `<div class="aula-l"><span class="mchip" style="--mc:${corMat(a.split(" ")[0])}">${esc(a)}</span></div>`).join("")}<span class="muted small">13:15 às 17:15 · ${esc(aula.linha)}</span>` : `<span>${esc(aula.linha)}</span>`}
       <h3 style="margin-top:8px">Vem aí na escola</h3>${proxEsc.length ? proxEsc.map(a => cartaoAgenda(a, false)).join("") : `<span class="muted small">Nenhuma prova anotada. Ouviu falar de prova? Anote na Agenda.</span>`}</div></section>
     <section class="panel stack"><h3>Lendo agora</h3>${lendo.length ? lendo.map(l => `<div><b>${esc(l.titulo)}</b><div class="muted small">desde ${dataBR(l.inicio)}</div></div>`).join("") : `<span class="muted small">Nenhum livro. Comece um na aba Livros.</span>`}</section>
@@ -343,24 +547,25 @@ function minhaSemana(d) {
   const dias = Array.from({ length: 7 }, (_, i) => addDias(ini, i));
   const cor = Object.fromEntries((d.diario || []).map(x => [x.data, x.cor]));
   const col = dia => {
-    const p = d.plano.find(x => x._id === dia), its = (p && p.itens) || [];
+    const p = d.plano.find(x => x._id === dia), its = itensDoDia(d, dia), av = avaliacaoDe(d, dia);
     const esc_ = d.agenda.filter(a => a.data === dia);
     const feitos = its.filter(it => itemFeito(d, p, it)).length;
     const lista = its.map(it => {
       const st = estadoItem(d, dia, it);
-      const ic = st === "feito" ? ico("check", 15) : st === "bloqueado" ? ico("cadeado", 14) : st === "atrasado" ? "!" : "•";
+      const ic = st === "feito" ? ico("check", 15) : st === "bloqueado" ? ico("cadeado", 14) : st === "atrasado" ? "!" : st === "descartado" ? "–" : "•";
       const tit = `<span class="si-ic">${ic}</span><span class="si-t">${esc(it.titulo)}</span>`;
       const pode = (st === "hoje" || st === "atrasado") && (it.provaId || it.acao === "tabuada" || it.acao === "gravar" || it.acao === "ler");
       const href = it.provaId ? `#/prova/${encodeURIComponent(it.provaId)}` : it.acao === "tabuada" ? `#/tabuada/${encodeURIComponent(it.id)}` : urlLer(it);
       return pode ? `<a class="sitem s-${st}" href="${href}">${tit}</a>` : `<div class="sitem s-${st}" ${st === "bloqueado" ? `title="Abre no dia ${dataBR(dia)}"` : ""}>${tit}</div>`;
     }).join("");
-    return `<div class="sdia ${dia === h ? "hoje" : ""} ${dia < h ? "passado" : ""}"><div class="sd-h"><b>${DCURTO[diaSem(dia)]}</b><span>${dataBR(dia)}</span>${cor[dia] ? `<i class="sd-cor d-${esc(cor[dia])}" title="cor do dia"></i>` : ""}</div>
+    const corAv = av ? (av.folga ? "var(--soft)" : (COR_DIA[av.cor] || [0, "var(--line)"])[1]) : "";
+    return `<div class="sdia ${dia === h ? "hoje" : ""} ${dia < h ? "passado" : ""}" ${corAv ? `style="border-top:7px solid ${corAv}"` : ""} title="${av ? (av.folga ? "Dia de folga" : (COR_DIA[av.cor] || ["Dia avaliado"])[0]) : ""}"><div class="sd-h"><b>${DCURTO[diaSem(dia)]}</b><span>${dataBR(dia)}</span></div>
       ${its.length ? `<div class="sd-prog">${dia > h ? `${ico("cadeado", 13)} ${dia === addDias(h, 1) ? "abre amanhã" : "ainda fechado"}` : `${feitos} de ${its.length} feitos`}</div>` : ""}
       <div class="sd-lista">${lista || `<span class="muted small">${diaSem(dia) === 0 ? "Descanso" : "Sem estudo"}</span>`}</div>
       ${esc_.map(a => `<div class="sd-esc" style="--mc:${corMat(a.materia)}">${ico("escola", 13)} ${esc(a.tipo)} de ${esc(a.materia)}</div>`).join("")}</div>`;
   };
   return `<section class="panel stack"><div class="row between"><h2>Minha semana</h2>${navSemana(ini)}</div>
-    <p class="muted small" style="margin:0">${ico("check", 13)} feito · ! ficou para trás · ${ico("cadeado", 12)} ainda não abriu: cada atividade abre no dia dela.</p>
+    <p class="muted small" style="margin:0">${ico("check", 13)} feito · ! ficou para trás · ${ico("cadeado", 12)} ainda não abriu: cada atividade abre no dia dela. A faixa colorida em cima de cada dia é a cor que o adulto deu no café da tarde.</p>
     <div class="sem-grid">${dias.map(col).join("")}</div></section>`;
 }
 
@@ -646,7 +851,7 @@ function renderQuestao(q, valor, modo, info) {
 
 /* ---------------- lição interativa (parte de ensinar da atividade) ---------------- */
 const md = s => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\n/g, "<br>");
-const textoFala = s => [s.titulo, ...(s.paragrafos || []), s.destaque, s.enunciado, ...((s.passos || []).slice(0, (s._n || 0)))].filter(Boolean).join(". ").replace(/\*\*/g, "");
+const textoFala = s => s.tipo === "cartoes" && s._fila && s._fila.length ? (s._virado ? s.cartoes[s._fila[0]].verso : s.cartoes[s._fila[0]].frente).replace(/\*\*/g, "") : [s.titulo, ...(s.paragrafos || []), s.destaque, s.enunciado, ...((s.passos || []).slice(0, (s._n || 0)))].filter(Boolean).join(". ").replace(/\*\*/g, "");
 function blocosHTML(s) {
   const n = s._v != null ? s._v : (s._c != null ? null : s.numero);
   const c = s._c || [Math.floor(n / 100), Math.floor(n / 10) % 10, n % 10];
@@ -687,9 +892,10 @@ function renderSecao(s, i, n, materia) {
   else if (s.tipo === "fracao") corpo = fracaoHTML(s);
   else if (s.tipo === "pratica") corpo = praticaHTML(s);
   else if (s.tipo === "jogo") corpo = jogoHTML(s);
+  else if (s.tipo === "cartoes") corpo = cartoesHTML(s);
   const texto = `${(s.paragrafos || []).map(p => `<p>${md(p)}</p>`).join("")}${s.html ? `<div class="visual">${s.html}</div>` : ""}${s.destaque ? `<div class="destaque">${md(s.destaque)}</div>` : ""}`;
   const ouvir = s.tipo !== "jogo" ? `<button class="ouvir ghost" data-ouvir="1">${ico("som", 18)} Ouvir</button>` : "";
-  const ROT = { explica: "Entender", exemplo: "Ver como se faz", blocos: "Mexer nas peças", fracao: "Mexer nas peças", pratica: "Fazer junto", jogo: "Desafio" };
+  const ROT = { explica: "Entender", exemplo: "Ver como se faz", blocos: "Mexer nas peças", fracao: "Mexer nas peças", pratica: "Fazer junto", jogo: "Desafio", cartoes: "Cartões" };
   return `<div class="licao stack"><div class="row between"><span class="mom" style="--mm:${corMat(materia)}">${ROT[s.tipo] || "Aprender"} · parte ${i + 1} de ${n}</span>${ouvir}</div>
     <h2>${esc(s.titulo || "")}</h2>${texto}${corpo}</div>`;
 }
@@ -766,6 +972,7 @@ async function telaProva(id) {
     if (sec && b.dataset.pck != null) { const i = Number(b.dataset.pck), q = sec.questoes[i]; const v = (document.querySelector(`[data-pin="${i}"]`) || {}).value || ""; const nv = s => String(s).trim().toLowerCase().replace(",", ".").replace(/\s+/g, " ").replace(/[.!]$/, ""); sec._r = sec._r || {}; sec._r[i] = { v, ok: [].concat(q.resposta).some(r => nv(r) === nv(v)) }; desenha(); return; }
     if (sec && b.dataset.jg) { sec._i = 0; sec._ac = 0; sec._fim = false; sec._rest = sec.segundos || 60; clearInterval(sec._t); sec._t = setInterval(() => { sec._rest--; const t = document.querySelector("[data-jt]"); if (t) t.textContent = sec._rest + "s"; if (sec._rest <= 0) { clearInterval(sec._t); sec._fim = true; desenha(); } }, 1000); desenha(); return; }
     if (sec && b.dataset.jo != null) { const q = sec.questoes[sec._i]; if (Number(b.dataset.jo) === Number(q.correta)) sec._ac++; sec._i++; if (sec._i >= sec.questoes.length) { clearInterval(sec._t); sec._fim = true; } desenha(); return; }
+    if (sec && b.dataset.fc) { const f = b.dataset.fc; if (f === "virar") sec._virado = !sec._virado; else if (f === "sabia") { sec._fila.shift(); sec._virado = false; } else if (f === "nao") { sec._fila.push(sec._fila.shift()); sec._virado = false; } else if (f === "de-novo") { sec._fila = null; } desenha(); if (f === "virar" && sec._virado) { const c = sec.cartoes[sec._fila[0]]; c && c.falarVerso !== false && falar(String(c.verso).replace(/\*\*/g, "")); } return; }
     if (b.id === "l-prox") { pararFala(); if ((st.li || 0) < p.licao.length - 1) { st.li = (st.li || 0) + 1; } else { st.etapa = 0; st.licaoOk = true; } salvar(); desenha(); topoPg(); return; }
     if (b.id === "l-volta") { pararFala(); if ((st.li || 0) > 0) st.li--; else st.etapa = -1; salvar(); desenha(); topoPg(); return; }
     if (b.id === "comecar") { if (!st.inicio) st.inicio = new Date().toISOString(); if (p.licao && !st.licaoOk) { st.etapa = -2; st.li = st.li || 0; } else st.etapa = Math.max(0, st.etapa); salvar(); desenha(); topoPg(); }

@@ -53,6 +53,20 @@ h3{font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mu
 .bar i{display:block;height:100%;background:var(--accent);border-radius:3px}
 .pill{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
 .pill.good{color:var(--good)} .pill.warn{color:var(--warn)} .pill.bad{color:var(--bad)} .pill.na{color:var(--muted)}
+.vc-lista{display:flex;flex-direction:column;gap:8px}
+.vc-row{display:flex;justify-content:space-between;align-items:center;gap:14px;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px}
+.vc-row.sim{border-color:var(--good);background:var(--good-s)}.vc-row.nao{border-color:var(--bad);background:var(--bad-s)}
+.vc-t{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}.vc-t b{font-weight:600}
+.vc-lem{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--bad);border-radius:6px;background:var(--surface);color:var(--ink)}
+.vc-row .segmented button[aria-pressed="true"][data-v="1"]{background:var(--good);color:#fff}.vc-row .segmented button[aria-pressed="true"][data-v="0"]{background:var(--bad);color:#fff}
+.vc-row .segmented button{background:var(--surface);border-color:var(--line);color:var(--ink)}
+.vc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.vc-f{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted)}.vc-f textarea,.vc-f input{font:inherit;font-weight:400;color:var(--ink);padding:8px;border:1px solid var(--line);border-radius:7px;background:var(--surface)}
+.vc-folga{font-size:14px;display:flex;gap:6px;align-items:center}
+.vc-adulto{display:flex;gap:12px;align-items:center;justify-content:space-between;background:var(--accent-soft,rgba(47,85,201,.07));border-radius:8px;padding:10px 12px;font-size:14px}
+.vc-prev{font-size:15px}
+.vc-folga,.vc-adulto label,.vc-f>span{display:flex!important;flex-direction:row!important;gap:8px;align-items:center;font-size:14px;color:var(--ink);font-weight:500}
+.vc-folga input,.vc-adulto input,.vc-f>span input{width:auto;margin:0}
 nav.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:8px 0 18px;overflow-x:auto}
 nav.tabs button{font:inherit;font-weight:600;background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);padding:10px 12px;cursor:pointer;white-space:nowrap}
 nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
@@ -142,7 +156,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
     <button role="tab" aria-selected="true" data-tab="geral">Visão geral</button>
     <button role="tab" aria-selected="false" data-tab="plano">Plano e constância</button>
     <button role="tab" aria-selected="false" data-tab="materias">Matérias</button>
-    <button role="tab" aria-selected="false" data-tab="etapa0">Etapa 0</button>
+    <button role="tab" aria-selected="false" data-tab="etapa0">Café da tarde</button>
     <button role="tab" aria-selected="false" data-tab="boletim">Boletim</button>
     <button role="tab" aria-selected="false" data-tab="leitura">Leitura e medições</button>
     <button role="tab" aria-selected="false" data-tab="metas">Metas</button>
@@ -155,6 +169,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
       <div class="row" style="margin-bottom:10px"><h2 style="margin:0">Matérias</h2><span class="tag">Média das últimas 3 notas · clique para abrir</span></div>
       <div class="minis" id="minis"></div>
     </div>
+    <div class="notice" id="g-notas" hidden></div>
     <div class="panel" id="g-hoje"></div>
     <div class="panel"><div class="row" style="margin-bottom:6px"><h2 style="margin:0">Agenda da escola</h2><span class="tag">Provas e trabalhos que a Isabella anotou · confira cada um</span></div><div id="g-agenda"></div></div>
     <div class="grid2">
@@ -205,30 +220,23 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
   <!-- ETAPA 0 -->
   <section data-pane="etapa0" class="stack" hidden>
     <div class="panel">
-      <h2>Visto do dia</h2>
+      <div class="row"><h2 style="margin:0">Visto do café da tarde</h2><span class="tag">Feito pela Grazi todos os dias à tarde</span></div>
+      <p class="tag" style="margin:6px 0 12px">Marque <b>Fez</b> só quando ela realmente fez o que a frase diz. A cor sai sozinha: <b>tudo feito = verde</b> · <b>1 ou 2 faltando = amarelo</b> · <b>3 ou mais = vermelho</b> · <b>escondeu exercício em branco = preto</b>. O que faltar vira lembrete na tela dela no dia seguinte.</p>
       <form id="f-dia" class="stack" style="gap:12px">
-        <div class="row" style="justify-content:flex-start;gap:14px">
+        <div class="row" style="justify-content:flex-start;gap:18px;align-items:flex-end">
           <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted);max-width:170px">Data<input id="d-data" type="date" required></label>
-          <div><div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px">Cor do dia</div>
-            <div class="segmented" id="d-cor">
-              <button type="button" data-c="verde" aria-pressed="false">Verde</button>
-              <button type="button" data-c="amarelo" aria-pressed="false">Amarelo</button>
-              <button type="button" data-c="vermelho" aria-pressed="false">Vermelho</button>
-              <button type="button" data-c="preto" aria-pressed="false">Preto</button>
-            </div></div>
+          <label class="vc-folga"><input type="checkbox" id="d-folga"> Dia de folga (doente, viagem): não avalia e não apaga a ofensiva dela</label>
         </div>
-        <div class="checks">
-          <label><input type="checkbox" id="d-foto">Foto da manhã</label>
-          <label><input type="checkbox" id="d-agenda">Agenda completa</label>
-          <label><input type="checkbox" id="d-cad">Cadernos ok</label>
-          <label><input type="checkbox" id="d-aula">Contou a aula</label>
+        <div id="vc-lista" class="vc-lista"></div>
+        <div class="vc-grid">
+          <label class="vc-f"><span><input type="checkbox" id="d-esc"> Escondeu exercício em branco</span><input id="d-branco" type="number" min="0" value="0" title="quantos"></label>
+          <label class="vc-f">Pendências com estrela<input id="d-est" type="number" min="0" value="0"></label>
+          <label class="vc-f" style="grid-column:1/-1">Deveres para amanhã (um por linha; aparecem na tela dela para marcar "Fiz")<textarea id="d-deveres" rows="2" placeholder="ex.: Matemática: página 42, exercícios 1 a 5"></textarea></label>
+          <label class="vc-f">Recado para ela<input id="d-obs" placeholder="ex.: Adorei como você explicou a aula de Ciências!"></label>
+          <label class="vc-f">Combinado / consequência<input id="d-comb" placeholder="ex.: Hoje sem tablet até terminar o dever"></label>
         </div>
-        <div class="entry" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end">
-          <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted)">Pendências com estrela<input id="d-est" type="number" min="0" value="0"></label>
-          <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted)">Em branco escondido<input id="d-branco" type="number" min="0" value="0"></label>
-          <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted);grid-column:span 2">Observação<input id="d-obs"></label>
-          <button class="btn" type="submit">Salvar o dia</button>
-        </div>
+        <div class="vc-adulto"><label><input type="checkbox" id="d-notas"> Conferi se tem nota nova da escola (prova, trabalho, atividade, tarefa)</label><button type="button" class="btn ghost" id="d-lancar">Lançar nota agora</button></div>
+        <div class="row"><div id="vc-prev" class="vc-prev"></div><button class="btn" type="submit">Salvar o dia</button></div>
       </form>
       <div class="msg" id="m-dia"></div>
     </div>
@@ -300,7 +308,9 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
   <section data-pane="plano" class="stack" hidden>
     <div class="notice">O plano de cada manhã (45 min) é criado pelo Claude. Ciclo: <b>atividades</b> (aprender, não valem nota) → <b>simulado</b> (diagnóstico) → <b>reforço</b> → <b>prova</b> (vale nota). Só simulados e provas de casa entram no boletim.</div>
     <div class="kpis" id="pl-kpis"></div>
+    <div class="panel" id="pl-decidir" hidden></div>
     <div class="panel"><h2>Dia a dia</h2><div id="pl-dias"></div></div>
+    <div class="panel"><h2>Caderno de erros</h2><p class="tag" style="margin:0">Questões que ela errou voltam em 1, 3, 7 e 21 dias. Acertando 4 vezes seguidas, a questão sai do caderno ("vencida").</p><div id="pl-erros"></div></div>
     <div class="panel"><h2>Gravações da Isabella</h2><p class="tag" style="margin:0">Leituras e explicações que ela gravou. O link para assistir vale por 1 hora.</p><div id="pl-grav"></div></div>
   </section>
   <section data-pane="provas" class="stack" hidden>
@@ -495,8 +505,8 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
     chartE0($("ch-e0")); chartE0($("ch-e0-g"));
     const ds=state.dias.slice().sort((a,b)=>a.data<b.data?1:-1).slice(0,15);
     const yn=v=>v?"✓":"–";
-    $("t-dias").innerHTML = ds.length ? '<div class="tablewrap"><table><thead><tr><th>Dia</th><th>Cor</th><th>Foto</th><th>Agenda</th><th>Cadernos</th><th>Contou</th><th class="r">Estrelas</th><th class="r">Branco</th><th>Obs.</th><th></th></tr></thead><tbody>'+
-      ds.map(d=>`<tr><td class="num">${fmtData(d.data)}</td><td><span class="dot" style="background:${COR[d.cor]||"var(--line)"}"></span>${esc(d.cor||"")}</td><td>${yn(d.foto)}</td><td>${yn(d.agenda)}</td><td>${yn(d.cadernos)}</td><td>${yn(d.aula)}</td><td class="r num">${d.estrelas??0}</td><td class="r num">${d.branco??0}</td><td>${esc(d.obs)}</td><td class="r">${delBtn("dias",d._id)}</td></tr>`).join("")+'</tbody></table></div>'
+    $("t-dias").innerHTML = ds.length ? '<div class="tablewrap"><table><thead><tr><th>Dia</th><th>Cor</th><th>Itens feitos</th><th>Ficou devendo</th><th class="r">Branco</th><th>Recado</th><th>Quem</th><th></th></tr></thead><tbody>'+
+      ds.map(d=>{ const it=d.itens||{}; const ks=Object.keys(it); const ok=ks.filter(k=>it[k]).length; return `<tr><td class="num">${fmtData(d.data)}</td><td><span class="dot" style="background:${d.folga?"var(--muted)":COR[d.cor]||"var(--line)"}"></span>${d.folga?"folga":esc(d.cor||"")}</td><td class="num">${ks.length?`${ok}/${ks.length}`:"–"}</td><td>${esc((d.devendo||[]).join(" · "))}${(d.deveres||[]).length?`<div class="tag">Deveres: ${esc(d.deveres.join(" · "))}</div>`:""}</td><td class="r num">${d.branco??0}</td><td>${esc(d.obs||"")}${d.combinado?`<div class="tag">Combinado: ${esc(d.combinado)}</div>`:""}</td><td>${esc(d.quem||"")}</td><td class="r">${delBtn("dias",d._id)}</td></tr>`; }).join("")+'</tbody></table></div>'
       : '<div class="empty">Nenhum dia registrado ainda.</div>';
 
     // boletim
@@ -550,11 +560,67 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
     if(ok){ materia=$("r-mat").value; ["r-tit","r-ac","r-tot","r-nota","r-obs"].forEach(i=>$(i).value=""); render(); } });
   $("r-mat").addEventListener("focus",()=>{ $("r-mat").value=materia; }, {once:true});
 
+  // ---------- visto do café da tarde ----------
+  const CHECK = [
+    ["caderno","Copiou toda a matéria no caderno, com capricho","Copie toda a matéria no caderno e capriche na letra."],
+    ["sala","Terminou as atividades de sala, sem nada em branco","Termine as atividades da sala antes de guardar o caderno."],
+    ["deveres","Mostrou os deveres de casa feitos (ou combinou quando vai fazer)","Faça os deveres de casa e mostre para um adulto."],
+    ["agenda","Anotou na agenda os recados e as provas da professora","Preste atenção nos recados da professora e anote tudo na agenda."],
+    ["aula","Explicou com clareza o que aprendeu na aula","Preste atenção na aula para conseguir explicar o que aprendeu."],
+    ["estudo","Fez todo o estudo da manhã no app","Faça todo o estudo da manhã antes de ir para a aula."],
+    ["ontem","Cumpriu o que ficou devendo do dia anterior","Não esqueça o que ficou devendo."]
+  ];
+  let vc = {};
+  const addD=(iso,n)=>{ const x=new Date(iso+"T12:00:00"); x.setDate(x.getDate()+n); return x.toISOString().slice(0,10); };
+  function vcInfo(dia){
+    const p=state.plano.find(x=>x._id===dia); const its=(p&&p.itens)||[];
+    const feitos=its.filter(i=>statusItem(i).feito).length;
+    const ant=state.dias.filter(x=>x.data<dia && !x.folga).sort((a,b)=>a.data<b.data?1:-1)[0];
+    const dev=ant?[...(ant.devendo||[]), ...(ant.deveres||[]).map((t,i)=>"Dever: "+t+(state.feitos.some(f=>f._id===`${ant.data}-dever-${i}`)?" (ela marcou Fiz)":""))]:[];
+    return {its, feitos, ant, dev};
+  }
+  function vcRender(){
+    const dia=$("d-data").value||hoje(), inf=vcInfo(dia);
+    const linhas=CHECK.filter(([k])=> k==="estudo" ? inf.its.length>0 : k==="ontem" ? inf.dev.length>0 : true);
+    if(vc.estudo==null && inf.its.length) vc.estudo = inf.feitos===inf.its.length;
+    $("vc-lista").innerHTML = linhas.map(([k,t,l])=>{
+      const extra = k==="estudo" ? `<div class="tag">No app: ${inf.feitos} de ${inf.its.length} feitos (${inf.its.map(i=>(statusItem(i).feito?"✓ ":"✗ ")+esc(i.titulo)).join(" · ")})</div>`
+        : k==="ontem" ? `<div class="tag">De ${fmtData(inf.ant.data)}: ${inf.dev.map(esc).join(" · ")}</div>` : "";
+      return `<div class="vc-row ${vc[k]===true?"sim":vc[k]===false?"nao":""}"><div class="vc-t"><b>${t}</b>${extra}${vc[k]===false?`<input class="vc-lem" data-lem="${k}" value="${esc(vc["l_"+k]!=null?vc["l_"+k]:l)}" title="Lembrete que aparece para ela amanhã">`:""}</div>
+        <div class="segmented"><button type="button" data-vc="${k}" data-v="1" aria-pressed="${vc[k]===true}">Fez</button><button type="button" data-vc="${k}" data-v="0" aria-pressed="${vc[k]===false}">Não fez</button></div></div>`; }).join("");
+    vc._linhas = linhas.map(x=>x[0]);
+    $("vc-prev").innerHTML = vcCor().html;
+    document.getElementById("vc-lista").style.opacity = $("d-folga").checked ? .4 : 1;
+  }
+  function vcCor(){
+    if($("d-folga").checked) return {cor:"", html:'<span class="dot" style="background:var(--muted)"></span> Dia de folga'};
+    const ks=vc._linhas||[], falt=ks.filter(k=>vc[k]===false).length, abertos=ks.filter(k=>vc[k]==null).length;
+    const cor = $("d-esc").checked ? "preto" : falt===0 ? "verde" : falt<=2 ? "amarelo" : "vermelho";
+    return {cor, falt, abertos, html:`<span class="dot" style="background:${COR[cor]}"></span> <b>${abertos?"Prévia: ":""}Dia ${cor}</b>${falt?` · ${falt} item(ns) faltando`:""}${abertos?` · faltam ${abertos} para marcar`:""}`};
+  }
+  function vcCarregar(){
+    const dia=$("d-data").value; const x=state.dias.find(d=>d.data===dia);
+    vc={}; $("d-folga").checked=!!(x&&x.folga); $("d-esc").checked=!!(x&&x.escondeu); $("d-branco").value=x?(x.branco||0):0; $("d-est").value=x?(x.estrelas||0):0;
+    $("d-deveres").value=x&&x.deveres?x.deveres.join("\n"):""; $("d-obs").value=x?x.obs||"":""; $("d-comb").value=x?x.combinado||"":""; $("d-notas").checked=!!(x&&x.notasEscola);
+    if(x&&x.itens){ Object.assign(vc,x.itens); CHECK.forEach(([k,,l],i)=>{ if(x.itens[k]===false){ const lem=(x.devendo||[]).find(t=>t===l); if(!lem && x.lembretes && x.lembretes[k]) vc["l_"+k]=x.lembretes[k]; } }); }
+    vcRender();
+  }
+  $("d-data").addEventListener("change", vcCarregar);
+  ["d-folga","d-esc"].forEach(id=>$(id).addEventListener("change", vcRender));
+  $("d-branco").addEventListener("input", ()=>{ if(+$("d-branco").value>0 && !$("d-esc").checked){ $("d-esc").checked=true; vcRender(); } });
+  $("vc-lista").addEventListener("click", e=>{ const b=e.target.closest("[data-vc]"); if(!b) return; vc[b.dataset.vc]= b.dataset.v==="1"; vcRender(); });
+  $("vc-lista").addEventListener("input", e=>{ const t=e.target.closest("[data-lem]"); if(t) vc["l_"+t.dataset.lem]=t.value; });
+  $("d-lancar").addEventListener("click", ()=>{ show("materias"); setTimeout(()=>{ const f=$("r-data"); if(f){ f.scrollIntoView({block:"center"}); f.focus(); } },50); });
   $("f-dia").addEventListener("submit", async e=>{ e.preventDefault(); if(!db){ setMsg("m-dia","Sem conexão com os dados."); return; }
-    const sel=document.querySelector('#d-cor button[aria-pressed="true"]'); if(!sel){ setMsg("m-dia","Escolha a cor do dia."); return; }
-    const data=$("d-data").value;
-    try{ await db.collection("dias").doc(data).set({data, cor:sel.dataset.c, foto:$("d-foto").checked, agenda:$("d-agenda").checked, cadernos:$("d-cad").checked, aula:$("d-aula").checked, estrelas:+$("d-est").value||0, branco:+$("d-branco").value||0, obs:$("d-obs").value.trim(), atualizadoEm:new Date().toISOString()});
-      setMsg("m-dia","Dia salvo.",true); ["d-foto","d-agenda","d-cad","d-aula"].forEach(i=>$(i).checked=false); $("d-est").value=0; $("d-branco").value=0; $("d-obs").value=""; document.querySelectorAll("#d-cor button").forEach(b=>b.setAttribute("aria-pressed","false")); }
+    const data=$("d-data").value, folga=$("d-folga").checked, c=vcCor();
+    if(!folga && c.abertos){ setMsg("m-dia",`Marque Fez ou Não fez em todos os itens (faltam ${c.abertos}).`); return; }
+    const itens={}, devendo=[], lembretes={};
+    if(!folga) (vc._linhas||[]).forEach(k=>{ itens[k]=vc[k]; if(vc[k]===false){ const l=(vc["l_"+k]!=null?vc["l_"+k]:CHECK.find(x=>x[0]===k)[2]).trim(); if(l){ devendo.push(l); lembretes[k]=l; } } });
+    const deveres=$("d-deveres").value.split("\n").map(t=>t.trim()).filter(Boolean);
+    try{ await db.collection("dias").doc(data).set({data, cor:c.cor, folga, itens, devendo, lembretes, deveres, escondeu:$("d-esc").checked, branco:+$("d-branco").value||0, estrelas:+$("d-est").value||0,
+        obs:$("d-obs").value.trim(), combinado:$("d-comb").value.trim(), notasEscola:$("d-notas").checked,
+        agenda:itens.agenda??null, cadernos:itens.caderno??null, aula:itens.aula??null, quem:SESS.nome, atualizadoEm:new Date().toISOString()});
+      setMsg("m-dia", folga?"Folga registrada.":`Dia salvo: ${c.cor}.`, true); vcCarregar(); }
     catch(err){ setMsg("m-dia","Não foi possível salvar. Tente de novo."); } });
 
   $("f-nota").addEventListener("submit",async e=>{ e.preventDefault(); if(await add("notas",{ano:+$("n-ano").value,periodo:$("n-periodo").value,materia:$("n-materia").value,nota:+$("n-nota").value},"m-nota")) $("n-nota").value=""; });
@@ -639,10 +705,24 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
     $("pl-grav").innerHTML = gs.length ? '<div class="tablewrap"><table><thead><tr><th>Data</th><th>O quê</th><th class="r">Duração</th><th></th></tr></thead><tbody>'+
       gs.map(g=>`<tr><td class="num">${fmtData(g.data)}</td><td>${esc(g.titulo||g.tipo||"Gravação")}</td><td class="r num">${g.segundos?Math.floor(g.segundos/60)+":"+String(g.segundos%60).padStart(2,"0"):"–"}</td><td class="r"><button class="btn ghost" data-assistir="${esc(g.caminho)}">Assistir</button></td></tr>`).join("")+'</tbody></table></div>'
       : '<div class="empty">Nenhuma gravação ainda.</div>';
+    // atrasadas há mais de 3 dias: adulto decide
+    const lim=addD(h,-3), dec=[];
+    dias.filter(d=>d._id<lim).forEach(d=>(d.itens||[]).forEach(i=>{ if(!i.provaId) return; if(statusItem(i).feito) return; const a=state.feitos.find(f=>f._id==="adiado-"+i.id); if(a && (a.acao==="descartar" || (a.acao==="refazer" && a.ate>=h))) return; dec.push([d._id,i]); }));
+    $("pl-decidir").hidden=!dec.length;
+    $("pl-decidir").innerHTML = dec.length ? `<h2 style="margin:0 0 4px">Para decidir</h2><p class="tag" style="margin:0 0 8px">Atividades atrasadas há mais de 3 dias saíram da tela dela. Refazer devolve por mais 3 dias; descartar tira de vez.</p>`+dec.map(([dia,i])=>`<div class="row" style="padding:6px 0;border-top:1px solid var(--line)"><span><b>${esc(i.titulo)}</b> <span class="tag">era para ${fmtData(dia)}</span></span><span><button class="btn ghost" data-adiar="${esc(i.id)}" data-acao="refazer">Refazer</button> <button class="btn ghost" data-adiar="${esc(i.id)}" data-acao="descartar">Descartar</button></span></div>`).join("") : "";
+    const er=extra.erros||{ativos:0,vencidos:0,devidos:0,porHabilidade:[]};
+    $("pl-erros").innerHTML = `<div class="row" style="justify-content:flex-start;gap:24px;margin:8px 0"><span><b style="font-size:22px">${er.ativos}</b> no caderno</span><span><b style="font-size:22px">${er.devidos}</b> para revisar hoje</span><span><b style="font-size:22px;color:var(--good)">${er.vencidos}</b> vencidos</span></div>`+
+      (er.porHabilidade.length?'<div class="tablewrap"><table><thead><tr><th>Matéria</th><th>Habilidade</th><th class="r">No caderno</th><th class="r">Vencidos</th></tr></thead><tbody>'+er.porHabilidade.map(x=>`<tr><td>${esc(x.materia)}</td><td>${esc(x.habilidade)}</td><td class="r num">${x.ativos}</td><td class="r num">${x.vencidos}</td></tr>`).join("")+'</tbody></table></div>':'<div class="empty">Vazio.</div>');
+    const ultEsc=state.avaliacoes.filter(a=>!/\(casa\)/i.test(a.tipo||"")).map(a=>a.data).filter(Boolean).sort().pop();
+    const dd=ultEsc?Math.round((new Date(h+"T12:00:00")-new Date(ultEsc+"T12:00:00"))/864e5):null;
+    $("g-notas").hidden = !(dd==null || dd>=5);
+    $("g-notas").innerHTML = dd==null ? "Nenhuma nota da escola lançada ainda." : `A última nota da escola foi lançada há <b>${dd} dias</b> (${fmtData(ultEsc)}). Tem prova, trabalho ou atividade corrigida nova? Lance na aba Matérias, ou pelo botão no Café da tarde.`;
     const hp=dias.find(d=>d._id===h);
     $("g-hoje").innerHTML = `<div class="row" style="margin-bottom:6px"><h2 style="margin:0">Estudo de hoje</h2><span class="tag">${hp?`${Math.round(pct(hp)*100)}% feito`:"sem plano hoje"}</span></div>`+
       (hp?(hp.itens||[]).map(i=>{ const s=statusItem(i); return `<div style="padding:2px 0">${s.feito?'<span class="pill good">✓</span>':'<span class="pill na">·</span>'} ${esc(i.titulo)}${s.nota!=null?` · nota <b>${f1(+s.nota)}</b>`:''}</div>`; }).join(""):'<div class="tag">Nada planejado para hoje.</div>');
   }
+  document.addEventListener("click", async e=>{ const b=e.target.closest("[data-adiar]"); if(!b) return; b.disabled=true;
+    try{ await api("gravarDoc",{col:"feitos", id:"adiado-"+b.dataset.adiar, data:{data:hoje(), acao:b.dataset.acao, ate:addD(hoje(),3), quem:SESS.nome}}); await refresh(); }catch(err){ b.textContent="Erro"; } });
   document.addEventListener("click", async e=>{ const b=e.target.closest("[data-assistir]"); if(!b) return;
     const w=window.open("about:blank","_blank"); b.disabled=true; b.textContent="Abrindo…";
     try{ const cfg=window.ESTUDOS||{}; const r=await fetch(cfg.url+"/functions/v1/gravacoes",{method:"POST",headers:{"Content-Type":"application/json",apikey:cfg.chave,Authorization:"Bearer "+cfg.chave},body:JSON.stringify({token:SESS.token,acao:"link",caminho:b.dataset.assistir})});
@@ -656,7 +736,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
 
   render();
   Object.keys(state).forEach(col=> db.collection(col).onSnapshot(s=>{ state[col]=s.docs.map(d=>({...d.data(), _id:d.id})); }));
-  refresh().then(()=>{ $("status").textContent=SESS.nome+" · dados sincronizados"; }).catch(e=>{ $("status").textContent="Erro ao carregar"; $("offline").hidden=false; });
+  refresh().then(()=>{ $("status").textContent=SESS.nome+" · dados sincronizados"; vcCarregar(); }).catch(e=>{ $("status").textContent="Erro ao carregar"; $("offline").hidden=false; });
 })();
 </script>
 </body>

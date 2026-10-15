@@ -357,3 +357,35 @@ a.nl:hover{background:var(--bg)}
 .bar.meta85{position:relative;margin-top:6px;overflow:visible}.bar.meta85 i{background:var(--accent)}.bar.meta85 em{position:absolute;left:85%;top:-3px;bottom:-3px;width:3px;background:var(--sun);border-radius:2px}
 @media (max-width:1100px){.sem-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.notas-top{grid-template-columns:1fr}}
 @media (max-width:760px){.agrid{grid-template-columns:1fr}.sem-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* v4: Sol, avaliação do dia, caderno de erros, cartões */
+.sol-card{background:linear-gradient(180deg,#FFF7E6,var(--card) 60%);border:2px solid #F2C46B;border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;position:relative}
+.sol-ofensiva{display:flex;align-items:center;gap:8px;align-self:stretch;justify-content:center}.sol-ofensiva b{font-family:var(--display);font-size:30px;color:#E5761A;line-height:1}.sol-ofensiva span{font-size:13px;color:var(--soft);display:block}
+.sol-ofensiva div{text-align:left}
+.sol-pet{position:relative}.sol-card.nham .sol-pet svg{animation:pulo .5s ease-in-out 3}
+@keyframes pulo{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.sol-nham{position:absolute;left:50%;top:-6px;transform:translateX(-50%);background:#E5761A;color:#fff;font-weight:800;font-size:13px;padding:4px 10px;border-radius:99px;white-space:nowrap;animation:some 3s forwards}
+@keyframes some{0%,70%{opacity:1}100%{opacity:0}}
+.sol-frase{margin:0;font-weight:600;font-size:15px}
+.sol-tigela{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;width:100%;font-size:13px}
+.sol-cora{display:flex;gap:3px;align-items:center;font-size:20px;color:var(--line)}.sol-cora .on{color:#E2687E}.sol-cora small{font-size:12px;color:var(--soft);margin-left:6px}
+.dia-card{border:2px solid var(--dc);border-radius:16px;background:var(--card);overflow:hidden}
+.dc-top{display:flex;gap:12px;align-items:center;background:var(--dc);color:#fff;padding:12px 14px}
+.dc-bola{width:34px;height:34px;border-radius:50%;background:#fff;opacity:.9;flex:none;box-shadow:inset 0 0 0 8px var(--dc)}
+.dc-top b{display:block;font-family:var(--display);font-size:20px}.dc-top span{display:block;font-size:13px;opacity:.95}.dc-top .dc-q{font-size:11px;text-transform:uppercase;letter-spacing:.05em;opacity:.85}
+.dc-lista{list-style:none;margin:0;padding:10px 14px;display:grid;gap:6px;font-size:14px}
+.dc-lista li{display:flex;gap:6px;align-items:flex-start}.dc-lista .sim{color:var(--ok)}.dc-lista .nao{color:var(--bad);font-weight:600}
+.dc-recado{margin:0 14px 12px;background:var(--sun-s);border-radius:10px;padding:8px 10px;font-size:14px}.dc-recado b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#8A6400}
+.dc-recado.comb{background:var(--accent-s)}.dc-recado.comb b{color:var(--accent)}
+.dev-l{margin:0;padding-left:20px;display:grid;gap:6px;font-size:16px;font-weight:600}
+.side-of{display:flex;align-items:center;gap:6px;text-decoration:none;color:var(--fg);background:#FFF3DF;border:1.5px solid #F2C46B;border-radius:12px;padding:8px 10px;margin-top:auto}
+.side-of b{font-family:var(--display);font-size:22px;color:#E5761A}.side-of span{font-size:12px;color:var(--soft);line-height:1.1}
+.erros-top{display:grid;grid-template-columns:minmax(0,1fr) 150px 150px;gap:14px}
+.kpi-e{background:var(--card);border:1.5px solid var(--line);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center}.kpi-e b{font-family:var(--display);font-size:40px}.kpi-e span{color:var(--soft)}.kpi-e.ok b{color:var(--ok)}
+.fc-wrap{display:flex;flex-direction:column;align-items:center;gap:12px}
+.fc{width:min(440px,100%);min-height:200px;border-radius:20px;border:3px solid var(--accent);background:var(--card);color:var(--fg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:20px;box-shadow:0 8px 0 var(--accent-s);transition:transform .2s}
+.fc b{font-family:var(--display);font-size:34px;line-height:1.2}.fc small{color:var(--soft);font-weight:500}
+.fc.virado{background:var(--accent);color:#fff;transform:rotateY(0)}.fc.virado .fc-lado{color:#fff}
+.fc-lado{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--soft)}
+.fc-fim{align-items:center;text-align:center}
+@media (max-width:980px){.erros-top{grid-template-columns:1fr 1fr}.side-of{margin-top:0}}
+.side-of + .side-foot{margin-top:0}

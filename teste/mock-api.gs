@@ -82,13 +82,15 @@ function doPost(e) {
       agendaAdicionar: () => acaoAluna_("agendaAdicionar", req, sess),
       agendaRemover: () => acaoAluna_("agendaRemover", req, sess),
       marcarFeito: () => acaoAluna_("marcarFeito", req, sess),
+      errosHoje: () => ERROS.filter(e => !e.resolvido && e.proxima <= hoje_()).slice(0, 5).map(e => ({ id: e.id, materia: e.materia, habilidade: e.habilidade, etapa: e.etapa, vezes: e.vezes, questao: Object.assign({}, e.questao, { correta: undefined, aceitas: undefined, explicacao: undefined }) })),
+      responderErro: () => responderErro_(req),
       registrarTabuada: () => acaoAluna_("registrarTabuada", req, sess),
       registrarGravacao: () => acaoAluna_("registrarGravacao", req, sess),
       prova: () => provaParaAluna_(req.id, A),
       entregar: () => entregar_(req, sess),
       tentativa: () => tentativaDetalhe_(req.id, A),
       // adultos
-      painelAdulto: () => exige_(A) || painelAdulto_(),
+      painelAdulto: () => exige_(A) || Object.assign(painelAdulto_(), { erros: errosResumo_() }),
       corrigir: () => exige_(A) || corrigirAberta_(req, sess),
       liberarRevisao: () => exige_(A) || liberarRevisao_(req.id, req.valor !== false),
       reabrir: () => exige_(A) || reabrir_(req.provaId),
@@ -448,6 +450,10 @@ function inicioAlunaV2_() {
   b.provas = todasProvas_().filter(p => !p.arquivada).map(p => Object.assign(meta_(p), { feita: tent.some(t => t.provaId === p.id), liberada: !p.liberarEm || p.liberarEm <= h }));
   b.plano = Object.keys(DOCS.plano).sort().map(id => Object.assign({}, DOCS.plano[id], { _id: id }));
   b.feitos = Object.keys(DOCS.feitos);
+  b.feitosInfo = Object.assign({}, DOCS.feitos);
+  b.erros = errosResumo_();
+  b.diario = Object.keys(DOCS.dias).map(k => DOCS.dias[k]).sort((x, y) => y.data.localeCompare(x.data));
+  b.historico = b.historico.map(x => Object.assign(x, { provaId: x.provaId || (linhas_("Tentativas").find(t => t.id === x.id) || {}).provaId }));
   return b;
 }
 function acaoAluna_(acao, d, sess) {
@@ -461,4 +467,21 @@ function acaoAluna_(acao, d, sess) {
   if (acao === "registrarTabuada") { DOCS.medicoes[id] = { data: h, tabuadaSeg: d.segundos, tabuadaAcertos: d.acertos, tabuadaTotal: d.total }; DOCS.feitos[d.item || h + "-tabuada"] = { data: h }; }
   if (acao === "registrarGravacao") { DOCS.gravacoes[id] = { data: h, tipo: d.tipo, titulo: d.titulo, caminho: d.caminho, segundos: d.segundos, quem: sess.nome }; DOCS.feitos[d.item || h + "-gravar"] = { data: h }; }
   return { id };
+}
+
+var ERROS = [
+  { id: 1, materia: "Português", habilidade: "Plural", etapa: 0, vezes: 1, proxima: "2026-10-01", questao: { tipo: "mc", enunciado: "Qual é o plural de **pão**?", opcoes: ["pãos", "pães", "pões"], correta: "B", explicacao: "Pão é da família especial: pães." } },
+  { id: 2, materia: "Português", habilidade: "Tempos verbais", etapa: 0, vezes: 2, proxima: "2026-10-01", questao: { tipo: "curta", enunciado: "Passe para o futuro: hoje eu **canto** → amanhã eu ____", aceitas: ["cantarei", "vou cantar"] } },
+  { id: 3, materia: "Matemática", habilidade: "Subtração com zeros", etapa: 1, vezes: 1, proxima: "2026-10-01", questao: { tipo: "numero", enunciado: "500 − 237 =", correta: 263 } }
+];
+function errosResumo_() {
+  const h = hoje_(), g = {};
+  ERROS.forEach(e => { const k = e.materia + "|" + e.habilidade; g[k] = g[k] || { materia: e.materia, habilidade: e.habilidade, ativos: 0, vencidos: 0, devidos: 0 }; if (e.resolvido) g[k].vencidos++; else { g[k].ativos++; if (e.proxima <= h) g[k].devidos++; } });
+  return { devidos: ERROS.filter(e => !e.resolvido && e.proxima <= h).length, ativos: ERROS.filter(e => !e.resolvido).length, vencidos: ERROS.filter(e => e.resolvido).length, porHabilidade: Object.keys(g).map(k => g[k]) };
+}
+function responderErro_(req) {
+  const e = ERROS.find(x => x.id === Number(req.id)); const q = e.questao; const r = String(req.resposta || "").trim().toLowerCase();
+  const ok = q.tipo === "mc" ? r.toUpperCase() === q.correta : q.tipo === "numero" ? Number(r) === q.correta : (q.aceitas || []).some(a => a === r);
+  if (ok) { e.etapa++; if (e.etapa >= 4) e.resolvido = true; e.proxima = "2099-01-01"; } else { e.etapa = 0; e.proxima = "2099-01-01"; e.vezes++; }
+  return { certo: ok, resolvido: !!e.resolvido, correta: q.tipo === "mc" ? q.correta + ") " + q.opcoes["ABC".indexOf(q.correta)] : String(q.correta || (q.aceitas || [])[0]), explicacao: q.explicacao || "", proxima: "2026-10-22" };
 }

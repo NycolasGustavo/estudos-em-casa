@@ -62,6 +62,7 @@ Antes das questões, uma atividade pode ter uma lição em partes (`licao: [...]
 | `fracao` | partes | barra para pintar frações |
 | `pratica` | questoes[{enunciado, opcoes, correta:"A"} ou {enunciado, resposta:[...]}, dica, explicacao, falar?, lang?] | "fazer junto" com correção na hora |
 | `jogo` | questoes[{p, opcoes, correta: índice}], segundos, instrucao | desafio cronometrado |
+| `cartoes` | cartoes[{frente, verso}] | flashcards: vira o cartão, "Eu sabia!" ou "Ainda não" (volta para o fim do monte) |
 
 Questão `ditado` (nos blocos): `{tipo:"ditado", falar:"palavra", correta:"palavra"}`.
 
@@ -77,3 +78,11 @@ Questão `ditado` (nos blocos): `{tipo:"ditado", falar:"palavra", correta:"palav
   {"id":"2026-10-16-livro","momento":"livro","titulo":"Ler o meu livro","acao":"livro"}]}
 ```
 Item com `provaId` fica feito quando ela entrega a prova. Os outros, quando ela marca (ou termina a tabuada / envia a gravação).
+
+## Caderno de erros
+
+Toda questão de correção automática (mc, numero, curta, ditado) que ela errar entra em `app.erros` sozinha (gatilho em `app.respostas`). Volta em 1, 3, 7 e 21 dias; errou, volta no dia seguinte; 4 acertos seguidos e sai do caderno. Em "Hoje" aparece o item "Revisar meus erros" quando há questões do dia. Por isso, escreva `explicacao` nas questões: ela aparece na revisão.
+
+## Café da tarde (visto do dia)
+
+Documento em `app.docs` col `dias`, id = data: `{data, cor, folga, itens:{caderno,sala,deveres,agenda,aula,estudo,ontem}, devendo:[lembretes], deveres:[textos], escondeu, branco, estrelas, obs, combinado, notasEscola, quem}`. A cor é automática: tudo feito = verde, 1–2 faltando = amarelo, 3+ = vermelho, escondeu exercício em branco = preto. `devendo` e `deveres` aparecem para ela no dia seguinte.
