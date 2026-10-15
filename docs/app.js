@@ -67,7 +67,7 @@ async function render() {
       location.href = "painel.html"; return;
     }
     if (adulto && !r[0]) { location.href = "painel.html"; return; }
-    return await telaAluna(r[0] === "aluna" ? (r[1] || "provas") : (r[0] || "provas"));
+    return await telaAluna(r[0] === "aluna" ? (r[1] || "inicio") : (r[0] || "inicio"));
   } catch (e) {
     app.innerHTML = topo() + `<div class="panel stack"><h2>Não consegui carregar</h2><p>${esc(e.message)}</p><div><button id="tentar">Tentar de novo</button></div></div>`;
     $("#tentar").onclick = render;
@@ -137,58 +137,146 @@ function anel(n) {
 }
 
 /* ---------------- tela da aluna ---------------- */
+const MATCOR = { "Português": "#2F55C9", "Matemática": "#D2632A", "Ciências": "#1E8A5A", "História": "#8E44AD", "Geografia": "#0E8C8C", "Inglês": "#C2413A", "Arte": "#C58B00", "Educação Física": "#5E6483", "Ensino Religioso": "#7A6A53" };
+const corMat = m => MATCOR[m] || "#5E6483";
+const ehGrande = t => /prova|simulado|olimp|trabalho/i.test(t || "");
+const ehCasa = t => /\(casa\)/i.test(t || "");
+const tipoCurto = t => String(t || "").replace(/\s*\((escola|casa)\)\s*/i, "") || "Atividade";
+const diasAte = d => Math.round((new Date(d + "T12:00:00") - new Date(hoje() + "T12:00:00")) / 864e5);
+const quando = n => n === 0 ? "hoje" : n === 1 ? "amanhã" : n > 1 ? `em ${n} dias` : n === -1 ? "ontem" : `há ${-n} dias`;
+const TIPO_PROVA = { simulado: "Simulado", prova: "Prova", atividade: "Treino", reforco: "Reforço" };
+
+function todasNotas(d) {
+  const L = d.avaliacoes.map(a => ({ data: a.data, materia: a.materia, tipo: a.tipo, titulo: a.titulo, nota: Number(a.nota), comentario: a.comentario, acertos: a.acertos, total: a.total, origem: ehCasa(a.tipo) ? "casa" : "escola", grande: ehGrande(a.tipo) }));
+  d.historico.filter(h => h.status === "corrigida").forEach(h => L.push({ data: h.data, materia: h.materia, tipo: (TIPO_PROVA[h.tipo] || "Prova") + " (casa)", titulo: h.titulo, nota: h.nota, acertos: h.pontos, total: h.max, origem: "casa", grande: true, tentativa: h.id }));
+  return L.filter(n => !isNaN(n.nota)).sort((a, b) => String(b.data).localeCompare(String(a.data)));
+}
+function cartaoNota(n) {
+  const cls = clsNota(n.nota);
+  const corpo = `<div class="nc-l" style="--mc:${corMat(n.materia)}"><div class="row" style="gap:6px"><span class="mchip" style="--mc:${corMat(n.materia)}">${esc(n.materia)}</span><span class="tag ${n.grande ? "" : "warn"}">${n.grande ? "Avaliação grande" : "Atividade pequena"}</span><span class="tag ${n.origem === "casa" ? "ok" : ""}">${n.origem === "casa" ? "Em casa" : "Na escola"}</span></div>
+    <b class="nc-t">${esc(n.titulo || tipoCurto(n.tipo))}</b><span class="muted small">${tipoCurto(n.tipo)} · ${dataBR(n.data)}${n.total ? ` · ${n.acertos} de ${n.total}` : ""}</span>${n.comentario ? `<span class="small nc-c">“${esc(n.comentario)}”</span>` : ""}</div>
+    <span class="score ${cls}">${fmtN(n.nota)}</span>`;
+  return n.tentativa ? `<a class="ncard" href="#/resultado/${encodeURIComponent(n.tentativa)}">${corpo}</a>` : `<div class="ncard">${corpo}</div>`;
+}
+function cartaoProva(p) {
+  const iniciada = !!store.get("rasc-" + p.id);
+  const prazo = p.prazo ? diasAte(p.prazo) : null;
+  return `<div class="pcard" style="--mc:${corMat(p.materia)}"><div class="stack" style="gap:6px;flex:1;min-width:0">
+     <div class="row" style="gap:6px"><span class="mchip" style="--mc:${corMat(p.materia)}">${esc(p.materia)}</span><span class="tag">${TIPO_PROVA[p.tipo] || "Prova"}</span>${iniciada ? '<span class="tag warn">em andamento</span>' : '<span class="tag ok">nova</span>'}${prazo != null ? `<span class="tag ${prazo <= 1 ? "bad" : ""}">entregar ${quando(prazo)}</span>` : ""}</div>
+     <h3>${esc(p.titulo)}</h3>${p.descricao ? `<p class="muted small">${esc(p.descricao)}</p>` : ""}
+     ${(p.assuntos || []).length ? `<div class="small"><b>O que cai:</b> ${(p.assuntos || []).slice(0, 6).map(esc).join(" · ")}</div>` : ""}
+     <span class="muted small">${p.totalQuestoes} questões${p.minutos ? ` · cerca de ${p.minutos} min` : ""}</span></div>
+     <a class="btn" href="#/prova/${encodeURIComponent(p.id)}">${iniciada ? "Continuar" : "Começar"}</a></div>`;
+}
+function cartaoAgenda(a, podeApagar) {
+  const n = diasAte(a.data);
+  return `<div class="acard ${n < 0 ? "passou" : ""}" style="--mc:${corMat(a.materia)}"><div class="adata"><b>${dataBR(a.data)}</b><span>${quando(n)}</span></div>
+    <div style="flex:1;min-width:0"><div class="row" style="gap:6px"><span class="mchip" style="--mc:${corMat(a.materia)}">${esc(a.materia)}</span><b>${esc(a.tipo)}</b></div>
+    ${a.conteudo ? `<div class="small">${esc(a.conteudo)}</div>` : ""}<span class="muted small">${a.confirmado ? "✓ conferido por um adulto" : "esperando um adulto conferir"}</span></div>
+    ${podeApagar && !a.confirmado ? `<button class="mini ghost" data-agdel="${esc(a.id)}">Apagar</button>` : ""}</div>`;
+}
+
 async function telaAluna(aba) {
   carregando();
   const d = await api("inicioAluna");
   cache.aluna = d;
   const primeiro = (d.nome || sess.nome || "").split(" ")[0];
-  const tabs = [["provas", "Provas"], ["evolucao", "Minha evolução"], ["livros", "Livros"]];
-  const verComoAdulto = sess.papel === "adulto" ? `<a class="btn ghost mini" href="painel.html">Voltar ao painel</a>` : "";
-  let corpo = "";
-  if (aba === "provas") {
-    const corrigidas = d.historico.filter(h => h.status === "corrigida");
-    corpo = `<div class="hello"><h1>Oi, <span class="hl">${esc(primeiro)}</span>!</h1><p class="muted">${d.pendentes.length ? `Você tem ${d.pendentes.length} ${d.pendentes.length > 1 ? "provas" : "prova"} para fazer.` : "Nenhuma prova pendente. Bom trabalho!"}${d.sequencia > 1 ? ` · ${d.sequencia} dias seguidos no verde ou amarelo` : ""}</p></div>
-    ${d.pendentes.length ? `<section class="stack"><h2>Para fazer</h2><div class="cards">${d.pendentes.map(p => `<div class="pcard"><div><span class="tag">${esc(p.materia)}</span><h3 style="margin-top:6px">${esc(p.titulo)}</h3><p class="muted">${p.totalQuestoes} questões${p.minutos ? ` · cerca de ${p.minutos} min` : ""}${p.prazo ? ` · até ${dataBR(p.prazo)}` : ""}</p></div><a class="btn" href="#/prova/${encodeURIComponent(p.id)}">${store.get("rasc-" + p.id) ? "Continuar" : "Começar"}</a></div>`).join("")}</div></section>` : ""}
-    <section class="stack"><h2>Provas que eu já fiz</h2>${d.historico.length ? `<div class="panel list">${d.historico.map(h => `<a class="li" href="#/resultado/${encodeURIComponent(h.id)}"><div><b>${esc(h.titulo)}</b><div class="muted">${esc(h.materia)} · ${dataBR(h.data)}${h.status === "aguardando" ? " · esperando correção" : ""}${h.revisaoLiberada ? " · revisão liberada" : ""}</div></div><span class="score ${clsNota(h.nota)}">${fmtN(h.nota)}</span></a>`).join("")}</div>` : `<p class="muted">Quando você entregar a primeira prova, ela aparece aqui.</p>`}</section>
-    ${corrigidas.length ? `<p class="muted">Média das provas em casa: <b>${fmtN(corrigidas.reduce((s, h) => s + h.nota, 0) / corrigidas.length)}</b></p>` : ""}`;
-  } else if (aba === "evolucao") {
-    corpo = evolucaoAluna(d);
-  } else {
-    corpo = livrosAluna(d);
-  }
-  app.innerHTML = topo(verComoAdulto) + `<nav class="tabs">${tabs.map(([k, l]) => `<a href="#/${sess.papel === "adulto" ? "aluna/" : ""}${k}" class="${aba === k ? "on" : ""}">${l}</a>`).join("")}</nav><div class="stack">${corpo}</div>`;
+  const base = sess.papel === "adulto" ? "#/aluna/" : "#/";
+  const tabs = [["inicio", "Início"], ["notas", "Minhas notas"], ["materias", "Matérias"], ["agenda", "Agenda"], ["livros", "Livros"]];
+  if (!tabs.some(t => t[0] === aba)) aba = "inicio";
+  const extra = sess.papel === "adulto" ? `<a class="btn ghost mini" href="painel.html">Voltar ao painel</a>` : "";
+  const f = { inicio: abaInicio, notas: abaNotas, materias: abaMaterias, agenda: abaAgenda, livros: abaLivros }[aba];
+  app.innerHTML = topo(extra) + `<nav class="tabs">${tabs.map(([k, l]) => `<a href="${base}${k}" class="${aba === k ? "on" : ""}">${l}</a>`).join("")}</nav><div class="stack" id="corpo">${f(d, primeiro, base)}</div>`;
+  ligarAluna(d);
 }
-function evolucaoAluna(d) {
-  const pontos = [];
-  d.historico.filter(h => h.status === "corrigida").forEach(h => pontos.push({ data: h.data, materia: h.materia, nota: h.nota, onde: "casa" }));
-  d.notasEscola.forEach(n => { if (n.nota != null && !isNaN(n.nota)) pontos.push({ data: String(n.data).slice(0, 10), materia: n.materia, nota: n.nota, onde: "escola" }); });
-  const mats = [...new Set(pontos.map(p => p.materia))];
-  const blocos = mats.map(m => {
-    const ps = pontos.filter(p => p.materia === m).sort((a, b) => a.data.localeCompare(b.data));
-    const xs = ps.map(p => p.data);
-    const casa = ps.map(p => p.onde === "casa" ? p.nota : null), esc_ = ps.map(p => p.onde === "escola" ? p.nota : null);
-    const ult = ps.slice(-3); const media = ult.reduce((s, p) => s + p.nota, 0) / ult.length;
-    return `<div class="panel stack"><div class="row between"><h3>${esc(m)}</h3><span class="tag ${media >= 8.5 ? "ok" : media >= 7 ? "warn" : "bad"}">últimas: ${fmtN(media)}</span></div>
-      ${grafico([{ nome: "Em casa", cor: "var(--c3)", vals: casa, ligar: true }, { nome: "Na escola", cor: "var(--c1)", vals: esc_, ligar: true }], { xs, rotulos: xs.map(dataBR), refs: [{ v: 8.5, cor: "var(--ok)" }], altura: 190 })}
-      <div class="legend"><span><i style="background:var(--c3)"></i>Em casa</span><span><i style="background:var(--c1)"></i>Na escola</span><span><i style="background:var(--ok)"></i>Meta 8,5</span></div></div>`;
+function abaInicio(d, primeiro, base) {
+  const notas = todasNotas(d);
+  const prox = d.agenda.filter(a => diasAte(a.data) >= 0).slice(0, 4);
+  const semana = d.diario.slice(0, 7).slice().reverse();
+  return `<div class="hello"><h1>Oi, <span class="hl">${esc(primeiro)}</span>!</h1><p class="muted">Este é o seu painel: aqui aparecem as provas para fazer em casa, as provas que a professora marcou e <b>todas as suas notas</b>, da escola e de casa.</p></div>
+   <section class="stack"><div class="row between"><h2>Para fazer em casa</h2></div>${d.pendentes.length ? `<div class="cards">${d.pendentes.map(cartaoProva).join("")}</div>` : `<div class="panel muted">Nenhuma prova para fazer agora.</div>`}</section>
+   <section class="stack"><div class="row between"><h2>Vem aí na escola</h2><a class="btn ghost mini" href="${base}agenda">Anotar prova ou trabalho</a></div>
+    ${prox.length ? `<div class="cards">${prox.map(a => cartaoAgenda(a, false)).join("")}</div>` : `<div class="panel muted">Nada anotado. Quando a professora marcar uma prova ou um trabalho, anote na aba Agenda.</div>`}</section>
+   <div class="grid2">
+    <section class="panel stack"><h3>Minha semana</h3>${semana.length ? `<div class="dias">${semana.map(x => `<span class="d-${esc(x.cor)}" title="${dataBR(x.data)}: ${esc(x.cor)}"></span>`).join("")}</div><p class="muted small">${d.sequencia > 1 ? `${d.sequencia} dias seguidos no verde ou amarelo.` : "Cada quadradinho é a cor de um dia."}</p>` : `<p class="muted small">As cores dos seus dias aparecem aqui.</p>`}</section>
+    <section class="panel stack"><h3>Livros</h3><p><b style="font-family:var(--display);font-size:24px">${d.livros.filter(l => l.status === "lido" && String(l.fim).startsWith(hoje().slice(0, 4))).length}</b> <span class="muted">de ${d.metaLivros || "–"} livros este ano</span></p>${d.livros.filter(l => l.status === "lendo").slice(0, 2).map(l => `<span class="small">Lendo: <b>${esc(l.titulo)}</b></span>`).join("")}</section>
+   </div>
+   <section class="stack"><div class="row between"><h2>Últimas notas</h2><a class="btn ghost mini" href="${base}notas">Ver todas</a></div>${notas.length ? `<div class="cards">${notas.slice(0, 5).map(cartaoNota).join("")}</div>` : `<div class="panel muted">Suas notas aparecem aqui.</div>`}</section>`;
+}
+let filtroMat = "Todas";
+function abaNotas(d) {
+  const notas = todasNotas(d);
+  const mats = ["Todas", ...new Set(notas.map(n => n.materia))];
+  const vis = notas.filter(n => filtroMat === "Todas" || n.materia === filtroMat);
+  const meses = {}; vis.forEach(n => { const k = String(n.data).slice(0, 7); (meses[k] = meses[k] || []).push(n); });
+  const NM = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+  const med = a => a.length ? a.reduce((s, n) => s + n.nota, 0) / a.length : null;
+  const mE = med(vis.filter(n => n.origem === "escola")), mC = med(vis.filter(n => n.origem === "casa"));
+  return `<div class="panel stack"><h2>Minhas notas</h2><p class="muted">Aqui aparece <b>tudo</b> o que vale nota: as atividades da sala e as tarefas (atividades pequenas), os trabalhos, as provas e os simulados da escola (avaliações grandes) e as provas que você faz em casa. Os adultos registram as notas da escola assim que elas chegam.</p>
+    <div class="chips">${mats.map(m => `<button data-fmat="${esc(m)}" class="${m === filtroMat ? "on" : ""}">${esc(m)}</button>`).join("")}</div></div>
+   <div class="kpis"><div class="kpi"><b class="${mE != null ? clsNota(mE) : ""}">${mE != null ? fmtN(mE) : "–"}</b><span>média na escola</span></div><div class="kpi"><b class="${mC != null ? clsNota(mC) : ""}">${mC != null ? fmtN(mC) : "–"}</b><span>média em casa</span></div><div class="kpi"><b>${vis.length}</b><span>notas registradas</span></div></div>
+   ${Object.keys(meses).sort().reverse().map(k => `<section class="stack" style="gap:10px"><h3 class="mes">${NM[+k.slice(5, 7) - 1].replace(/^./, c => c.toUpperCase())} de ${k.slice(0, 4)}</h3><div class="cards">${meses[k].map(cartaoNota).join("")}</div></section>`).join("") || `<div class="panel muted">Nenhuma nota ainda.</div>`}`;
+}
+function abaMaterias(d) {
+  const notas = todasNotas(d);
+  const mats = [...new Set(["Português", "Matemática", ...notas.map(n => n.materia)])];
+  const med = a => a.length ? a.reduce((s, n) => s + n.nota, 0) / a.length : null;
+  const cards = mats.map(m => {
+    const ns = notas.filter(n => n.materia === m).slice().reverse();
+    const e = med(ns.filter(n => n.origem === "escola").slice(-5)), c = med(ns.filter(n => n.origem === "casa").slice(-5));
+    const prox = d.agenda.find(a => a.materia === m && diasAte(a.data) >= 0);
+    const xs = ns.map(n => n.data);
+    return `<div class="panel stack" style="border-top:4px solid ${corMat(m)}"><div class="row between"><h3 style="color:${corMat(m)}">${esc(m)}</h3><span class="muted small">${ns.length} nota${ns.length === 1 ? "" : "s"}</span></div>
+      <div class="row" style="gap:18px"><div><b class="score ${e != null ? clsNota(e) : ""}" style="text-align:left">${e != null ? fmtN(e) : "–"}</b><div class="muted small">na escola</div></div><div><b class="score ${c != null ? clsNota(c) : ""}" style="text-align:left">${c != null ? fmtN(c) : "–"}</b><div class="muted small">em casa</div></div></div>
+      ${ns.length > 1 ? grafico([{ nome: "Na escola", cor: "var(--c1)", vals: ns.map(n => n.origem === "escola" ? n.nota : null), ligar: true }, { nome: "Em casa", cor: "var(--c3)", vals: ns.map(n => n.origem === "casa" ? n.nota : null), ligar: true }], { xs, rotulos: xs.map(dataBR), refs: [{ v: 8.5, cor: "var(--ok)" }], altura: 170 }) + `<div class="legend"><span><i style="background:var(--c1)"></i>Na escola</span><span><i style="background:var(--c3)"></i>Em casa</span><span><i style="background:var(--ok)"></i>Meta 8,5</span></div>` : ""}
+      ${prox ? `<div class="expl">Próxima: <b>${esc(prox.tipo)}</b> ${quando(diasAte(prox.data))} (${dataBR(prox.data)})${prox.conteudo ? ` · ${esc(prox.conteudo)}` : ""}</div>` : ""}</div>`;
   }).join("");
   const hab = d.habilidades.filter(h => h.total >= 2);
-  const fortes = hab.filter(h => h.pct >= 85).sort((a, b) => b.pct - a.pct || b.total - a.total).slice(0, 6);
+  const fortes = hab.filter(h => h.pct >= 85).sort((a, b) => b.pct - a.pct).slice(0, 6);
   const treinar = hab.filter(h => h.pct < 70).sort((a, b) => a.pct - b.pct).slice(0, 6);
-  const itemH = h => `<div class="li"><div><b>${esc(h.habilidade)}</b><div class="muted">${esc(h.materia)} · ${h.certas} de ${h.total}</div></div><div style="width:90px"><div class="bar"><i style="width:${h.pct}%;background:${h.pct >= 85 ? "var(--ok)" : h.pct >= 70 ? "var(--sun)" : "var(--bad)"}"></i></div></div></div>`;
-  return `${blocos || `<div class="panel"><p class="muted">Seus gráficos aparecem aqui depois das primeiras provas.</p></div>`}
-   <div class="grid2"><div class="panel stack"><h3>Meus superpoderes</h3>${fortes.length ? `<div class="list">${fortes.map(itemH).join("")}</div>` : `<p class="muted">Acerte a mesma habilidade em provas diferentes para ela virar superpoder.</p>`}</div>
-   <div class="panel stack"><h3>Estou treinando</h3>${treinar.length ? `<div class="list">${treinar.map(itemH).join("")}</div>` : `<p class="muted">Nada para treinar agora.</p>`}</div></div>
-   ${d.diario.length ? `<div class="panel stack"><h3>Minhas cores dos últimos dias</h3><div class="dias">${d.diario.slice().reverse().map(x => `<span class="d-${esc(x.cor)}" title="${dataBR(x.data)}: ${esc(x.cor)}"></span>`).join("")}</div></div>` : ""}`;
+  const itemH = h => `<div class="li"><div><b>${esc(h.habilidade)}</b><div class="muted small">${esc(h.materia)} · acertou ${h.certas} de ${h.total}</div></div><div style="width:90px"><div class="bar"><i style="width:${h.pct}%;background:${h.pct >= 85 ? "var(--ok)" : h.pct >= 70 ? "var(--sun)" : "var(--bad)"}"></i></div></div></div>`;
+  return `<div class="grid2">${cards}</div>
+   <div class="grid2"><div class="panel stack"><h3>Meus superpoderes</h3><p class="muted small">Habilidades que você acerta quase sempre nas provas de casa.</p>${fortes.length ? `<div class="list">${fortes.map(itemH).join("")}</div>` : `<p class="muted small">Ainda não tem: acerte a mesma habilidade em provas diferentes.</p>`}</div>
+   <div class="panel stack"><h3>Estou treinando</h3><p class="muted small">Habilidades em que você ainda erra. É nelas que vêm os próximos treinos.</p>${treinar.length ? `<div class="list">${treinar.map(itemH).join("")}</div>` : `<p class="muted small">Nada para treinar agora.</p>`}</div></div>`;
 }
-function livrosAluna(d) {
+function abaAgenda(d) {
+  const futuras = d.agenda.filter(a => diasAte(a.data) >= 0), passadas = d.agenda.filter(a => diasAte(a.data) < 0);
+  return `<div class="panel stack"><h2>Anotar prova ou trabalho</h2><p class="muted">Ouviu a professora falar de prova, trabalho ou apresentação? Anote aqui no mesmo dia, com a data e o que vai cair. Um adulto confere depois.</p>
+    <div class="form"><label class="f">Data<input type="date" id="ag-data" min="${hoje()}"></label>
+     <label class="f">Matéria<select id="ag-mat">${MATERIAS.map(m => `<option>${m}</option>`).join("")}</select></label>
+     <label class="f">O que é<select id="ag-tipo"><option>Prova</option><option>Trabalho</option><option>Simulado</option><option>Apresentação</option><option>Atividade avaliada</option></select></label>
+     <label class="f" style="grid-column:span 2">O que vai cair<input id="ag-cont" placeholder="ex.: frações e problemas, páginas 40 a 52"></label>
+     <button id="ag-salvar">Anotar</button></div></div>
+   <section class="stack"><h2>Próximas</h2>${futuras.length ? `<div class="cards">${futuras.map(a => cartaoAgenda(a, true)).join("")}</div>` : `<div class="panel muted">Nada anotado ainda.</div>`}</section>
+   ${passadas.length ? `<section class="stack"><h3>Última semana</h3><div class="cards">${passadas.map(a => cartaoAgenda(a, false)).join("")}</div></section>` : ""}`;
+}
+function estrelas(n) { n = Number(n) || 0; return `<span class="estrelas" aria-label="${n} de 5 estrelas">${"★".repeat(n)}<span>${"★".repeat(5 - n)}</span></span>`; }
+function abaLivros(d) {
   const ano = hoje().slice(0, 4);
-  const lidos = d.livros.filter(l => l.status === "lido" && String(l.fim || "").startsWith(ano));
-  const lendo = d.livros.filter(l => l.status === "lendo");
+  const lidosAno = d.livros.filter(l => l.status === "lido" && String(l.fim).startsWith(ano)).length;
   const meta = d.metaLivros || 0;
-  return `<div class="panel stack"><div class="row between"><h2>Livros de ${ano}</h2><b style="font-family:var(--display);font-size:22px">${lidos.length}${meta ? ` de ${meta}` : ""}</b></div>${meta ? `<div class="bar"><i style="width:${Math.min(100, lidos.length / meta * 100)}%"></i></div>` : ""}</div>
-   ${lendo.length ? `<div class="panel stack"><h3>Lendo agora</h3>${lendo.map(l => `<div><b>${esc(l.titulo)}</b> <span class="muted">${esc(l.autor || "")} · ${esc(l.formato || "")}</span></div>`).join("")}</div>` : ""}
-   <div class="panel stack"><h3>Já li</h3>${d.livros.filter(l => l.status === "lido").length ? `<div class="list">${d.livros.filter(l => l.status === "lido").map(l => `<div class="li"><div><b>${esc(l.titulo)}</b><div class="muted">${esc(l.autor || "")}${l.fim ? " · " + dataBR(l.fim) : ""}</div>${l.frase ? `<div class="small" style="margin-top:4px">“${esc(l.frase)}”</div>` : ""}</div><span class="tag">${esc(l.formato || "livro")}</span></div>`).join("")}</div>` : `<p class="muted">O primeiro livro terminado aparece aqui.</p>`}</div>`;
+  const lendo = d.livros.filter(l => l.status === "lendo"), lidos = d.livros.filter(l => l.status === "lido");
+  return `<div class="panel stack"><div class="row between"><h2>Meus livros de ${ano}</h2><b style="font-family:var(--display);font-size:24px">${lidosAno}${meta ? ` de ${meta}` : ""}</b></div>${meta ? `<div class="bar"><i style="width:${Math.min(100, lidosAno / meta * 100)}%"></i></div>` : ""}</div>
+   <div class="panel stack"><h3>Comecei um livro</h3><div class="form"><label class="f" style="grid-column:span 2">Nome do livro<input id="lv-titulo"></label><label class="f">Autor<input id="lv-autor"></label>
+     <label class="f">Como estou lendo<select id="lv-fmt"><option>Papel</option><option>Áudio</option></select></label><button id="lv-comecar">Começar</button></div></div>
+   <section class="stack"><h2>Lendo agora</h2>${lendo.length ? lendo.map(l => `<div class="panel stack" data-livro="${esc(l.id)}"><div class="row between"><div><b>${esc(l.titulo)}</b><div class="muted small">${esc(l.autor || "")}${l.autor ? " · " : ""}${esc(l.formato || "")} · começou em ${dataBR(l.inicio)}</div></div><button class="ghost mini" data-terminar="${esc(l.id)}">Terminei!</button></div>
+      <div class="stack" data-fim-form="${esc(l.id)}" hidden><span class="small">Quantas estrelas você dá para este livro?</span><div class="stars" data-stars="${esc(l.id)}">${[1, 2, 3, 4, 5].map(i => `<button type="button" data-st="${i}" aria-label="${i} estrelas">★</button>`).join("")}</div>
+      <label class="f">Uma frase sobre o livro<input data-frase="${esc(l.id)}" placeholder="ex.: Gostei quando..."></label><div><button data-fim-ok="${esc(l.id)}">Salvar</button></div></div></div>`).join("") : `<div class="panel muted">Nenhum livro em andamento.</div>`}</section>
+   <section class="stack"><h2>Já li</h2>${lidos.length ? `<div class="panel list">${lidos.map(l => `<div class="li"><div><b>${esc(l.titulo)}</b><div class="muted small">${esc(l.autor || "")}${l.fim ? " · terminou em " + dataBR(l.fim) : ""}</div>${l.frase ? `<div class="small">“${esc(l.frase)}”</div>` : ""}</div>${l.estrelas ? estrelas(l.estrelas) : ""}</div>`).join("")}</div>` : `<div class="panel muted">O primeiro livro terminado aparece aqui.</div>`}</section>`;
+}
+function ligarAluna(d) {
+  const corpo = $("#corpo");
+  const exec = async (acao, dados, msg, b) => { if (b) b.disabled = true; try { await api(acao, dados); toast(msg); render(); } catch (e) { toast(e.message); if (b) b.disabled = false; } };
+  corpo.onclick = e => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.fmat) { filtroMat = b.dataset.fmat; render(); }
+    else if (b.id === "ag-salvar") { const data = $("#ag-data").value; if (!data) return toast("Escolha a data."); exec("agendaAdicionar", { data, materia: $("#ag-mat").value, tipo: $("#ag-tipo").value, conteudo: $("#ag-cont").value }, "Anotado! Um adulto vai conferir.", b); }
+    else if (b.dataset.agdel) { if (b.dataset.conf) exec("agendaRemover", { id: b.dataset.agdel }, "Apagado.", b); else { b.dataset.conf = 1; b.textContent = "Confirmar"; } }
+    else if (b.id === "lv-comecar") { const t = $("#lv-titulo").value.trim(); if (!t) return toast("Escreva o nome do livro."); exec("livroComecar", { titulo: t, autor: $("#lv-autor").value, formato: $("#lv-fmt").value }, "Bom livro!", b); }
+    else if (b.dataset.terminar) { const f = corpo.querySelector(`[data-fim-form="${b.dataset.terminar}"]`); f.hidden = !f.hidden; }
+    else if (b.dataset.st) { const box = b.parentElement; box.dataset.val = b.dataset.st; box.querySelectorAll("button").forEach(x => x.classList.toggle("on", Number(x.dataset.st) <= Number(b.dataset.st))); }
+    else if (b.dataset.fimOk) { const id = b.dataset.fimOk; const st = Number(corpo.querySelector(`[data-stars="${id}"]`).dataset.val || 0); if (!st) return toast("Escolha as estrelas."); exec("livroTerminar", { id, estrelas: st, frase: corpo.querySelector(`[data-frase="${id}"]`).value }, "Parabéns por terminar o livro!", b); }
+  };
 }
 
 /* ---------------- textos e questões ---------------- */
@@ -244,6 +332,11 @@ function renderQuestao(q, valor, modo, info) {
 }
 
 /* ---------------- fazer prova ---------------- */
+function assuntosDe(qs) { const c = {}; qs.forEach(q => { const a = q.assunto || q.habilidade; if (a) c[a] = (c[a] || 0) + 1; }); return Object.keys(c).sort((a, b) => c[b] - c[a]); }
+function barrasAssunto(respostas) {
+  const g = {}; respostas.filter(r => r.status === "corrigida").forEach(r => { const k = r.assunto || r.habilidade || "Outros"; g[k] = g[k] || [0, 0]; g[k][1]++; if (Number(r.pontos) >= Number(r.max)) g[k][0]++; });
+  return Object.keys(g).map(k => { const pct = Math.round(g[k][0] / g[k][1] * 100); return `<div class="li"><div style="flex:1;min-width:0"><b>${esc(k)}</b><div class="bar" style="margin-top:6px"><i style="width:${pct}%;background:${pct >= 85 ? "var(--ok)" : pct >= 60 ? "var(--sun)" : "var(--bad)"}"></i></div></div><span class="score" style="font-size:16px">${g[k][0]}/${g[k][1]}</span></div>`; }).join("");
+}
 async function telaProva(id) {
   carregando("Abrindo a prova…");
   const p = await api("prova", { id });
@@ -257,8 +350,9 @@ async function telaProva(id) {
     let html = "";
     if (st.etapa < 0) {
       html = `<header class="top"><a class="brand" href="#/" style="text-decoration:none"><svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="8" fill="var(--accent)"/><path d="M6 9c3-1.5 5.5-1.5 8 0v11c-2.5-1.5-5-1.5-8 0zM22 9c-3-1.5-5.5-1.5-8 0v11c2.5-1.5 5-1.5 8 0z" fill="#fff"/></svg>Estudos em Casa</a><a class="btn ghost mini" href="#/">Voltar</a></header>
-      <div class="hello"><span class="tag" style="background:#fff;color:var(--accent);justify-self:start">${esc(p.materia)}</span><h1>${esc(p.titulo)}</h1><p class="muted">${qs.length} questões${p.minutos ? ` · cerca de ${p.minutos} minutos` : ""}</p></div>
-      <div class="panel stack"><h3>Como funciona</h3><p>${esc(p.instrucoes || "Leia com calma. Você pode voltar e trocar as respostas até entregar.")}</p></div>
+      <div class="hello"><span class="mchip" style="--mc:${corMat(p.materia)};justify-self:start">${esc(p.materia)}</span><h1>${esc(p.titulo)}</h1>${p.descricao ? `<p>${esc(p.descricao)}</p>` : ""}<p class="muted">${qs.length} questões${p.minutos ? ` · cerca de ${p.minutos} minutos` : ""}</p></div>
+      ${assuntosDe(qs).length ? `<div class="panel stack"><h3>O que cai nesta prova</h3><div class="chips">${assuntosDe(qs).map(a => `<span class="mchip" style="--mc:${corMat(p.materia)}">${esc(a)}</span>`).join("")}</div></div>` : ""}
+      <div class="panel stack"><h3>Como funciona</h3><p>${esc(p.instrucoes || "Leia com calma. Você pode voltar e trocar as respostas até entregar.")}</p><p class="muted small">Você pode parar e continuar depois: as respostas ficam guardadas neste aparelho até você entregar.</p></div>
       ${p.dica ? `<div class="confirm" style="border-style:solid"><p><b>Dica:</b> ${esc(p.dica)}</p></div>` : ""}
       <div class="nav"><span></span><button id="comecar">${resp() ? "Continuar de onde parei" : "Começar"}</button></div>`;
     } else if (st.etapa < p.blocos.length) {
@@ -326,7 +420,8 @@ async function telaResultado(tid) {
   }
   const extra = sess.papel === "adulto" ? `<a class="btn ghost mini" href="#/adulto/tentativa/${encodeURIComponent(tid)}">Ver como adulto</a>` : "";
   app.innerHTML = topo(extra) + `<div class="stack">
-    <div class="panel"><div class="row" style="gap:22px">${anel(t.nota)}<div class="stack" style="gap:6px;flex:1;min-width:200px"><span class="tag" style="justify-self:start">${esc(t.materia)}</span><h2>${esc(msg)}</h2><p class="muted">${esc(t.titulo)} · ${t.pontos} de ${t.max} pontos · ${t.minutos} min</p></div></div></div>
+    <div class="panel"><div class="row" style="gap:22px">${anel(t.nota)}<div class="stack" style="gap:6px;flex:1;min-width:200px"><span class="mchip" style="--mc:${corMat(t.materia)};justify-self:start">${esc(t.materia)}</span><h2>${esc(msg)}</h2><p class="muted">${esc(t.titulo)} · ${t.pontos} de ${t.max} pontos · ${t.minutos} min</p></div></div></div>
+    <div class="panel stack"><h3>Acertos por assunto</h3><div class="list">${barrasAssunto(d.respostas)}</div></div>
     <div class="panel stack"><h3>Como foi cada questão</h3><div class="review">${qs.map(cel).join("")}</div>
     ${erradas.length && !t.revisaoLiberada ? `<p class="muted">Para revisar com um adulto:</p><div class="list">${erradas.map(q => `<div class="li"><span><b>${q.numero}.</b> ${esc(q.habilidade || "")}</span></div>`).join("")}</div>` : ""}
     ${!t.revisaoLiberada ? `<p class="muted small">Quando um adulto liberar a revisão, você vai ver aqui as respostas certas e as explicações.</p>` : ""}</div>

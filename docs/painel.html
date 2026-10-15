@@ -154,6 +154,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
       <div class="row" style="margin-bottom:10px"><h2 style="margin:0">Matérias</h2><span class="tag">Média das últimas 3 notas · clique para abrir</span></div>
       <div class="minis" id="minis"></div>
     </div>
+    <div class="panel"><div class="row" style="margin-bottom:6px"><h2 style="margin:0">Agenda da escola</h2><span class="tag">Provas e trabalhos que a Isabella anotou · confira cada um</span></div><div id="g-agenda"></div></div>
     <div class="grid2">
       <div class="panel chart"><h3>Etapa 0 · cor dos dias por semana</h3><div id="ch-e0-g"></div></div>
       <div class="panel"><h3>Próximas metas</h3><div id="g-metas"></div></div>
@@ -191,6 +192,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
         <label>Acertos<input id="r-ac" type="number" min="0" step="0.5"></label>
         <label>Total<input id="r-tot" type="number" min="1" step="0.5"></label>
         <label>ou Nota (0 a 10)<input id="r-nota" type="number" min="0" max="10" step="0.1"></label>
+        <label style="grid-column:span 2">Comentário (aparece para ela)<input id="r-obs" placeholder="Ex.: caprichou na apresentação"></label>
         <button class="btn" type="submit">Salvar</button>
       </form>
       <div class="msg" id="m-reg"></div>
@@ -308,15 +310,15 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
   const MATERIAS = ["Português","Matemática","Ciências","História","Geografia","Inglês","Arte","Educação Física","Ensino Religioso"];
   const TIPOS = [
     ["Prova (escola)","prova"],["Simulado (escola)","prova"],["Olimpíada","prova"],
-    ["Atividade (escola)","escola"],["Trabalho (escola)","escola"],["Tarefa de casa (escola)","escola"],
+    ["Trabalho (escola)","escola"],["Atividade de sala (escola)","escola"],["Tarefa de casa (escola)","escola"],
     ["Atividade (casa)","casa"],["Prova (casa)","casa"]
   ];
   const GRUPO = Object.fromEntries(TIPOS);
-  const LEGACY = {"Simulado da escola":"Simulado (escola)","Prova da escola":"Prova (escola)","Prova em casa":"Prova (casa)"};
+  const LEGACY = {"Simulado da escola":"Simulado (escola)","Prova da escola":"Prova (escola)","Prova em casa":"Prova (casa)","Atividade (escola)":"Atividade de sala (escola)"};
   const META_LIVROS = {2026:3, 2027:12, 2028:18, 2029:20, 2030:24, 2031:24};
   const COR = {verde:"var(--good)", amarelo:"var(--warn)", vermelho:"var(--bad)", preto:"var(--black)"};
   const $ = id => document.getElementById(id);
-  const state = {avaliacoes:[], notas:[], leitura:[], medicoes:[], metas:[], dias:[]};
+  const state = {avaliacoes:[], notas:[], leitura:[], medicoes:[], metas:[], dias:[], agenda:[]};
   let extra = {tentativas:[],provas:[],pendentesCorrecao:[],habilidades:[]};
   let db = null, materia = "Português", ano = new Date().getFullYear();
   const anoAtual = new Date().getFullYear();
@@ -473,6 +475,14 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
       rs.slice().sort((a,b)=>a.data<b.data?1:-1).map(r=>`<tr><td class="num">${fmtData(r.data)}</td><td><span class="dot" style="background:var(--${r.grupo==="prova"?"prova":r.grupo==="casa"?"casa":"escola"})"></span>${esc(r.tipo)}</td><td>${esc(r.titulo||"")}${r.obs?`<div class="tag">${esc(r.obs)}</div>`:""}</td><td class="r num">${r.total?`${r.acertos}/${r.total}`:"–"}</td><td class="r num">${f1(r.nota)}</td><td class="r">${r._tent?`<a class="lnk" href="index.html#/adulto/tentativa/${encodeURIComponent(r._id)}">Abrir</a>`:delBtn("avaliacoes",r._id)}</td></tr>`).join("")+'</tbody></table></div>'
       : '';
 
+    // agenda da escola
+    const agv = state.agenda.filter(a=>a.data>=new Date(Date.now()-3*864e5).toISOString().slice(0,10)).sort((a,b)=>a.data<b.data?-1:1);
+    const dd = d => Math.round((new Date(d+"T12:00:00")-new Date(hoje()+"T12:00:00"))/864e5);
+    $("g-agenda").innerHTML = agv.length ? '<div class="tablewrap"><table><thead><tr><th>Data</th><th>Matéria</th><th>O que é</th><th>O que vai cair</th><th>Situação</th><th></th></tr></thead><tbody>'+agv.map(a=>{ const n=dd(a.data); const st=R.filter(r=>r.materia===a.materia).sort((x,y)=>x.data<y.data?-1:1).slice(-3); const v=avg(st.map(r=>r.nota));
+      const alerta = n>=0 && n<=5 && v!=null && v<8.5 ? `<div class="tag" style="color:var(--bad)">Faltam ${n} dia${n===1?"":"s"} e ${esc(a.materia)} está em ${f1(v)}: peça ao Claude uma prova de reforço.</div>` : "";
+      return `<tr><td class="num">${fmtData(a.data)}<div class="tag">${n===0?"hoje":n>0?"em "+n+" dia"+(n===1?"":"s"):"passou"}</div></td><td>${esc(a.materia)}</td><td>${esc(a.tipo)}</td><td>${esc(a.conteudo||"")}${alerta}</td><td>${a.confirmado?'<span class="pill good">conferido</span>':'<span class="pill warn">conferir</span>'}</td><td class="r">${a.confirmado?"":`<button class="btn ghost" data-agok="${esc(a._id)}">Confirmar</button> `}${delBtn("agenda",a._id)}</td></tr>`; }).join("")+'</tbody></table></div>'
+      : '<div class="empty">Nada anotado. A Isabella anota as provas e os trabalhos na aba Agenda do app dela.</div>';
+
     // Etapa 0
     chartE0($("ch-e0")); chartE0($("ch-e0-g"));
     const ds=state.dias.slice().sort((a,b)=>a.data<b.data?1:-1).slice(0,15);
@@ -487,8 +497,8 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
       : '<div class="empty">Quando sair o boletim, registre uma linha por matéria.</div>';
 
     // leitura
-    $("t-livros").innerHTML = state.leitura.length ? '<div class="tablewrap"><table><thead><tr><th>Livro</th><th>Autor</th><th>Formato</th><th>Início</th><th>Fim</th><th></th></tr></thead><tbody>'+
-      state.leitura.slice().sort((a,b)=>(b.inicio||"")<(a.inicio||"")?-1:1).map(l=>`<tr><td>${esc(l.titulo)}${l.fim?"":' <span class="pill warn">lendo</span>'}</td><td>${esc(l.autor)}</td><td>${esc(l.formato||"")}</td><td class="num">${fmtData(l.inicio)}</td><td class="num">${l.fim?fmtData(l.fim):`<button class="btn ghost" data-fim="${esc(l._id)}">Terminei hoje</button>`}</td><td class="r">${delBtn("leitura",l._id)}</td></tr>`).join("")+'</tbody></table></div>'
+    $("t-livros").innerHTML = state.leitura.length ? '<div class="tablewrap"><table><thead><tr><th>Livro</th><th>Autor</th><th>Formato</th><th>Início</th><th>Fim</th><th>Opinião dela</th><th></th></tr></thead><tbody>'+
+      state.leitura.slice().sort((a,b)=>(b.inicio||"")<(a.inicio||"")?-1:1).map(l=>`<tr><td>${esc(l.titulo)}${l.fim?"":' <span class="pill warn">lendo</span>'}</td><td>${esc(l.autor)}</td><td>${esc(l.formato||"")}</td><td class="num">${fmtData(l.inicio)}</td><td class="num">${l.fim?fmtData(l.fim):`<button class="btn ghost" data-fim="${esc(l._id)}">Terminou hoje</button>`}</td><td>${l.estrelas?`<span style="color:var(--warn)">${"★".repeat(+l.estrelas)}</span>`:""}${l.frase?`<div class="tag">“${esc(l.frase)}”</div>`:""}${l.criadoPor?`<div class="tag">adicionado por ${esc(l.criadoPor)}</div>`:""}</td><td class="r">${delBtn("leitura",l._id)}</td></tr>`).join("")+'</tbody></table></div>'
       : '<div class="empty">Comece pelos 3 livros do trimestre: Diário de um Banana, O Pequeno Príncipe (áudio) e O Menino Maluquinho.</div>';
     $("t-med").innerHTML = state.medicoes.length ? '<div class="tablewrap"><table><thead><tr><th>Data</th><th class="r">Palavras/min</th><th class="r">Tabuada (s)</th><th class="r">Redação</th><th></th></tr></thead><tbody>'+
       state.medicoes.slice().sort((a,b)=>a.data<b.data?1:-1).map(m=>`<tr><td class="num">${fmtData(m.data)}</td><td class="r num">${m.ppm??"–"}</td><td class="r num">${m.tabuadaSeg!=null&&m.tabuadaSeg!==""?f1(+m.tabuadaSeg):"–"}</td><td class="r num">${m.redacao!=null&&m.redacao!==""?f1(+m.redacao):"–"}</td><td class="r">${delBtn("medicoes",m._id)}</td></tr>`).join("")+'</tbody></table></div>'
@@ -511,6 +521,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
     const d=e.target.closest("[data-del]");
     if(d){ e.preventDefault(); if(!d.classList.contains("armed")){ d.classList.add("armed"); d.textContent="Confirmar"; setTimeout(()=>{d.classList.remove("armed");d.textContent="Excluir";},3000); return; }
       try{ await db.collection(d.dataset.del).doc(d.dataset.id).delete(); }catch(err){ d.textContent="Erro"; } return; }
+    const ag=e.target.closest("[data-agok]"); if(ag){ ag.disabled=true; try{ await db.collection("agenda").doc(ag.dataset.agok).update({confirmado:true}); }catch(err){ ag.textContent="Erro"; } return; }
     const f=e.target.closest("[data-fim]"); if(f){ try{ await db.collection("leitura").doc(f.dataset.fim).update({fim:hoje()}); }catch(err){ f.textContent="Erro"; } }
   });
   $("ano").addEventListener("change",e=>{ ano=+e.target.value; render(); });
@@ -527,8 +538,8 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
     if(nt==null && (ac==null||tot==null)){ setMsg("m-reg","Informe acertos e total, ou a nota de 0 a 10."); return; }
     if(ac!=null && tot!=null && ac>tot){ setMsg("m-reg","Acertos não pode ser maior que o total."); return; }
     const nota = nt!=null ? nt : Math.round(ac/tot*100)/10;
-    const ok=await add("avaliacoes",{data:$("r-data").value, materia:$("r-mat").value, tipo:$("r-tipo").value, titulo:$("r-tit").value.trim(), acertos:ac, total:tot, nota}, "m-reg");
-    if(ok){ materia=$("r-mat").value; ["r-tit","r-ac","r-tot","r-nota"].forEach(i=>$(i).value=""); render(); } });
+    const ok=await add("avaliacoes",{data:$("r-data").value, materia:$("r-mat").value, tipo:$("r-tipo").value, titulo:$("r-tit").value.trim(), acertos:ac, total:tot, nota, obs:$("r-obs").value.trim()}, "m-reg");
+    if(ok){ materia=$("r-mat").value; ["r-tit","r-ac","r-tot","r-nota","r-obs"].forEach(i=>$(i).value=""); render(); } });
   $("r-mat").addEventListener("focus",()=>{ $("r-mat").value=materia; }, {once:true});
 
   $("f-dia").addEventListener("submit", async e=>{ e.preventDefault(); if(!db){ setMsg("m-dia","Sem conexão com os dados."); return; }

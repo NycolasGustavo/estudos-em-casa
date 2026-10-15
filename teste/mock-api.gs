@@ -75,7 +75,11 @@ function doPost(e) {
     const rotas = {
       eu: () => ({ nome: sess.nome, papel: sess.papel }),
       sair: () => { PropertiesService.getScriptProperties().deleteProperty(req.token); return {}; },
-      inicioAluna: () => inicioAluna_(),
+      inicioAluna: () => inicioAlunaV2_(),
+      livroComecar: () => acaoAluna_("livroComecar", req, sess),
+      livroTerminar: () => acaoAluna_("livroTerminar", req, sess),
+      agendaAdicionar: () => acaoAluna_("agendaAdicionar", req, sess),
+      agendaRemover: () => acaoAluna_("agendaRemover", req, sess),
       prova: () => provaParaAluna_(req.id, A),
       entregar: () => entregar_(req, sess),
       tentativa: () => tentativaDetalhe_(req.id, A),
@@ -426,3 +430,23 @@ function excluir_(aba, id) {
 var DOCS = { avaliacoes: {}, notas: {}, leitura: {}, medicoes: {}, metas: {}, dias: {} };
 function docsJson_() { const o = {}; Object.keys(DOCS).forEach(c => o[c] = Object.keys(DOCS[c]).map(id => Object.assign({}, DOCS[c][id], { _id: id }))); return o; }
 function gravarDoc_(req) { const id = req.id || ("d" + Date.now() + Math.floor(Math.random() * 1000)); const c = DOCS[req.col]; if (!c) throw new Error("coleção inválida"); c[id] = req.merge ? Object.assign({}, c[id] || {}, req.data) : Object.assign({}, req.data); return { id }; }
+
+DOCS.agenda = {};
+function inicioAlunaV2_() {
+  const b = inicioAluna_();
+  const h = hoje_();
+  b.hoje = h;
+  b.avaliacoes = Object.keys(DOCS.avaliacoes).map(id => { const a = DOCS.avaliacoes[id]; return { id, data: a.data, materia: a.materia, tipo: a.tipo, titulo: a.titulo || "", nota: a.nota, acertos: a.acertos, total: a.total, comentario: a.obs || "" }; });
+  b.agenda = Object.keys(DOCS.agenda).map(id => Object.assign({ id }, DOCS.agenda[id])).sort((x, y) => x.data.localeCompare(y.data));
+  b.livros = Object.keys(DOCS.leitura).map(id => { const l = DOCS.leitura[id]; return Object.assign({ id, status: l.fim ? "lido" : "lendo" }, l); });
+  b.pendentes = b.pendentes.map(p => Object.assign(p, { assuntos: ["Multiplicação", "Escrita de números"] }));
+  return b;
+}
+function acaoAluna_(acao, d, sess) {
+  const id = "x" + Date.now(); const h = hoje_();
+  if (acao === "livroComecar") DOCS.leitura[id] = { titulo: d.titulo, autor: d.autor || "", formato: d.formato, inicio: h, fim: "", criadoPor: sess.nome };
+  if (acao === "livroTerminar") Object.assign(DOCS.leitura[d.id], { fim: h, estrelas: d.estrelas, frase: d.frase });
+  if (acao === "agendaAdicionar") DOCS.agenda[id] = { data: d.data, materia: d.materia, tipo: d.tipo, conteudo: d.conteudo, confirmado: false, criadoPor: sess.nome };
+  if (acao === "agendaRemover") delete DOCS.agenda[d.id];
+  return { id };
+}

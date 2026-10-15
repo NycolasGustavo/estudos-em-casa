@@ -1,0 +1,16 @@
+const { chromium } = require('playwright');
+(async()=>{const b=await chromium.launch();const p=await b.newPage({viewport:{width:430,height:900}});const errs=[];
+p.on('pageerror',e=>errs.push(e.message));
+const pin=async v=>{await p.waitForSelector('.pad');for(const k of v)await p.click(`.pad button[data-k="${k}"]`);await p.click('.pad button[data-k="OK"]');};
+await p.goto('http://localhost:8787/');await pin('1111');await p.waitForSelector('.hello');await p.screenshot({path:'teste/k-inicio.png',fullPage:true});
+await p.goto('http://localhost:8787/#/agenda');await p.waitForSelector('#ag-salvar');
+const d=new Date(Date.now()+3*864e5).toISOString().slice(0,10);await p.fill('#ag-data',d);await p.selectOption('#ag-mat','Matemática');await p.fill('#ag-cont','frações');await p.click('#ag-salvar');await p.waitForTimeout(500);
+await p.goto('http://localhost:8787/#/livros');await p.waitForSelector('#lv-comecar');await p.fill('#lv-titulo','O Menino Maluquinho');await p.fill('#lv-autor','Ziraldo');await p.click('#lv-comecar');await p.waitForSelector('[data-terminar]');
+await p.click('[data-terminar]');await p.click('[data-st="4"]');await p.fill('[data-frase]','Muito engraçado');await p.click('[data-fim-ok]');await p.waitForTimeout(500);await p.screenshot({path:'teste/k-livros.png',fullPage:true});
+await p.goto('http://localhost:8787/#/notas');await p.waitForSelector('.ncard');await p.screenshot({path:'teste/k-notas.png',fullPage:true});
+await p.goto('http://localhost:8787/#/materias');await p.waitForSelector('.panel');await p.screenshot({path:'teste/k-materias.png',fullPage:true});
+await p.goto('http://localhost:8787/#/inicio');await p.waitForSelector('.acard');await p.screenshot({path:'teste/k-inicio2.png',fullPage:true});
+await p.click('.pcard a.btn');await p.waitForSelector('#comecar');await p.screenshot({path:'teste/k-capa.png',fullPage:true});
+await p.goto('http://localhost:8787/#/inicio');await p.waitForSelector('#sair');await p.click('#sair');await p.setViewportSize({width:1280,height:900});await pin('9999');await p.waitForURL(/painel/);await p.waitForFunction(()=>/sincronizados/.test(document.getElementById('status').textContent));
+await p.click('[data-agok]');await p.waitForTimeout(500);await p.screenshot({path:'teste/a-geral.png'});
+console.log('erros:',errs);await b.close();})();
