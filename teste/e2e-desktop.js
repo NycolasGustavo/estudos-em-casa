@@ -1,0 +1,12 @@
+const { chromium } = require('playwright');
+(async()=>{const b=await chromium.launch();const p=await b.newPage({viewport:{width:1366,height:768}});const errs=[];
+p.on('pageerror',e=>errs.push(e.message));
+const pin=async v=>{await p.waitForSelector('.pad');for(const k of v)await p.click(`.pad button[data-k="${k}"]`);await p.click('.pad button[data-k="OK"]');};
+await p.goto('http://localhost:8787/');await pin('1111');await p.waitForSelector('.hello');
+await p.goto('http://localhost:8787/#/agenda');await p.waitForSelector('#ag-salvar');await p.fill('#ag-data',new Date(Date.now()+3*864e5).toISOString().slice(0,10));await p.fill('#ag-cont','frações');await p.click('#ag-salvar');await p.waitForTimeout(400);
+await p.goto('http://localhost:8787/#/inicio');await p.waitForSelector('.home');await p.screenshot({path:'teste/d-inicio.png'});
+await p.goto('http://localhost:8787/#/notas');await p.waitForSelector('.ncard');await p.screenshot({path:'teste/d-notas.png'});
+await p.goto('http://localhost:8787/#/agenda');await p.waitForSelector('.home');await p.screenshot({path:'teste/d-agenda.png'});
+await p.goto('http://localhost:8787/#/livros');await p.waitForSelector('.home');await p.screenshot({path:'teste/d-livros.png'});
+await p.goto('http://localhost:8787/#/inicio');await p.click('.pcard a.btn');await p.click('#comecar');await p.waitForSelector('.leitura');await p.screenshot({path:'teste/d-prova.png'});
+console.log('erros:',errs);await b.close();})();

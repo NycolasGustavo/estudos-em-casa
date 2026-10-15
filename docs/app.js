@@ -194,14 +194,22 @@ function abaInicio(d, primeiro, base) {
   const prox = d.agenda.filter(a => diasAte(a.data) >= 0).slice(0, 4);
   const semana = d.diario.slice(0, 7).slice().reverse();
   return `<div class="hello"><h1>Oi, <span class="hl">${esc(primeiro)}</span>!</h1><p class="muted">Este é o seu painel: aqui aparecem as provas para fazer em casa, as provas que a professora marcou e <b>todas as suas notas</b>, da escola e de casa.</p></div>
+   <div class="home"><div class="stack col-main">
    <section class="stack"><div class="row between"><h2>Para fazer em casa</h2></div>${d.pendentes.length ? `<div class="cards">${d.pendentes.map(cartaoProva).join("")}</div>` : `<div class="panel muted">Nenhuma prova para fazer agora.</div>`}</section>
    <section class="stack"><div class="row between"><h2>Vem aí na escola</h2><a class="btn ghost mini" href="${base}agenda">Anotar prova ou trabalho</a></div>
     ${prox.length ? `<div class="cards">${prox.map(a => cartaoAgenda(a, false)).join("")}</div>` : `<div class="panel muted">Nada anotado. Quando a professora marcar uma prova ou um trabalho, anote na aba Agenda.</div>`}</section>
-   <div class="grid2">
+   <section class="stack"><div class="row between"><h2>Últimas notas</h2><a class="btn ghost mini" href="${base}notas">Ver todas</a></div>${notas.length ? `<div class="cards">${notas.slice(0, 6).map(cartaoNota).join("")}</div>` : `<div class="panel muted">Suas notas aparecem aqui.</div>`}</section>
+   </div><aside class="stack col-side">
     <section class="panel stack"><h3>Minha semana</h3>${semana.length ? `<div class="dias">${semana.map(x => `<span class="d-${esc(x.cor)}" title="${dataBR(x.data)}: ${esc(x.cor)}"></span>`).join("")}</div><p class="muted small">${d.sequencia > 1 ? `${d.sequencia} dias seguidos no verde ou amarelo.` : "Cada quadradinho é a cor de um dia."}</p>` : `<p class="muted small">As cores dos seus dias aparecem aqui.</p>`}</section>
     <section class="panel stack"><h3>Livros</h3><p><b style="font-family:var(--display);font-size:24px">${d.livros.filter(l => l.status === "lido" && String(l.fim).startsWith(hoje().slice(0, 4))).length}</b> <span class="muted">de ${d.metaLivros || "–"} livros este ano</span></p>${d.livros.filter(l => l.status === "lendo").slice(0, 2).map(l => `<span class="small">Lendo: <b>${esc(l.titulo)}</b></span>`).join("")}</section>
-   </div>
-   <section class="stack"><div class="row between"><h2>Últimas notas</h2><a class="btn ghost mini" href="${base}notas">Ver todas</a></div>${notas.length ? `<div class="cards">${notas.slice(0, 5).map(cartaoNota).join("")}</div>` : `<div class="panel muted">Suas notas aparecem aqui.</div>`}</section>`;
+    ${resumoMaterias(notas)}
+   </aside></div>`;
+}
+function resumoMaterias(notas) {
+  const mats = [...new Set(notas.map(n => n.materia))];
+  if (!mats.length) return "";
+  const med = a => a.length ? a.reduce((s, n) => s + n.nota, 0) / a.length : null;
+  return `<section class="panel stack"><h3>Minhas matérias</h3><div class="list">${mats.map(m => { const v = med(notas.filter(n => n.materia === m).slice(0, 5)); return `<div class="li"><span class="mchip" style="--mc:${corMat(m)}">${esc(m)}</span><span class="score ${clsNota(v)}" style="font-size:18px">${fmtN(v)}</span></div>`; }).join("")}</div><span class="muted small">Média das últimas notas, da escola e de casa.</span></section>`;
 }
 let filtroMat = "Todas";
 function abaNotas(d) {
@@ -241,14 +249,14 @@ function abaMaterias(d) {
 }
 function abaAgenda(d) {
   const futuras = d.agenda.filter(a => diasAte(a.data) >= 0), passadas = d.agenda.filter(a => diasAte(a.data) < 0);
-  return `<div class="panel stack"><h2>Anotar prova ou trabalho</h2><p class="muted">Ouviu a professora falar de prova, trabalho ou apresentação? Anote aqui no mesmo dia, com a data e o que vai cair. Um adulto confere depois.</p>
+  return `<div class="home"><div class="stack col-main"><section class="stack"><h2>Próximas</h2>${futuras.length ? `<div class="cards one">${futuras.map(a => cartaoAgenda(a, true)).join("")}</div>` : `<div class="panel muted">Nada anotado ainda.</div>`}</section>
+   ${passadas.length ? `<section class="stack"><h3>Última semana</h3><div class="cards one">${passadas.map(a => cartaoAgenda(a, false)).join("")}</div></section>` : ""}</div>
+   <aside class="col-side"><div class="panel stack"><h2>Anotar prova ou trabalho</h2><p class="muted">Ouviu a professora falar de prova, trabalho ou apresentação? Anote aqui no mesmo dia, com a data e o que vai cair. Um adulto confere depois.</p>
     <div class="form"><label class="f">Data<input type="date" id="ag-data" min="${hoje()}"></label>
      <label class="f">Matéria<select id="ag-mat">${MATERIAS.map(m => `<option>${m}</option>`).join("")}</select></label>
      <label class="f">O que é<select id="ag-tipo"><option>Prova</option><option>Trabalho</option><option>Simulado</option><option>Apresentação</option><option>Atividade avaliada</option></select></label>
-     <label class="f" style="grid-column:span 2">O que vai cair<input id="ag-cont" placeholder="ex.: frações e problemas, páginas 40 a 52"></label>
-     <button id="ag-salvar">Anotar</button></div></div>
-   <section class="stack"><h2>Próximas</h2>${futuras.length ? `<div class="cards">${futuras.map(a => cartaoAgenda(a, true)).join("")}</div>` : `<div class="panel muted">Nada anotado ainda.</div>`}</section>
-   ${passadas.length ? `<section class="stack"><h3>Última semana</h3><div class="cards">${passadas.map(a => cartaoAgenda(a, false)).join("")}</div></section>` : ""}`;
+     <label class="f" style="grid-column:1/-1">O que vai cair<input id="ag-cont" placeholder="ex.: frações e problemas, páginas 40 a 52"></label>
+     <button id="ag-salvar">Anotar</button></div></div></aside></div>`;
 }
 function estrelas(n) { n = Number(n) || 0; return `<span class="estrelas" aria-label="${n} de 5 estrelas">${"★".repeat(n)}<span>${"★".repeat(5 - n)}</span></span>`; }
 function abaLivros(d) {
@@ -257,12 +265,12 @@ function abaLivros(d) {
   const meta = d.metaLivros || 0;
   const lendo = d.livros.filter(l => l.status === "lendo"), lidos = d.livros.filter(l => l.status === "lido");
   return `<div class="panel stack"><div class="row between"><h2>Meus livros de ${ano}</h2><b style="font-family:var(--display);font-size:24px">${lidosAno}${meta ? ` de ${meta}` : ""}</b></div>${meta ? `<div class="bar"><i style="width:${Math.min(100, lidosAno / meta * 100)}%"></i></div>` : ""}</div>
-   <div class="panel stack"><h3>Comecei um livro</h3><div class="form"><label class="f" style="grid-column:span 2">Nome do livro<input id="lv-titulo"></label><label class="f">Autor<input id="lv-autor"></label>
-     <label class="f">Como estou lendo<select id="lv-fmt"><option>Papel</option><option>Áudio</option></select></label><button id="lv-comecar">Começar</button></div></div>
-   <section class="stack"><h2>Lendo agora</h2>${lendo.length ? lendo.map(l => `<div class="panel stack" data-livro="${esc(l.id)}"><div class="row between"><div><b>${esc(l.titulo)}</b><div class="muted small">${esc(l.autor || "")}${l.autor ? " · " : ""}${esc(l.formato || "")} · começou em ${dataBR(l.inicio)}</div></div><button class="ghost mini" data-terminar="${esc(l.id)}">Terminei!</button></div>
+   <div class="home"><div class="stack col-main">   <section class="stack"><h2>Lendo agora</h2>${lendo.length ? lendo.map(l => `<div class="panel stack" data-livro="${esc(l.id)}"><div class="row between"><div><b>${esc(l.titulo)}</b><div class="muted small">${esc(l.autor || "")}${l.autor ? " · " : ""}${esc(l.formato || "")} · começou em ${dataBR(l.inicio)}</div></div><button class="ghost mini" data-terminar="${esc(l.id)}">Terminei!</button></div>
       <div class="stack" data-fim-form="${esc(l.id)}" hidden><span class="small">Quantas estrelas você dá para este livro?</span><div class="stars" data-stars="${esc(l.id)}">${[1, 2, 3, 4, 5].map(i => `<button type="button" data-st="${i}" aria-label="${i} estrelas">★</button>`).join("")}</div>
       <label class="f">Uma frase sobre o livro<input data-frase="${esc(l.id)}" placeholder="ex.: Gostei quando..."></label><div><button data-fim-ok="${esc(l.id)}">Salvar</button></div></div></div>`).join("") : `<div class="panel muted">Nenhum livro em andamento.</div>`}</section>
-   <section class="stack"><h2>Já li</h2>${lidos.length ? `<div class="panel list">${lidos.map(l => `<div class="li"><div><b>${esc(l.titulo)}</b><div class="muted small">${esc(l.autor || "")}${l.fim ? " · terminou em " + dataBR(l.fim) : ""}</div>${l.frase ? `<div class="small">“${esc(l.frase)}”</div>` : ""}</div>${l.estrelas ? estrelas(l.estrelas) : ""}</div>`).join("")}</div>` : `<div class="panel muted">O primeiro livro terminado aparece aqui.</div>`}</section>`;
+   <section class="stack"><h2>Já li</h2>${lidos.length ? `<div class="panel list">${lidos.map(l => `<div class="li"><div><b>${esc(l.titulo)}</b><div class="muted small">${esc(l.autor || "")}${l.fim ? " · terminou em " + dataBR(l.fim) : ""}</div>${l.frase ? `<div class="small">“${esc(l.frase)}”</div>` : ""}</div>${l.estrelas ? estrelas(l.estrelas) : ""}</div>`).join("")}</div>` : `<div class="panel muted">O primeiro livro terminado aparece aqui.</div>`}</section></div>
+   <aside class="col-side"><div class="panel stack"><h3>Comecei um livro</h3><div class="form"><label class="f" style="grid-column:1/-1">Nome do livro<input id="lv-titulo"></label><label class="f">Autor<input id="lv-autor"></label>
+     <label class="f">Como estou lendo<select id="lv-fmt"><option>Papel</option><option>Áudio</option></select></label><button id="lv-comecar">Começar</button></div></div></aside></div>`;
 }
 function ligarAluna(d) {
   const corpo = $("#corpo");
@@ -357,8 +365,9 @@ async function telaProva(id) {
       <div class="nav"><span></span><button id="comecar">${resp() ? "Continuar de onde parei" : "Começar"}</button></div>`;
     } else if (st.etapa < p.blocos.length) {
       const b = p.blocos[st.etapa];
-      html = barra() + `<div class="stack">${b.titulo ? `<h2 style="color:var(--accent)">${esc(b.titulo)}</h2>` : ""}${b.lead ? `<div class="lead">${esc(b.lead)}</div>` : ""}${renderTexto(b.texto)}
-        ${qs.filter(q => q.bloco === st.etapa).map(q => renderQuestao(q, st.resp[q.id], "fazer")).join("")}
+      const qsB = qs.filter(q => q.bloco === st.etapa).map(q => renderQuestao(q, st.resp[q.id], "fazer")).join("");
+      html = barra() + `<div class="stack">${b.titulo ? `<h2 style="color:var(--accent)">${esc(b.titulo)}</h2>` : ""}${b.lead ? `<div class="lead">${esc(b.lead)}</div>` : ""}
+        ${b.texto ? `<div class="leitura"><div class="leitura-texto">${renderTexto(b.texto)}</div><div class="stack">${qsB}</div></div>` : `<div class="stack qcol">${qsB}</div>`}
         <div class="nav"><button class="ghost" id="voltar">${st.etapa === 0 ? "Início" : "Voltar"}</button><button id="prox">${st.etapa === p.blocos.length - 1 ? "Revisar e entregar" : "Próximo"}</button></div></div>`;
     } else {
       const faltam = qs.filter(q => !String(st.resp[q.id] || "").trim());
