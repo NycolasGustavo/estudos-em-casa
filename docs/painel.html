@@ -589,7 +589,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
       : `<h2 style="margin:0 0 4px">Correção</h2><div class="tag">Nenhuma resposta escrita esperando correção.</div>`;
     const pv=extra.provas||[];
     $("t-provas").innerHTML = pv.length ? '<div class="tablewrap"><table><thead><tr><th>Prova</th><th>Matéria</th><th>Criada</th><th class="r">Questões</th><th class="r">Feitas</th><th></th></tr></thead><tbody>'+
-      pv.map(p=>`<tr><td>${esc(p.titulo)}${p.arquivada?' <span class="pill na">arquivada</span>':p.feitas<p.permitidas?' <span class="pill warn">pendente</span>':''}</td><td>${esc(p.materia)}</td><td class="num">${fmtData(p.criadaEm)}</td><td class="r num">${p.totalQuestoes}</td><td class="r num">${p.feitas}/${p.permitidas}</td><td class="r"><a class="lnk" href="index.html#/adulto/ver/${encodeURIComponent(p.id)}">Ver com gabarito</a>${p.feitas>=p.permitidas?` · <button class="btn ghost" data-reabrir="${esc(p.id)}">Liberar nova tentativa</button>`:""}</td></tr>`).join("")+'</tbody></table></div>'
+      pv.map(p=>`<tr><td>${esc(p.titulo)}${p.arquivada?' <span class="pill na">arquivada</span>':p.feitas<p.permitidas?' <span class="pill warn">pendente</span>':''}</td><td>${esc(p.materia)}</td><td class="num">${fmtData(p.criadaEm)}</td><td class="r num">${p.totalQuestoes}</td><td class="r num">${p.feitas}/${p.permitidas}</td><td class="r"><a class="lnk" href="index.html#/adulto/ver/${encodeURIComponent(p.id)}">Ver com gabarito</a>${p.feitas>=p.permitidas?` · <button class="btn ghost" data-reabrir="${esc(p.id)}">Liberar nova tentativa</button>`:""} <button class="btn ghost" data-delprova="${esc(p.id)}">Excluir</button></td></tr>`).join("")+'</tbody></table></div>'
       : '<div class="empty">Nenhuma prova ainda.</div>';
     const tt=extra.tentativas||[];
     $("t-tent").innerHTML = tt.length ? '<div class="tablewrap"><table><thead><tr><th>Data</th><th>Prova</th><th>Matéria</th><th class="r">Tempo</th><th class="r">Pontos</th><th class="r">Nota</th><th></th></tr></thead><tbody>'+
@@ -601,6 +601,9 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
       : '<div class="empty">Sem dados ainda.</div>';
     render();
   }
+  document.addEventListener("click", async e=>{ const x=e.target.closest("[data-delprova]"); if(!x) return;
+    if(!x.classList.contains("armed")){ x.classList.add("armed"); x.textContent="Apagar prova e tentativas?"; setTimeout(()=>{x.classList.remove("armed");x.textContent="Excluir";},4000); return; }
+    x.disabled=true; try{ await api("excluirProva",{id:x.dataset.delprova}); await refresh(); }catch(err){ x.textContent="Erro"; } });
   document.addEventListener("click", async e=>{ const b=e.target.closest("[data-reabrir]"); if(!b) return; b.disabled=true; try{ await api("reabrir",{provaId:b.dataset.reabrir}); await refresh(); }catch(err){ b.textContent="Erro"; } });
 
   render();
