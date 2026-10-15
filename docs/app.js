@@ -85,21 +85,30 @@ function carregando(msg = "Carregando…") { app.innerHTML = (sess ? topo() : ""
 function telaLogin() {
   app.className = "wrap";
   let pin = "";
-  app.innerHTML = `<div class="login stack"><div class="brand" style="justify-content:center;font-size:24px"><svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="8" fill="var(--accent)"/><path d="M6 9c3-1.5 5.5-1.5 8 0v11c-2.5-1.5-5-1.5-8 0zM22 9c-3-1.5-5.5-1.5-8 0v11c2.5-1.5 5-1.5 8 0z" fill="#fff"/></svg>Estudos em Casa</div>
-    <p class="muted">Digite o seu PIN</p>
-    <div class="pin" id="pin">${"<span></span>".repeat(4)}</div>
-    <div class="erro" id="erro"></div>
-    <div class="pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, "⌫", 0, "OK"].map(k => `<button data-k="${k}" aria-label="${k === "⌫" ? "apagar" : k}">${k}</button>`).join("")}</div>
-    <p class="muted small">PIN com mais de 4 números? Use o teclado e aperte Enter.</p></div>`;
+  const agora = new Date(), aula = infoAula(agora);
+  const saud = agora.getHours() < 12 ? "Bom dia" : agora.getHours() < 18 ? "Boa tarde" : "Boa noite";
+  app.innerHTML = `<div class="login2"><section class="lg-arte">
+      <div class="lg-marca"><svg width="34" height="34" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="8" fill="#fff"/><path d="M6 9c3-1.5 5.5-1.5 8 0v11c-2.5-1.5-5-1.5-8 0zM22 9c-3-1.5-5.5-1.5-8 0v11c2.5-1.5 5-1.5 8 0z" fill="#2F55C9"/></svg><span>Estudos em Casa</span></div>
+      <div class="lg-sol">${solSVG("fome", 0, 190)}</div>
+      <h1>${saud}!</h1><p>A Sol está esperando você para estudar.</p>
+      <div class="lg-aula">${ico("escola", 18)}<span>${DIAS[agora.getDay()]} · ${aula.aulas.length ? `aula de ${esc(aula.titulo)} às 13:15` : esc(aula.linha)}</span></div>
+    </section>
+    <section class="lg-form">
+      <h2>Digite o seu PIN</h2><p class="muted small">São 6 números. Pode usar o teclado do computador.</p>
+      <div class="pin" id="pin"></div>
+      <div class="erro" id="erro"></div>
+      <div class="pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, "⌫", 0, "OK"].map(k => `<button data-k="${k}" class="${k === "OK" ? "ok" : k === "⌫" ? "apaga" : ""}" aria-label="${k === "⌫" ? "apagar" : k === "OK" ? "entrar" : k}">${k === "OK" ? "Entrar" : k}</button>`).join("")}</div>
+    </section></div>`;
   const pinsEl = $("#pin");
-  const desenha = () => { const n = Math.max(4, pin.length); pinsEl.innerHTML = Array.from({ length: n }, (_, i) => `<span class="${i < pin.length ? "f" : ""}">${i < pin.length ? "•" : ""}</span>`).join(""); };
+  const desenha = () => { const n = Math.max(6, pin.length); pinsEl.innerHTML = Array.from({ length: n }, (_, i) => `<span class="${i < pin.length ? "f" : ""}">${i < pin.length ? "•" : ""}</span>`).join(""); };
   const enviar = async () => {
     if (!pin) return;
     $("#erro").textContent = "Conferindo…";
     try { const d = await api("login", { pin }); sess = d; store.set("estudos-sessao", d); if (d.papel === "adulto") { location.href = "painel.html"; return; } location.hash = "#/"; render(); }
     catch (e) { $("#erro").textContent = e.message; pin = ""; desenha(); }
   };
-  const tecla = k => { if (k === "⌫") pin = pin.slice(0, -1); else if (k === "OK") return enviar(); else if (pin.length < 8) pin += k; desenha(); };
+  desenha();
+  const tecla = k => { if (k === "⌫") pin = pin.slice(0, -1); else if (k === "OK") return enviar(); else if (pin.length < 8) { pin += k; $("#erro").textContent = ""; } desenha(); if (pin.length === 6 && k !== "⌫") setTimeout(enviar, 150); };
   app.querySelectorAll(".pad button").forEach(b => b.onclick = () => tecla(b.dataset.k));
   document.onkeydown = e => { if (!$("#pin")) { document.onkeydown = null; return; } if (/^\d$/.test(e.key)) tecla(e.key); else if (e.key === "Backspace") tecla("⌫"); else if (e.key === "Enter") enviar(); };
 }

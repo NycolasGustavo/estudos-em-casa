@@ -476,3 +476,22 @@ a.nl:hover{background:var(--bg)}
 .cn-btn{display:block;margin-top:2px;height:30px;line-height:28px;padding:0 14px;font-family:"Patrick Hand",var(--body);font-size:19px;background:#2F55C9;color:#fff;border-radius:8px}
 .cn-dica{margin:0;font-size:15px;color:#8A94A6;line-height:30px}
 .cad-mes.pequeno{text-transform:none}.cn-linha input[type=date]{min-width:150px}
+/* v7: tela do PIN em duas colunas */
+.login2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);max-width:920px;margin:9vh auto 0;background:var(--card);border:1px solid var(--line);border-radius:28px;overflow:hidden;box-shadow:0 18px 50px rgba(28,33,64,.12)}
+.lg-arte{background:linear-gradient(160deg,#2F55C9,#4C6FDB 60%,#1E8A5A);color:#fff;padding:34px 36px;display:flex;flex-direction:column;gap:10px;justify-content:center}
+.lg-marca{display:flex;gap:10px;align-items:center;font-family:var(--display);font-weight:700;font-size:22px}
+.lg-sol{background:rgba(255,255,255,.92);border-radius:24px;align-self:flex-start;padding:10px 18px 6px;margin:10px 0}
+.lg-arte h1{color:#fff;font-size:34px;margin:4px 0 0}.lg-arte p{margin:0;font-size:18px;opacity:.95}
+.lg-aula{display:flex;gap:8px;align-items:center;background:rgba(255,255,255,.16);border-radius:12px;padding:8px 12px;font-size:15px;align-self:flex-start;margin-top:8px}
+.lg-form{padding:34px 40px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.lg-form h2{margin:0;font-size:26px}
+.lg-form .pin{display:flex;gap:10px;justify-content:center;margin:6px 0 0}
+.lg-form .pin span{width:46px;height:56px;border:2px solid var(--line);border-radius:12px;display:grid;place-items:center;font-size:30px;background:var(--bg)}
+.lg-form .pin span.f{border-color:var(--accent);background:var(--accent-s);color:var(--accent)}
+.lg-form .erro{min-height:22px;color:var(--bad);font-weight:600;font-size:15px}
+.lg-form .pad{display:grid;grid-template-columns:repeat(3,76px);gap:12px;max-width:none}
+.lg-form .pad button{height:64px;padding:0;font-size:26px;font-family:var(--display);border-radius:16px;background:var(--bg);color:var(--fg);border:1.5px solid var(--line);display:grid;place-items:center}
+.lg-form .pad button:hover{border-color:var(--accent)}
+.lg-form .pad button.ok{background:var(--accent);color:#fff;border-color:var(--accent);font-size:18px}
+.lg-form .pad button.apaga{font-size:22px;color:var(--soft)}
+@media (max-width:820px){.login2{grid-template-columns:1fr;margin:3vh auto 0}.lg-arte{padding:24px}.lg-sol{display:none}}
