@@ -1,4 +1,4 @@
-// Servidor de teste: serve o site e executa o Code.gs real com imitações das APIs do Google.
+// Servidor de teste: serve o site e imita a API do banco (POST /rest/v1/rpc/api) com uma implementação em JS do mesmo contrato.
 const http=require('http'),fs=require('fs'),path=require('path'),vm=require('vm');
 const SITE=path.join(__dirname,'../docs'), PROVAS=path.join(__dirname,'provas');
 const sheets={}; const props={}; const mails=[];
@@ -20,15 +20,16 @@ const ctx={console,JSON,Math,Date,String,Number,Object,Array,Error,parseFloat,is
  MailApp:{sendEmail:m=>{mails.push(m);fs.writeFileSync(path.join(__dirname,'ultimo-email.html'),m.htmlBody);},getRemainingDailyQuota:()=>100},
  ContentService:{MimeType:{JSON:'json'},createTextOutput:s=>({s,setMimeType(){return this;}})}};
 vm.createContext(ctx);
-vm.runInContext(fs.readFileSync(path.join(__dirname,'../apps-script/Code.gs'),'utf8'),ctx);
+vm.runInContext(fs.readFileSync(path.join(__dirname,'mock-api.gs'),'utf8'),ctx);
 vm.runInContext('configurar()',ctx);
 sheets.Diario.appendRow(['2026-10-14','verde',true,true,true,true,0,0,'']);
 const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css'};
 http.createServer((req,res)=>{
- if(req.url==='/api'&&req.method==='POST'){let b='';req.on('data',c=>b+=c);req.on('end',()=>{let out;try{out=ctx.doPost({postData:{contents:b}}).s;}catch(e){out=JSON.stringify({ok:false,erro:String(e)});}res.writeHead(200,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'});res.end(out);});return;}
+ if(req.method==='OPTIONS'){res.writeHead(204,{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*'});res.end();return;}
+ if(req.url==='/rest/v1/rpc/api'&&req.method==='POST'){let b='';req.on('data',c=>b+=c);req.on('end',()=>{let out;try{const j=JSON.parse(b);out=ctx.doPost({postData:{contents:JSON.stringify(Object.assign({acao:j.acao},j.dados||{}))}}).s;}catch(e){out=JSON.stringify({ok:false,erro:String(e)});}res.writeHead(200,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'});res.end(out);});return;}
  if(req.url==='/__dump'){res.end(JSON.stringify({Tentativas:sheets.Tentativas.rows,Respostas:sheets.Respostas.rows.length,mails:mails.length}));return;}
  let f=req.url.split('?')[0]; if(f==='/')f='/index.html';
- if(f==='/config.js'){res.writeHead(200,{'Content-Type':'text/javascript'});res.end('window.ESTUDOS_API="http://localhost:8787/api";');return;}
+ if(f==='/config.js'){res.writeHead(200,{'Content-Type':'text/javascript'});res.end('window.ESTUDOS={url:"http://localhost:8787",chave:"teste"};');return;}
  const p=path.join(SITE,f); if(!fs.existsSync(p)){res.writeHead(404);res.end();return;}
  res.writeHead(200,{'Content-Type':mime[path.extname(p)]||'text/plain'});res.end(fs.readFileSync(p));
 }).listen(8787,()=>console.log('ok 8787'));

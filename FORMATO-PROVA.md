@@ -1,6 +1,6 @@
 # Formato de prova
 
-Cada prova é um arquivo `.json` na pasta **Estudos em Casa · Provas** do Google Drive. O site lista os arquivos da pasta. O gabarito fica no servidor (Apps Script) e nunca vai para a tela da aluna.
+Cada prova é um JSON gravado em `app.provas.conteudo` no Supabase. O gabarito fica no banco e nunca vai para a tela da aluna: a função `public.api` remove `correta`, `aceitas`, `criterio`, `explicacao` e `tolerancia` antes de enviar a prova.
 
 ```json
 {

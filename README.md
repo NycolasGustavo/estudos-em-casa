@@ -2,23 +2,24 @@
 
 Provas, notas e acompanhamento de estudos em casa.
 
-- `docs/`: o site (GitHub Pages). Sem build, sem dependências.
-- `apps-script/Code.gs`: o backend. Roda no Google Apps Script, ligado à planilha **Estudos em Casa · Dados**.
-- `FORMATO-PROVA.md`: o formato dos arquivos de prova.
-- `teste/`: servidor local que roda o `Code.gs` real com imitações das APIs do Google, mais um teste de ponta a ponta.
+- `docs/`: o site (GitHub Pages). HTML, CSS e JS puros, sem build.
+- Banco de dados: **Supabase** (projeto `estudos-em-casa`). Tabelas no esquema privado `app`, que não é exposto pela API.
+  O site só conversa com uma função, `public.api(acao, dados)`, que confere o PIN/sessão de cada pessoa e faz a correção.
+  O gabarito nunca vai para o navegador da aluna.
+- `FORMATO-PROVA.md`: o formato das provas (gravadas na tabela `app.provas`, coluna `conteudo`).
+- `teste/`: servidor local que imita a API do banco e um teste de ponta a ponta do site.
 
-Os dados (pessoas, PINs, notas, respostas) ficam só na planilha do Google. Este repositório não guarda dados pessoais nem gabaritos.
+Este repositório não guarda dados pessoais, PINs nem gabaritos: tudo isso fica no banco.
 
-## Instalação (uma vez)
+## Como as provas entram
 
-1. Abra a planilha **Estudos em Casa · Dados** → **Extensões → Apps Script**.
-2. Apague o conteúdo de `Código.gs`, cole o conteúdo de `apps-script/Code.gs` e salve.
-3. No menu de funções, escolha **configurar** → **Executar** → autorize.
-4. **Implantar → Nova implantação → App da Web**. Executar como: **Eu**. Quem pode acessar: **Qualquer pessoa**. Copie a URL `/exec`.
-5. Cole a URL em `docs/config.js`.
-6. GitHub: **Settings → Pages → Deploy from a branch → main / docs**.
+O Claude grava a prova direto no banco, numa conversa:
 
-Ao atualizar o `Code.gs`: **Implantar → Gerenciar implantações → editar → Nova versão** (a URL continua a mesma).
+```sql
+insert into app.provas (id, conteudo) values ('2026-10-20-mat-divisao', '{ ...json da prova... }');
+```
+
+Um gatilho numera as questões e preenche título, matéria e datas a partir do JSON.
 
 ## Teste local
 

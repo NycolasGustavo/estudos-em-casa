@@ -21,15 +21,19 @@ const TIPOS_NOTA = ["Prova (escola)", "Simulado (escola)", "Trabalho (escola)", 
 /* ---------------- API ---------------- */
 let sess = store.get("estudos-sessao", null);
 async function api(acao, dados = {}) {
-  const body = JSON.stringify(Object.assign({ acao, token: sess && sess.token }, dados));
+  const cfg = window.ESTUDOS || {};
+  if (!cfg.url || !cfg.chave) throw new Error("O site ainda não foi ligado ao banco de dados (config.js).");
+  const corpo = { acao, dados: Object.assign({ token: sess && sess.token }, dados) };
   let r;
-  if (window.ESTUDOS_MOCK) r = await window.ESTUDOS_MOCK(body);
-  else {
-    const url = window.ESTUDOS_API;
-    if (!url || /COLE_AQUI/.test(url)) throw new Error("O site ainda não foi ligado à planilha (config.js).");
-    const res = await fetch(url, { method: "POST", body, redirect: "follow" });
+  try {
+    const res = await fetch(cfg.url + "/rest/v1/rpc/api", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: cfg.chave, Authorization: "Bearer " + cfg.chave },
+      body: JSON.stringify(corpo)
+    });
     r = await res.json();
-  }
+  } catch (e) { throw new Error("Sem conexão com o servidor. Confira a internet e tente de novo."); }
+  if (!r || r.ok === undefined) throw new Error((r && r.message) || "Resposta inesperada do servidor.");
   if (!r.ok) {
     if (r.erro === "sessao") { sair(true); throw new Error(r.msg || "Entre de novo."); }
     throw new Error(r.erro || "Algo deu errado.");
@@ -156,7 +160,7 @@ async function telaAluna(aba) {
 function evolucaoAluna(d) {
   const pontos = [];
   d.historico.filter(h => h.status === "corrigida").forEach(h => pontos.push({ data: h.data, materia: h.materia, nota: h.nota, onde: "casa" }));
-  d.notasEscola.forEach(n => { if (!isNaN(n.nota)) pontos.push({ data: String(n.data).slice(0, 10), materia: n.materia, nota: n.nota, onde: "escola" }); });
+  d.notasEscola.forEach(n => { if (n.nota != null && !isNaN(n.nota)) pontos.push({ data: String(n.data).slice(0, 10), materia: n.materia, nota: n.nota, onde: "escola" }); });
   const mats = [...new Set(pontos.map(p => p.materia))];
   const blocos = mats.map(m => {
     const ps = pontos.filter(p => p.materia === m).sort((a, b) => a.data.localeCompare(b.data));
@@ -344,7 +348,7 @@ function pontosSerie(d) {
   const P = [];
   d.tentativas.filter(t => t.status === "corrigida").forEach(t => P.push({ data: t.data, materia: t.materia, nota: t.nota, grupo: "casa", titulo: t.titulo }));
   d.notas.forEach(n => {
-    const v = Number(n.nota); if (isNaN(v) || n.nota === "") return;
+    if (n.nota == null || n.nota === "") return; const v = Number(n.nota); if (isNaN(v)) return;
     const g = /casa/i.test(n.tipo) && !/escola/i.test(n.tipo) ? "casa" : /prova|simulado|olimp/i.test(n.tipo) ? "prova" : "escola";
     P.push({ data: String(n.data).slice(0, 10), materia: n.materia, nota: v, grupo: g, titulo: n.titulo });
   });
@@ -415,7 +419,7 @@ function adCorrecao(d) {
     <div class="form"><label class="f">Pontos (máx. ${r.max})<input type="number" min="0" max="${r.max}" step="0.5" id="pt-${i}"></label><label class="f" style="grid-column:span 2">Comentário para ela (opcional)<input id="cm-${i}"></label><button data-salvar-corr="${i}">Salvar correção</button></div></div>`).join("");
 }
 function adProvas(d) {
-  return `<div class="panel stack"><h3>Provas no sistema</h3><p class="muted">As provas são criadas pelo Claude direto na pasta do Drive. Peça numa conversa: "gera uma prova de… para a Isabella".</p>
+  return `<div class="panel stack"><h3>Provas no sistema</h3><p class="muted">As provas são criadas pelo Claude direto no banco de dados. Peça numa conversa: "gera uma prova de… para a Isabella".</p>
    <div class="scroll"><table class="t"><tr><th>Prova</th><th>Matéria</th><th>Criada</th><th>Questões</th><th>Feitas</th><th></th></tr>
    ${d.provas.map(p => `<tr><td><b>${esc(p.titulo)}</b>${p.arquivada ? ' <span class="tag">arquivada</span>' : ""}</td><td>${esc(p.materia)}</td><td>${dataBR(p.criadaEm)}</td><td>${p.totalQuestoes}</td><td>${p.feitas}/${p.permitidas}</td><td class="row"><a class="btn ghost mini" href="#/adulto/ver/${encodeURIComponent(p.id)}">Ver com gabarito</a>${p.feitas >= p.permitidas ? `<button class="mini ghost" data-reabrir="${esc(p.id)}">Liberar nova tentativa</button>` : ""}</td></tr>`).join("") || `<tr><td colspan="6" class="muted">Nenhuma prova ainda.</td></tr>`}</table></div></div>
    <div class="panel stack"><h3>Todas as tentativas</h3><div class="list">${d.tentativas.map(t => `<a class="li" href="#/adulto/tentativa/${encodeURIComponent(t.id)}"><div><b>${esc(t.titulo)}</b><div class="muted">${dataBR(t.data)} · ${t.minutos} min · ${t.status}${t.revisaoLiberada ? " · revisão liberada" : ""}</div></div><span class="score ${clsNota(t.nota)}">${fmtN(t.nota)}</span></a>`).join("") || `<p class="muted">Nenhuma.</p>`}</div></div>`;
@@ -446,7 +450,7 @@ function adEscola(d) {
     <label class="f">ou Nota (0–10)<input type="number" id="n-nota" min="0" max="10" step="0.1"></label>
     <button id="n-salvar">Registrar</button></div></div>
    <div class="panel stack"><h3>Notas registradas</h3><div class="scroll"><table class="t"><tr><th>Data</th><th>Matéria</th><th>Tipo</th><th>Título</th><th>Nota</th><th></th></tr>
-   ${d.notas.slice().sort((a, b) => String(b.data).localeCompare(String(a.data))).map(n => `<tr><td>${dataBR(n.data)}</td><td>${esc(n.materia)}</td><td>${esc(n.tipo)}</td><td>${esc(n.titulo)}</td><td class="${clsNota(Number(n.nota))}"><b>${n.nota === "" ? "—" : fmtN(n.nota)}</b>${n.total ? ` <span class="muted small">(${n.acertos}/${n.total})</span>` : ""}</td><td><button class="mini ghost" data-excluir="Notas|${esc(n.id)}">Excluir</button></td></tr>`).join("") || `<tr><td colspan="6" class="muted">Nenhuma.</td></tr>`}</table></div></div>`;
+   ${d.notas.slice().sort((a, b) => String(b.data).localeCompare(String(a.data))).map(n => `<tr><td>${dataBR(n.data)}</td><td>${esc(n.materia)}</td><td>${esc(n.tipo)}</td><td>${esc(n.titulo)}</td><td class="${n.nota == null ? "" : clsNota(Number(n.nota))}"><b>${n.nota == null || n.nota === "" ? "—" : fmtN(n.nota)}</b>${n.total ? ` <span class="muted small">(${n.acertos}/${n.total})</span>` : ""}</td><td><button class="mini ghost" data-excluir="Notas|${esc(n.id)}">Excluir</button></td></tr>`).join("") || `<tr><td colspan="6" class="muted">Nenhuma.</td></tr>`}</table></div></div>`;
 }
 function adLivros(d) {
   const ano = hoje().slice(0, 4);
