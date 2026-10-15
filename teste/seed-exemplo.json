@@ -1,0 +1,5 @@
+{"config":{"aluna_nome":"Aluna Teste","pasta_provas_id":"pasta-teste","meta_livros_2026":3},
+ "pessoas":[{"nome":"Aluna Teste","papel":"aluna","pin":"1111","email":"","recebe_email":false},{"nome":"Adulto Teste","papel":"adulto","pin":"9999","email":"teste@example.com","recebe_email":true}],
+ "notas":[{"id":"n1","data":"2026-10-01","materia":"Matemática","tipo":"Prova (escola)","titulo":"Prova de exemplo","acertos":7,"total":10,"nota":7,"obs":""}],
+ "metas":[{"id":"m1","periodo":"T4 2026","area":"Leitura","texto":"Ler 3 livros","feito":false}],
+ "livros":[],"tentativas":[]}

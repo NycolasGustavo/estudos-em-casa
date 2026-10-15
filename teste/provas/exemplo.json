@@ -1,0 +1,21 @@
+{
+  "id": "exemplo-mat",
+  "titulo": "Exemplo · Matemática",
+  "materia": "Matemática",
+  "tipo": "atividade",
+  "criadaEm": "2026-10-15",
+  "minutos": 15,
+  "instrucoes": "Exemplo com os quatro tipos de questão.",
+  "blocos": [
+    {
+      "lead": "Leia o problema para responder às questões 1 a 4.",
+      "texto": { "tipo": "prosa", "titulo": "A feira", "paragrafos": ["Ana comprou 3 caixas com 12 laranjas em cada uma."] },
+      "questoes": [
+        { "tipo": "mc", "enunciado": "Qual conta resolve o problema?", "opcoes": ["3 + 12", "3 × 12", "12 − 3", "12 ÷ 3"], "correta": "B", "habilidade": "Escolha da operação", "assunto": "Multiplicação", "bncc": "EF04MA06" },
+        { "tipo": "numero", "enunciado": "Quantas laranjas ela comprou?", "correta": 36, "unidade": "laranjas", "habilidade": "Multiplicação", "assunto": "Multiplicação", "bncc": "EF04MA06" },
+        { "tipo": "curta", "enunciado": "Escreva por extenso o número 36.", "aceitas": ["trinta e seis"], "ignorarAcentos": true, "habilidade": "Escrita de números", "assunto": "Sistema de numeração" },
+        { "tipo": "aberta", "enunciado": "Explique como você pensou.", "criterio": "Cita 3 grupos de 12 ou a multiplicação.", "pontos": 2, "habilidade": "Explicar o raciocínio", "assunto": "Resolução de problemas" }
+      ]
+    }
+  ]
+}
