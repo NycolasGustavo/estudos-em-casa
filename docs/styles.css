@@ -106,8 +106,10 @@ label.f{display:grid;gap:4px;font-size:14px;color:var(--soft);min-width:0}
 .opt:hover{border-color:var(--accent)}
 .opt input{position:absolute;opacity:0;pointer-events:none}
 .opt .l{flex:none;width:28px;height:28px;border-radius:50%;border:2px solid var(--accent);display:grid;place-items:center;font-family:var(--display);color:var(--accent);font-size:14px}
-.opt.sel{border-color:var(--accent);background:var(--accent-s)}
-.opt.sel .l{background:var(--accent);color:#fff}
+.opt.sel{border-color:var(--fg);background:var(--card);box-shadow:inset 0 0 0 1px var(--fg)}
+.opt.sel .l{background:var(--fg);border-color:var(--fg);color:var(--card)}
+.opt.sel::after{content:"sua escolha";margin-left:auto;align-self:center;font-size:12px;font-weight:700;letter-spacing:.02em;color:var(--soft);border:1.5px dashed currentColor;border-radius:999px;padding:2px 10px;white-space:nowrap}
+.opt.sel.certa::after,.opt.sel.errada::after{content:none}
 .opt:focus-within{outline:3px solid var(--sun);outline-offset:2px}
 .opt.certa{border-color:var(--ok);background:var(--ok-s)}
 .opt.errada{border-color:var(--bad);background:var(--bad-s)}
