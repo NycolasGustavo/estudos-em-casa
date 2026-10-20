@@ -654,6 +654,62 @@ function graficoTempo(series, { altura = 260, meta = 8.5, compacto = false } = {
   });
   return `<svg class="tchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gráfico de notas no tempo">${g}</svg>`;
 }
+/* ---------- gráfico principal das notas (storytelling: uma mensagem, pouco ruído, rótulo direto) ---------- */
+const MESC = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+function graficoHistoria(grupos, { meta = 8.5 } = {}) {
+  const W = 760, H = 270, L = 28, R = 118, T = 16, B = 26;
+  const todos = grupos.flatMap(g => g.pts.map(p => p.x)).sort();
+  if (!todos.length) return `<p class="muted small" style="margin:8px 0">Sem notas ainda.</p>`;
+  const t0 = new Date(addDias(todos[0], -3) + "T12:00:00").getTime(), t1 = new Date(addDias(todos[todos.length - 1], 3) + "T12:00:00").getTime();
+  const X = iso => L + (new Date(iso + "T12:00:00").getTime() - t0) / Math.max(1, t1 - t0) * (W - L - R);
+  const Y = v => T + (1 - v / 10) * (H - T - B);
+  let g = "";
+  [0, 5, 10].forEach(v => g += `<text x="${L - 8}" y="${Y(v) + 4}" text-anchor="end" class="ax">${v}</text>`);
+  g += `<line x1="${L}" x2="${W - R}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--line)"/>`;
+  // meta: a única linha de referência, rotulada no começo
+  g += `<line x1="${L}" x2="${W - R}" y1="${Y(meta)}" y2="${Y(meta)}" stroke="var(--soft)" stroke-dasharray="4 4" stroke-width="1.2"/><text x="${L + 4}" y="${Y(meta) - 6}" class="ax">meta ${fmtN(meta)}</text>`;
+  // eixo x: começo de cada mês
+  const d0 = new Date(t0), d1 = new Date(t1);
+  for (let d = new Date(d0.getFullYear(), d0.getMonth() + 1, 1); d <= d1; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+    g += `<line x1="${X(iso)}" x2="${X(iso)}" y1="${Y(0)}" y2="${Y(0) + 4}" stroke="var(--line)"/><text x="${X(iso)}" y="${H - 6}" text-anchor="middle" class="ax">${MESC[d.getMonth()]}</text>`;
+  }
+  const rotulos = [];
+  grupos.forEach(s => {
+    const pts = s.pts.slice().sort((a, b) => a.x.localeCompare(b.x) || (a.ordem || 0) - (b.ordem || 0));
+    if (!pts.length) return;
+    // tendência: média das 3 últimas notas, uma por dia (último valor do dia)
+    const porDia = []; pts.forEach((p, i) => { const m = pts.slice(Math.max(0, i - 2), i + 1).reduce((a, q) => a + q.y, 0) / Math.min(3, i + 1); const u = porDia[porDia.length - 1]; if (u && u.x === p.x) u.y = m; else porDia.push({ x: p.x, y: m }); });
+    if (porDia.length > 1) g += `<path d="${porDia.map((p, i) => (i ? "L" : "M") + X(p.x).toFixed(1) + " " + Y(p.y).toFixed(1)).join("")}" fill="none" stroke="${s.cor}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+    pts.forEach(p => {
+      const cx = X(p.x).toFixed(1), cy = Y(p.y).toFixed(1), tip = esc(`${s.nome} · ${dataBR(p.x)} · ${p.rotulo || ""}: ${fmtN(p.y)}`);
+      g += p.prova ? `<circle cx="${cx}" cy="${cy}" r="5" fill="${s.cor}" stroke="var(--card)" stroke-width="2"/>` : `<circle cx="${cx}" cy="${cy}" r="4" fill="var(--card)" stroke="${s.cor}" stroke-width="1.8" opacity=".85"/>`;
+      g += `<circle cx="${cx}" cy="${cy}" r="12" fill="transparent" data-tip="${tip}"/>`;
+    });
+    const f = porDia[porDia.length - 1];
+    rotulos.push({ y: Y(f.y), cor: s.cor, nome: s.nome, m: f.y });
+  });
+  // rótulo direto no fim da linha (no lugar da legenda), sem sobreposição
+  rotulos.sort((a, b) => a.y - b.y);
+  for (let i = 1; i < rotulos.length; i++) if (rotulos[i].y - rotulos[i - 1].y < 34) rotulos[i].y = rotulos[i - 1].y + 34;
+  rotulos.forEach(r => {
+    const lx = W - R + 12;
+    g += `<rect x="${lx}" y="${r.y - 12}" width="10" height="10" rx="3" fill="${r.cor}"/><text x="${lx + 15}" y="${r.y - 3}" class="ax lbl">${esc(r.nome)} ${fmtN(r.m)}</text><text x="${lx}" y="${r.y + 12}" class="ax">média recente</text>`;
+  });
+  return `<svg class="tchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Notas da escola e de casa ao longo do tempo, com a meta 8,5">${g}</svg>`;
+}
+function manchete(grupos, meta = 8.5) {
+  const est = m => m >= meta ? "você está na meta" : m >= 7 ? "você está perto da meta" : "é hora de reforçar";
+  const frases = grupos.filter(g => g.pts.length).map(g => {
+    const pts = g.pts.slice().sort((a, b) => a.x.localeCompare(b.x)), lugar = g.nome === "Escola" ? "Na escola" : "Em casa";
+    const m = pts.slice(-3).reduce((a, x) => a + x.y, 0) / Math.min(3, pts.length);
+    const provas = pts.filter(p => p.prova), up = provas[provas.length - 1];
+    if (up && up.y < 7 && m >= 7) return `${lugar}, as atividades vão bem, mas a última prova foi ${fmtN(up.y)}`;
+    return `${lugar}, ${est(m)} (${fmtN(m)})`;
+  });
+  return frases.length ? frases.join(". ") + "." : "Minhas notas ao longo do tempo";
+}
+
 document.addEventListener("mouseover", e => {
   const t = e.target.closest && e.target.closest("[data-tip]"); let tip = document.getElementById("tip");
   if (!t) { if (tip) tip.hidden = true; return; }
@@ -689,7 +745,8 @@ function abaNotas(d) {
     const tend = u != null && ant != null ? (u > ant + .2 ? `<span class="tend up">▲ subiu</span>` : u < ant - .2 ? `<span class="tend down">▼ caiu</span>` : `<span class="tend">= igual</span>`) : "";
     return `<button class="ntile ${visivel(s) ? "on" : ""}" data-nver="${s.k}" style="--w:${s.cor}"><span class="nt-h">${amostra(s)}${s.nome}</span><b class="${m != null ? clsNota(m) : ""}">${m != null ? fmtN(m) : "–"}</b><span class="nt-r">${a.length} nota${a.length === 1 ? "" : "s"}${u != null ? ` · última ${fmtN(u)}` : ""} ${tend}</span></button>`;
   }).join("");
-  const ser = SERIES_NOTA.filter(visivel).map(s => Object.assign({}, s, { pts: de(s).map(n => ({ x: n.data, y: n.nota, rotulo: n.titulo || n.tipo })) }));
+  const grupos = [["escola", "Escola", "var(--escola)"], ["casa", "Casa", "var(--casa)"]].map(([o, nome, cor]) => ({ nome, cor,
+    pts: SERIES_NOTA.filter(s => s.origem === o && visivel(s)).flatMap(s => de(s).map(n => ({ x: n.data, y: n.nota, prova: s.classe === "prova", rotulo: n.titulo || n.tipo }))) }));
   const barras = [...new Set(notas.map(n => n.materia))].map(m => {
     const e = med(notas.filter(n => n.materia === m && n.origem === "escola")), c = med(notas.filter(n => n.materia === m && n.origem === "casa"));
     const bar = (v, cor, rot) => `<div class="mb-l"><span>${rot}</span><div class="mb-t"><i style="width:${v != null ? v * 10 : 0}%;background:${cor}"></i><em style="left:85%"></em></div><b>${v != null ? fmtN(v) : "–"}</b></div>`;
@@ -698,9 +755,10 @@ function abaNotas(d) {
   const VER = [["todas", "Todas"], ["prova", "Só provas"], ["atividade", "Só atividades"], ["escola", "Só escola"], ["casa", "Só casa"]];
   return `<div class="row between"><div class="chips">${mats.map(m => `<button data-fmat="${esc(m)}" class="${m === filtroMat ? "on" : ""}">${esc(m)}</button>`).join("")}</div><span class="muted small">Notas de 0 a 10 · meta 8,5 · abaixo de 7 = hora de reforçar</span></div>
    <div class="ntiles">${tiles}</div>
-   <div class="notas-grid"><section class="panel stack"><div class="row between"><h3>Minhas notas ao longo do tempo</h3><div class="seg">${VER.map(([k, t]) => `<button data-nver="${k}" class="${notasVer === k ? "on" : ""}">${t}</button>`).join("")}</div></div>
-      ${graficoTempo(ser, { altura: 250 })}
-      <div class="legend">${ser.map(s => `<span>${amostra(s)} ${s.nome}</span>`).join("")}<span><svg width="34" height="12"><line x1="1" y1="6" x2="33" y2="6" stroke="var(--sun)" stroke-width="2" stroke-dasharray="6 4"/></svg> Meta 8,5</span></div></section>
+   <div class="notas-grid"><section class="panel stack"><div class="row between"><span class="muted small" style="font-weight:700;letter-spacing:.02em">MINHAS NOTAS AO LONGO DO TEMPO</span><div class="seg">${VER.map(([k, t]) => `<button data-nver="${k}" class="${notasVer === k ? "on" : ""}">${t}</button>`).join("")}</div></div>
+      <h3 style="margin:0;line-height:1.3">${manchete(grupos)}</h3>
+      <p class="muted small" style="margin:0">Cada bolinha é uma nota. <svg width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="4.5" fill="var(--soft)"/></svg> cheia = prova ou simulado · <svg width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="4" fill="none" stroke="var(--soft)" stroke-width="2"/></svg> vazia = atividade. A média recente é a das 3 últimas notas.</p>
+      ${graficoHistoria(grupos)}</section>
     <section class="panel stack"><h3>Média por matéria</h3><p class="muted small" style="margin:0">Todas as notas. A risquinha é a meta 8,5.</p>${barras}</section></div>
    <h3 style="margin:4px 0 0">Cada tipo separado</h3>
    <div class="nsmall">${SERIES_NOTA.map(s => `<section class="panel stack"><span class="nt-h">${amostra(s)}<b>${s.nome}</b></span>${graficoTempo([Object.assign({}, s, { pts: de(s).map(n => ({ x: n.data, y: n.nota, rotulo: n.titulo || n.tipo })) })], { altura: 170, compacto: true })}</section>`).join("")}</div>
