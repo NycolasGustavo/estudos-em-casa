@@ -77,6 +77,8 @@ Questão `ditado` (nos blocos): `{tipo:"ditado", falar:"palavra", correta:"palav
   {"id":"2026-10-16-gravar","momento":"extra","titulo":"Gravar a leitura","acao":"gravar","texto":"texto para ler"},
   {"id":"2026-10-16-livro","momento":"livro","titulo":"Ler o meu livro","acao":"livro"}]}
 ```
+Aula em vídeo no plano: `{"id":"2026-10-22-video-<yt>","momento":"video","acao":"video","yt":"<id de 11 letras do YouTube>","titulo":"Aula: ...","minutos":8,"materia":"Matemática","descricao":"..."}`. Ela assiste dentro do app (player sem links para o YouTube) e o item fica feito quando ela vê 80% do vídeo; pular partes não conta.
+
 Item com `provaId` fica feito quando ela entrega a prova. Os outros, quando ela marca (ou termina a tabuada / envia a gravação).
 
 ## Caderno de erros
@@ -86,3 +88,8 @@ Toda questão de correção automática (mc, numero, curta, ditado) que ela erra
 ## Café da tarde (visto do dia)
 
 Documento em `app.docs` col `dias`, id = data: `{data, cor, folga, itens:{caderno,sala,deveres,agenda,aula,estudo,ontem}, devendo:[lembretes], deveres:[textos], escondeu, branco, estrelas, obs, combinado, notasEscola, quem}`. A cor é automática: tudo feito = verde, 1–2 faltando = amarelo, 3+ = vermelho, escondeu exercício em branco = preto. `devendo` e `deveres` aparecem para ela no dia seguinte.
+
+## Aulas em vídeo (`app.docs`, col `videos`, id = id do YouTube)
+
+`{titulo, canal, materia, assunto, minutos, ordem, porque, oculto?}`. Aparecem na aba **Aprender** do app, agrupadas por matéria. Antes de cadastrar, confira que o vídeo permite incorporação (`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=<id>&format=json` responde 200).
+O quanto ela assistiu fica em col `assistidos` (id = id do vídeo): `{pct, duracao, vistos, posicao, data, vezes}`.

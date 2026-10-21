@@ -157,6 +157,45 @@ section[data-pane="etapa0"] > .chart, section[data-pane="etapa0"] > .panel:last-
 .top-actions a,.top-actions button{font:inherit;font-size:13px;font-weight:600;color:var(--accent);background:none;border:1px solid var(--line);border-radius:7px;padding:5px 10px;text-decoration:none;cursor:pointer}
 a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
 .badge{display:inline-block;min-width:18px;padding:0 6px;border-radius:999px;background:var(--bad);color:#fff;font-size:11px;margin-left:4px;text-align:center}
+
+/* Provas em casa */
+.cat{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 8px;border-radius:6px;white-space:nowrap;vertical-align:1px}
+.cat.nota{background:var(--bad-s);color:var(--bad)} .cat.treino{background:var(--accent-soft);color:var(--accent)}
+.pv-mat{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--muted);font-weight:600}
+table.pv td{vertical-align:middle}
+table.pv tr.grp td{background:var(--bg);font-family:var(--display);font-weight:700;font-size:15px;padding:10px 8px;border-bottom:1px solid var(--line)}
+table.pv tr.grp td span{font-family:var(--body);font-weight:500;font-size:13px;color:var(--muted);margin-left:6px}
+table.pv tr.arq td{opacity:.55}
+.pv-t b{display:block;font-weight:600}.pv-t small{color:var(--muted);font-size:12.5px}
+.st{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;white-space:nowrap}
+.st i{width:9px;height:9px;border-radius:50%;background:currentColor;flex:none}
+.st.feita{color:var(--good)} .st.corrigir{color:var(--bad)} .st.fazer{color:var(--warn)} .st.atrasada{color:var(--bad)} .st.futura{color:var(--muted)} .st.arq{color:var(--muted)}
+.nota-c{display:flex;flex-direction:column;align-items:flex-end;gap:1px}
+.nota-c b{font-family:var(--display);font-size:22px;line-height:1}
+.nota-c small{font-size:12px;color:var(--muted);white-space:nowrap}
+.n-good{color:var(--good)}.n-warn{color:var(--warn)}.n-bad{color:var(--bad)}
+.rapido{display:inline-block;font-size:11.5px;font-weight:700;color:var(--warn);background:var(--warn-s);border-radius:6px;padding:1px 6px;margin-top:3px;white-space:nowrap}
+.pv-acoes{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;align-items:center}
+.btn.sec{background:var(--accent-soft);color:var(--accent);padding:6px 11px;font-size:13px}
+.btn.sec[aria-expanded="true"]{background:var(--accent);color:#fff}
+.pv-mais{position:relative}.pv-mais summary{list-style:none;cursor:pointer;font-weight:700;color:var(--muted);padding:4px 9px;border:1px solid var(--line);border-radius:7px;font-size:13px}
+.pv-mais summary::-webkit-details-marker{display:none}
+.pv-mais[open] .pv-menu{display:flex}
+.pv-menu{display:none;position:absolute;right:0;top:110%;z-index:5;flex-direction:column;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px;min-width:210px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.pv-menu a,.pv-menu button{font:inherit;font-size:13px;font-weight:600;text-align:left;background:none;border:0;border-radius:6px;padding:7px 9px;color:var(--ink);cursor:pointer;text-decoration:none}
+.pv-menu a:hover,.pv-menu button:hover{background:var(--accent-soft)}
+.pv-menu button.armed{color:var(--bad)}
+tr.det td{background:var(--bg);padding:12px 14px}
+.resp-l{display:flex;flex-direction:column;gap:8px}
+.resp{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:8px;padding:10px 12px}
+.resp.ok{border-left-color:var(--good)} .resp.err{border-left-color:var(--bad)} .resp.pend{border-left-color:var(--warn)}
+.resp .rn{font-family:var(--mono);font-weight:700;color:var(--muted)}
+.resp .re{font-size:14px;margin-bottom:6px}
+.resp .rr{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13.5px}
+.resp .rr span b{font-weight:700}
+.resp .ela.err b{color:var(--bad)} .resp .ela.ok b{color:var(--good)}
+.resp .rh{font-size:12px;color:var(--muted);margin-top:4px}
+.resp-top{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin-bottom:10px;font-size:14px}
 </style>
 </head>
 <body>
@@ -344,14 +383,21 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
     <div class="panel" id="pl-decidir" hidden></div>
     <div class="panel"><h2>Dia a dia</h2><div id="pl-dias"></div></div>
     <div class="panel"><h2>Caderno de erros</h2><p class="tag" style="margin:0">Questões que ela errou voltam em 1, 3, 7 e 21 dias. Acertando 4 vezes seguidas, a questão sai do caderno ("vencida").</p><div id="pl-erros"></div></div>
+    <div class="panel"><div class="row"><h2 style="margin:0">Aulas em vídeo</h2><span class="tag">Só conta como assistido com 80% ou mais do vídeo visto (pular não conta)</span></div><div id="pl-videos"></div></div>
     <div class="panel"><h2>Gravações da Isabella</h2><p class="tag" style="margin:0">Leituras e explicações que ela gravou. O link para assistir vale por 1 hora.</p><div id="pl-grav"></div></div>
   </section>
   <section data-pane="provas" class="stack" hidden>
-    <div class="notice">As provas são criadas pelo Claude direto no banco. Peça numa conversa, por exemplo: "prova de Matemática sobre divisão com resto, 15 questões, para amanhã".</div>
+    <div class="kpis" id="pv-kpis" style="margin:0"></div>
     <div class="panel" id="p-corr"></div>
-    <div class="panel"><h2>Provas</h2><div id="t-provas"></div></div>
-    <div class="panel"><h2>Tentativas da Isabella</h2><div id="t-tent"></div></div>
+    <div class="panel">
+      <div class="row" style="align-items:flex-end"><div><h2 style="margin:0 0 2px">Tudo o que ela fez em casa</h2>
+        <p class="tag" style="margin:0"><span class="cat nota">Vale nota</span> provas e simulados: entram no boletim. <span class="cat treino">Treino</span> atividades, revisões e reforços: servem para aprender e mostram onde ela erra.</p></div>
+        <label class="pv-mat">Matéria <select id="pv-mat" style="width:auto"></select></label></div>
+      <div class="chips" id="pv-filtros" style="margin-top:12px"></div>
+      <div id="t-provas"></div>
+    </div>
     <div class="panel"><h2>Habilidades</h2><p class="tag" style="margin:0">Cada questão das provas de casa soma na sua habilidade. O alerta só acende com 3 questões ou mais.</p><div id="t-hab"></div></div>
+    <div class="notice">As provas e atividades são criadas pelo Claude direto no banco. Peça numa conversa, por exemplo: "prova de Matemática sobre divisão com resto, 15 questões, para amanhã".</div>
   </section>
 </div>
 
@@ -370,7 +416,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
   const META_LIVROS = {2026:3, 2027:12, 2028:18, 2029:20, 2030:24, 2031:24};
   const COR = {verde:"var(--good)", amarelo:"var(--warn)", vermelho:"var(--bad)", preto:"var(--black)"};
   const $ = id => document.getElementById(id);
-  const state = {avaliacoes:[], notas:[], leitura:[], medicoes:[], metas:[], dias:[], agenda:[], plano:[], feitos:[], gravacoes:[]};
+  const state = {avaliacoes:[], notas:[], leitura:[], medicoes:[], metas:[], dias:[], agenda:[], plano:[], feitos:[], gravacoes:[], videos:[], assistidos:[]};
   let extra = {tentativas:[],provas:[],pendentesCorrecao:[],habilidades:[]};
   let db = null, materia = "Português", ano = new Date().getFullYear();
   const anoAtual = new Date().getFullYear();
@@ -703,20 +749,67 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
   $("sair").addEventListener("click", async ()=>{ try{ await api("sair"); }catch(e){} try{localStorage.removeItem("estudos-sessao")}catch(e){} location.replace("index.html#/entrar"); });
 
   // ---------- aba Provas em casa ----------
+  const CAT = {prova:["Prova","nota"], simulado:["Simulado","nota"], atividade:["Atividade","treino"], reforco:["Reforço","treino"], revisao:["Revisão","treino"], aquecimento:["Aquecimento","treino"]};
+  const catDe = t => CAT[t] || ["Atividade","treino"];
+  const clsN = v => v>=8.5?"n-good":v>=7?"n-warn":"n-bad";
+  let pvFiltro="todas", pvMat="Todas"; const pvAbertas=new Set(), pvDet={};
+  function linhasProvas(){
+    const h=hoje(), tt=extra.tentativas||[];
+    return (extra.provas||[]).map(p=>{
+      const ts=tt.filter(t=>t.provaId===p.id).sort((a,b)=>String(b.fim||b.data).localeCompare(String(a.fim||a.data)));
+      const t=ts[0]||null, [cat,grupo]=catDe(p.tipo);
+      let st, stTxt, quando;
+      if(p.arquivada && !t){ st="arq"; stTxt="Arquivada"; quando=p.liberarEm||p.criadaEm; }
+      else if(t && t.status==="aguardando"){ st="corrigir"; stTxt="Corrigir resposta escrita"; quando=t.data; }
+      else if(t){ st="feita"; stTxt="Feita"; quando=t.data; }
+      else if(p.liberarEm && p.liberarEm>h){ st="futura"; stTxt="Abre "+fmtData(p.liberarEm).slice(0,5); quando=p.liberarEm; }
+      else if(p.liberarEm && p.liberarEm<h){ st="atrasada"; stTxt="Atrasada"; quando=p.liberarEm; }
+      else { st="fazer"; stTxt="A fazer"; quando=p.liberarEm||p.criadaEm; }
+      const rapido = t && t.status==="corrigida" && p.totalQuestoes>=4 && (+t.minutos)/p.totalQuestoes <= 0.5;
+      return {p, t, ts, cat, grupo, st, stTxt, quando, rapido};
+    });
+  }
   function renderProvas(){
     const pc=extra.pendentesCorrecao||[];
     const b=$("b-corr"); b.hidden=!pc.length; b.textContent=pc.length;
-    $("p-corr").innerHTML = pc.length
-      ? `<div class="row"><h2 style="margin:0">Respostas escritas para corrigir</h2><a class="btn" href="index.html#/adulto/correcao" style="text-decoration:none">Corrigir agora (${pc.length})</a></div>`
-      : `<h2 style="margin:0 0 4px">Correção</h2><div class="tag">Nenhuma resposta escrita esperando correção.</div>`;
-    const pv=extra.provas||[];
-    $("t-provas").innerHTML = pv.length ? '<div class="tablewrap"><table><thead><tr><th>Prova</th><th>Matéria</th><th>Criada</th><th class="r">Questões</th><th class="r">Feitas</th><th></th></tr></thead><tbody>'+
-      pv.map(p=>`<tr><td>${esc(p.titulo)}${p.arquivada?' <span class="pill na">arquivada</span>':p.feitas<p.permitidas?' <span class="pill warn">pendente</span>':''}</td><td>${esc(p.materia)}</td><td class="num">${fmtData(p.criadaEm)}</td><td class="r num">${p.totalQuestoes}</td><td class="r num">${p.feitas}/${p.permitidas}</td><td class="r"><a class="lnk" href="index.html#/adulto/ver/${encodeURIComponent(p.id)}">Ver com gabarito</a>${p.feitas>=p.permitidas?` · <button class="btn ghost" data-reabrir="${esc(p.id)}">Liberar nova tentativa</button>`:""} <button class="btn ghost" data-delprova="${esc(p.id)}">Excluir</button></td></tr>`).join("")+'</tbody></table></div>'
-      : '<div class="empty">Nenhuma prova ainda.</div>';
-    const tt=extra.tentativas||[];
-    $("t-tent").innerHTML = tt.length ? '<div class="tablewrap"><table><thead><tr><th>Data</th><th>Prova</th><th>Matéria</th><th class="r">Tempo</th><th class="r">Pontos</th><th class="r">Nota</th><th></th></tr></thead><tbody>'+
-      tt.map(t=>`<tr><td class="num">${fmtData(t.data)}</td><td>${esc(t.titulo)}${t.status==="aguardando"?' <span class="pill warn">corrigir</span>':''}${t.revisaoLiberada?' <span class="pill good">revisão liberada</span>':''}</td><td>${esc(t.materia)}</td><td class="r num">${t.minutos} min</td><td class="r num">${t.pontos}/${t.max}</td><td class="r num">${f1(+t.nota)}</td><td class="r"><a class="lnk" href="index.html#/adulto/tentativa/${encodeURIComponent(t.id)}">Abrir</a></td></tr>`).join("")+'</tbody></table></div>'
-      : '<div class="empty">Quando ela entregar a primeira prova, ela aparece aqui.</div>';
+    const L=linhasProvas();
+    const mats=["Todas",...new Set(L.map(r=>r.p.materia))];
+    if(!mats.includes(pvMat)) pvMat="Todas";
+    $("pv-mat").innerHTML=mats.map(m=>`<option ${m===pvMat?"selected":""}>${esc(m)}</option>`).join("");
+    const LM=L.filter(r=>pvMat==="Todas"||r.p.materia===pvMat);
+    const sem=d=>{ const x=new Date(hoje()+"T12:00:00"); x.setDate(x.getDate()-d); return x.toISOString().slice(0,10); };
+    const feitas7=LM.filter(r=>r.t && r.t.data>=sem(6));
+    const mediaG=g=>{ const a=LM.filter(r=>r.grupo===g && r.t && r.t.status==="corrigida").sort((x,y)=>y.t.data.localeCompare(x.t.data)).slice(0,5).map(r=>+r.t.nota); return a.length?avg(a):null; };
+    const mn=mediaG("nota"), mt=mediaG("treino"), aFazer=LM.filter(r=>r.st==="fazer"||r.st==="atrasada").length, corr=LM.filter(r=>r.st==="corrigir").length;
+    const rap=feitas7.filter(r=>r.rapido).length;
+    $("pv-kpis").innerHTML=[
+      ["Para um adulto corrigir", corr, corr?"respostas escritas esperando você":"nada esperando você", corr?"n-bad":""],
+      ["A fazer ou atrasadas", aFazer, "já abertas para ela", aFazer?"n-warn":""],
+      ["Média · vale nota", mn!=null?f1(mn):"–", "últimas 5 provas e simulados", mn!=null?clsN(mn):""],
+      ["Média · treino", mt!=null?f1(mt):"–", "últimas 5 atividades", mt!=null?clsN(mt):""],
+      ["Feitas rápido demais", rap+" de "+feitas7.length, "nos últimos 7 dias (≤ 30 s por questão)", rap?"n-warn":""]
+    ].map(([l,v,f,c])=>`<div class="kpi"><span class="label">${l}</span><span class="val num ${c}">${v}</span><span class="foot">${f}</span></div>`).join("");
+    $("p-corr").hidden=!pc.length;
+    $("p-corr").innerHTML = pc.length ? `<div class="row"><div><h2 style="margin:0">${pc.length} resposta${pc.length>1?"s":""} escrita${pc.length>1?"s":""} para corrigir</h2><span class="tag">Só isso precisa do seu tempo: o resto o app corrige sozinho.</span></div><a class="btn" href="index.html#/adulto/correcao" style="text-decoration:none">Corrigir agora</a></div>` : "";
+    const FIL=[["todas","Todas"],["nota","Valem nota"],["treino","Treino"],["corrigir","Para corrigir"],["fazer","A fazer"],["feita","Feitas"],["futura","Próximas"]];
+    const passa=r=> pvFiltro==="todas" ? (r.st!=="arq"&&r.st!=="futura") : pvFiltro==="nota"||pvFiltro==="treino" ? r.grupo===pvFiltro && r.st!=="arq" : pvFiltro==="fazer" ? (r.st==="fazer"||r.st==="atrasada") : r.st===pvFiltro;
+    const cont=k=>LM.filter(r=>{ const f=pvFiltro; pvFiltro=k; const ok=passa(r); pvFiltro=f; return ok; }).length;
+    $("pv-filtros").innerHTML=FIL.map(([k,t])=>`<button class="chip" data-pvf="${k}" aria-pressed="${pvFiltro===k}">${t}<span class="n">${cont(k)}</span></button>`).join("");
+    const V=LM.filter(passa);
+    const ord={corrigir:0,atrasada:1,fazer:2,feita:3,futura:4,arq:5};
+    const sorter=(a,b)=> ord[a.st]-ord[b.st] || (a.st==="feita"||a.st==="arq" ? String(b.t?b.t.fim:b.quando).localeCompare(String(a.t?a.t.fim:a.quando)) : String(a.quando).localeCompare(String(b.quando)));
+    const linha=r=>{
+      const {p,t}=r, aberto=t&&pvAbertas.has(t.id);
+      const nota = t ? (t.status==="corrigida" ? `<div class="nota-c"><b class="${clsN(+t.nota)}">${f1(+t.nota)}</b><small>${+t.pontos} de ${+t.max} · ${t.minutos} min</small>${r.rapido?'<span class="rapido" title="Menos de 30 segundos por questão: ela pode ter chutado">⚡ rápido demais</span>':""}</div>` : `<div class="nota-c"><b class="n-warn">…</b><small>parcial ${+t.pontos} de ${+t.max}</small></div>`) : `<div class="nota-c"><small>${p.totalQuestoes} questões${p.minutos?" · "+p.minutos+" min":""}</small></div>`;
+      const mais=`<details class="pv-mais"><summary aria-label="Mais ações">⋯</summary><div class="pv-menu"><a href="index.html#/adulto/ver/${encodeURIComponent(p.id)}">Ver a prova com gabarito</a>${t?`<a href="index.html#/adulto/tentativa/${encodeURIComponent(t.id)}">Abrir correção completa</a>`:""}${p.feitas>=p.permitidas?`<button data-reabrir="${esc(p.id)}">Liberar nova tentativa</button>`:""}<button data-delprova="${esc(p.id)}">Excluir</button></div></details>`;
+      const acao = t ? `<button class="btn sec" data-pvver="${esc(t.id)}" aria-expanded="${aberto}">${aberto?"Fechar":"Ver respostas"}</button>` : "";
+      let tr=`<tr class="${r.st==="arq"?"arq":""}"><td class="num">${fmtData(r.quando)}</td><td><span class="cat ${r.grupo}">${r.grupo==="nota"?"Vale nota":"Treino"}</span></td><td class="pv-t"><b>${esc(p.titulo)}</b><small>${esc(p.materia)} · ${r.cat}${r.ts.length>1?` · ${r.ts.length} tentativas`:""}</small></td><td><span class="st ${r.st}"><i></i>${r.stTxt}</span></td><td class="r">${nota}</td><td><div class="pv-acoes">${acao}${mais}</div></td></tr>`;
+      if(aberto) tr+=`<tr class="det"><td colspan="6">${detalheHTML(t.id)}</td></tr>`;
+      return tr;
+    };
+    const grupos = pvFiltro==="todas" ? [["nota","Valem nota","provas e simulados · entram no boletim"],["treino","Treino","atividades, revisões e reforços · não valem nota"]] : [[null]];
+    const corpo = grupos.map(([g,nome,sub])=>{ const rs=V.filter(r=>g==null||r.grupo===g).sort(sorter); if(!rs.length) return ""; return (g?`<tr class="grp"><td colspan="6">${nome}<span>${sub} · ${rs.length}</span></td></tr>`:"")+rs.map(linha).join(""); }).join("");
+    $("t-provas").innerHTML = corpo ? `<div class="tablewrap"><table class="pv"><thead><tr><th>Data</th><th>Categoria</th><th>Atividade</th><th>Situação</th><th class="r">Nota</th><th></th></tr></thead><tbody>${corpo}</tbody></table></div>` : '<div class="empty">Nada neste filtro.</div>';
     const H=(extra.habilidades||[]).slice().sort((a,b)=>a.materia.localeCompare(b.materia)||a.pct-b.pct);
     $("t-hab").innerHTML = H.length ? '<div class="tablewrap"><table><thead><tr><th>Matéria</th><th>Habilidade</th><th class="r">Acertos</th><th class="r">%</th><th class="r">Provas</th><th>Situação</th></tr></thead><tbody>'+
       H.map(h=>`<tr><td>${esc(h.materia)}</td><td>${esc(h.habilidade)}</td><td class="r num">${h.certas}/${h.total}</td><td class="r num">${h.pct}%</td><td class="r num">${h.provas}</td><td>${h.total<3?'<span class="pill na">poucos dados</span>':h.pct>=80?'<span class="pill good">dominada</span>':h.pct>=60?'<span class="pill warn">atenção</span>':'<span class="pill bad">reforço</span>'}</td></tr>`).join("")+'</tbody></table></div>'
@@ -724,6 +817,34 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
     renderPlano();
     render();
   }
+  // respostas dela, questão por questão
+  const LETRAS="ABCDEFGH";
+  function questoesDe(prova){ const m={}; ((prova&&prova.blocos)||[]).forEach(b=>(b.questoes||[]).forEach(q=>{ if(q.id) m[q.id]=q; })); return m; }
+  function txtResp(q,v){ if(v==null||v==="") return "em branco"; if(q && q.tipo==="mc" && Array.isArray(q.opcoes)){ const i=LETRAS.indexOf(String(v).trim().toUpperCase()); const o=q.opcoes[i]; return o!=null? `${LETRAS[i]}) ${typeof o==="string"?o:(o.t||o.texto||"")}` : String(v); } return String(v)+(q&&q.unidade?" "+q.unidade:""); }
+  const corta=(s,n)=>{ s=String(s||"").replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim(); return s.length>n? s.slice(0,n-1)+"…" : s; };
+  function detalheHTML(tid){
+    const d=pvDet[tid];
+    if(!d) return '<span class="tag">Carregando as respostas…</span>';
+    if(d.erro) return `<span class="tag" style="color:var(--bad)">Não consegui carregar: ${esc(d.erro)}</span>`;
+    const Q=questoesDe(d.prova), R=d.respostas||[];
+    const certas=R.filter(r=>+r.pontos>=+r.max && r.status!=="pendente").length, erradas=R.filter(r=>+r.pontos<+r.max && r.status!=="pendente").length, pend=R.filter(r=>r.status==="pendente").length;
+    const top=`<div class="resp-top"><span><b class="n-good">${certas}</b> certas</span><span><b class="n-bad">${erradas}</b> erradas</span>${pend?`<span><b class="n-warn">${pend}</b> para corrigir</span>`:""}<span class="tag">${d.tentativa?`${d.tentativa.minutos} min · entregue ${fmtData(d.tentativa.data)}`:""}</span></div>`;
+    const itens=R.map(r=>{ const q=Q[r.questaoId]||{}; const ok=+r.pontos>=+r.max, pe=r.status==="pendente";
+      const cls=pe?"pend":ok?"ok":"err";
+      return `<div class="resp ${cls}"><span class="rn">${r.numero}</span><div><div class="re">${esc(corta(q.tipo==="ditado"&&q.falar?`Ditado: “${q.falar}”`:(q.enunciado||"").replace(/\*\*/g,""),220))||'<span class="tag">(sem enunciado)</span>'}</div>
+        <div class="rr"><span class="ela ${pe?"":ok?"ok":"err"}">Ela respondeu: <b>${esc(corta(txtResp(q,r.resposta),120))}</b></span>${!ok&&!pe&&r.correta!=null?`<span>Certa: <b>${esc(corta(txtResp(q,r.correta),120))}</b></span>`:""}${pe?`<span class="pill warn">esperando correção</span>`:ok?`<span class="pill good">acertou</span>`:`<span class="pill bad">errou</span>`}</div>
+        <div class="rh">${esc(r.habilidade||"")}${r.comentario?` · “${esc(r.comentario)}”`:""}</div></div></div>`; }).join("");
+    return top+`<div class="resp-l">${itens||'<span class="tag">Sem respostas registradas.</span>'}</div>`;
+  }
+  document.addEventListener("click", async e=>{
+    const f=e.target.closest("[data-pvf]"); if(f){ pvFiltro=f.dataset.pvf; renderProvas(); return; }
+    const v=e.target.closest("[data-pvver]"); if(!v) return;
+    const id=v.dataset.pvver;
+    if(pvAbertas.has(id)){ pvAbertas.delete(id); renderProvas(); return; }
+    pvAbertas.add(id); renderProvas();
+    if(!pvDet[id]){ try{ pvDet[id]=await api("tentativa",{id}); }catch(err){ pvDet[id]={erro:err.message}; } renderProvas(); }
+  });
+  document.addEventListener("change", e=>{ if(e.target.id==="pv-mat"){ pvMat=e.target.value; renderProvas(); } });
 
   // ---------- visão geral: missão, checklist, alertas, foco, semana ----------
   const NOME_CK={caderno:"Caderno",sala:"Atividades de sala",deveres:"Deveres",agenda:"Agenda",aula:"Contar a aula",estudo:"Estudo da manhã",ontem:"O que ficou devendo"};
@@ -779,14 +900,25 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
   document.addEventListener("click", e=>{ const b=e.target.closest("[data-ir]"); if(!b) return; e.preventDefault(); show(b.dataset.ir); window.scrollTo({top:0}); });
 
   // ---------- plano e constância ----------
-  const MOM = {aquecimento:"Aquecimento", frio:"Revisão (frio)", quente:"Preparar aula (quente)", missao:"Missão", prova:"Prova", simulado:"Simulado", extra:"Extra", livro:"Livro"};
+  const MOM = {aquecimento:"Aquecimento", frio:"Revisão (frio)", quente:"Preparar aula (quente)", missao:"Missão", prova:"Prova", simulado:"Simulado", extra:"Extra", livro:"Livro", video:"Aula em vídeo"};
   const DSEM = ["dom","seg","ter","qua","qui","sex","sáb"];
   function statusItem(it){
     if(it.provaId){ const p=(extra.provas||[]).find(x=>x.id===it.provaId); const t=(extra.tentativas||[]).filter(x=>x.provaId===it.provaId);
       return {feito: !!(p ? p.feitas>0 : t.length), nota: t.length ? t[0].nota : null, tid: t.length ? t[0].id : null}; }
     return {feito: state.feitos.some(f=>f._id===it.id)};
   }
-  function renderPlano(){
+
+  function renderVideos(){
+    const el=$("pl-videos"); if(!el) return;
+    const A=Object.fromEntries((state.assistidos||[]).map(a=>[a._id,a])), V=(state.videos||[]).slice().sort((a,b)=>(a.materia||"").localeCompare(b.materia||"")||(a.ordem||0)-(b.ordem||0));
+    if(!V.length){ el.innerHTML='<div class="empty">Nenhum vídeo cadastrado.</div>'; return; }
+    const noPlano={}; (state.plano||[]).forEach(p=>(p.itens||[]).forEach(it=>{ if(it.yt) noPlano[it.yt]=p._id; }));
+    const vistos=V.filter(v=>A[v._id]&&+A[v._id].pct>=80).length;
+    el.innerHTML=`<p class="tag" style="margin:6px 0 0">${vistos} de ${V.length} assistidos. Ela também pode abrir qualquer um na aba "Aprender" do app.</p><div class="tablewrap"><table><thead><tr><th>Vídeo</th><th>Matéria · assunto</th><th>No plano</th><th class="r">Assistido</th><th>Última vez</th></tr></thead><tbody>`+
+      V.map(v=>{ const a=A[v._id], pc=a?Math.round(+a.pct||0):0;
+        return `<tr><td><a class="lnk" href="index.html#/video/${encodeURIComponent(v._id)}">${esc(v.titulo)}</a><div class="tag">${esc(v.canal||"")}${v.minutos?` · ${v.minutos} min`:""}</div></td><td>${esc(v.materia)}<div class="tag">${esc(v.assunto||"")}</div></td><td class="num">${noPlano[v._id]?fmtData(noPlano[v._id]):"–"}</td><td class="r" style="min-width:120px"><div class="bar" style="height:8px"><i style="width:${pc}%;background:${pc>=80?"var(--good)":"var(--warn)"}"></i></div><span class="num tag">${pc}%</span></td><td class="num">${a&&a.data?fmtData(a.data)+(+a.vezes>1?` · ${a.vezes} dias`:""):"–"}</td></tr>`; }).join("")+'</tbody></table></div>';
+  }
+  function renderPlano(){ renderVideos();
     const h=hoje(); const dias=state.plano.slice().sort((a,b)=>a._id.localeCompare(b._id));
     const passados=dias.filter(d=>d._id<=h);
     const pct=d=>{ const it=d.itens||[]; return it.length ? it.filter(i=>statusItem(i).feito).length/it.length : 0; };

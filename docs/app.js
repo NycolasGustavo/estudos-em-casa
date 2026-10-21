@@ -62,6 +62,7 @@ async function render() {
     if (r[0] === "resultado") return await telaResultado(decodeURIComponent(r[1]));
     if (r[0] === "tabuada") return await telaTabuada(decodeURIComponent(r[1] || ""));
     if (r[0] === "revisar") return await telaRevisar();
+    if (r[0] === "video") { pararFala(); return await telaVideo(decodeURIComponent(r[1] || "")); }
     if (r[0] === "adulto" && adulto) {
       if (r[1] === "tentativa") return await telaTentativaAdulto(decodeURIComponent(r[2]));
       if (r[1] === "ver") return await telaVerProva(decodeURIComponent(r[2]));
@@ -180,6 +181,7 @@ const ICO = {
   check: '<path d="M5 12.5l4.5 4.5L19 7"/>',
   erros: '<path d="M5 3h11l3 3v15H5z"/><path d="M9 10l6 6M15 10l-6 6"/>',
   cadeado: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  aprender: '<rect x="2" y="4" width="20" height="14" rx="3"/><path d="M10 8.5v5l4.5-2.5z" fill="currentColor"/><path d="M8 21h8"/>',
   som: '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/>'
 };
 const ico = (n, s = 22) => `<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICO[n]}</svg>`;
@@ -222,7 +224,7 @@ function widgetAula() {
 setInterval(() => { const w = document.getElementById("aula-w"); if (w) w.outerHTML = widgetAula(); }, 30000);
 
 /* concha da aluna: menu lateral */
-const NAV = [["hoje", "Hoje"], ["aulas", "Agenda"], ["notas", "Minhas notas"], ["materias", "Matérias"], ["livros", "Livros"], ["erros", "Caderno de erros"]];
+const NAV = [["hoje", "Hoje"], ["aprender", "Aprender"], ["aulas", "Agenda"], ["notas", "Minhas notas"], ["materias", "Matérias"], ["livros", "Livros"], ["erros", "Caderno de erros"]];
 function concha(aba, titulo, corpo, d) {
   const of = d ? ofensiva(d) : null;
   const base = sess.papel === "adulto" ? "#/aluna/" : "#/";
@@ -266,8 +268,8 @@ async function telaAluna(aba) {
   const d = await api("inicioAluna");
   cache.aluna = d;
   const primeiro = (d.nome || sess.nome || "").split(" ")[0];
-  const T = { hoje: `Oi, <span class="hl">${esc(primeiro)}</span>!`, aulas: "Minha agenda", notas: "Minhas notas", materias: "Matérias", agenda: "Agenda", livros: "Livros", ler: "Ler em voz alta", erros: "Caderno de erros" };
-  const f = { hoje: abaHoje, aulas: abaAulas, notas: abaNotas, materias: abaMaterias, agenda: abaAgenda, livros: abaLivros, ler: abaLer, erros: abaErros }[aba];
+  const T = { hoje: `Oi, <span class="hl">${esc(primeiro)}</span>!`, aulas: "Minha agenda", notas: "Minhas notas", materias: "Matérias", agenda: "Agenda", livros: "Livros", ler: "Ler em voz alta", erros: "Caderno de erros", aprender: "Aprender com vídeos" };
+  const f = { hoje: abaHoje, aulas: abaAulas, notas: abaNotas, materias: abaMaterias, agenda: abaAgenda, livros: abaLivros, ler: abaLer, erros: abaErros, aprender: abaAprender }[aba];
   app.innerHTML = concha(aba === "ler" ? "hoje" : aba, T[aba], f(d), d);
   ligarAluna(d);
 }
@@ -295,11 +297,12 @@ function acaoItem(d, it) {
   if (it.provaId) return `<a class="btn" href="#/prova/${encodeURIComponent(it.provaId)}">${store.get("rasc-" + it.provaId) ? "Continuar" : "Começar"}</a>`;
   if (it.acao === "tabuada") return `<a class="btn" href="#/tabuada/${encodeURIComponent(it.id)}">Jogar</a>`;
   if (it.acao === "erros") return `<a class="btn" href="#/revisar">Revisar</a>`;
+  if (it.acao === "video" && it.yt) return `<a class="btn" href="${urlVideo(it.yt, it.id)}">${ico("aprender", 18)} Assistir</a>`;
   if (it.acao === "gravar" || it.acao === "ler") return `<a class="btn" href="${urlLer(it)}">Ler</a>`;
   if (it.acao === "livro") return `<button class="ghost" data-feito="${esc(it.id)}">Li hoje</button>`;
   return `<button class="ghost" data-feito="${esc(it.id)}">Marcar feito</button>`;
 }
-const MOMENTO = { aquecimento: ["Aquecimento", "#B8860B"], frio: ["Revisão de ontem · sangue frio", "#0E7C86"], quente: ["Preparar a aula de hoje · sangue quente", "#D2632A"], missao: ["Missão do dia", "#7A4FD6"], prova: ["Prova · vale nota", "#C2413A"], simulado: ["Simulado · vale nota", "#C2413A"], extra: ["Extra", "#5E6483"], livro: ["Livro", "#5E6483"] };
+const MOMENTO = { aquecimento: ["Aquecimento", "#B8860B"], frio: ["Revisão de ontem · sangue frio", "#0E7C86"], quente: ["Preparar a aula de hoje · sangue quente", "#D2632A"], missao: ["Missão do dia", "#7A4FD6"], video: ["Aula em vídeo · aprender", "#D2632A"], prova: ["Prova · vale nota", "#C2413A"], simulado: ["Simulado · vale nota", "#C2413A"], extra: ["Extra", "#5E6483"], livro: ["Livro", "#5E6483"] };
 function linhaItem(d, dia, it, i, ativo) {
   const st = estadoItem(d, dia, it);
   const m = MOMENTO[it.momento] || ["Atividade", "#5E6483"];
@@ -559,8 +562,8 @@ function minhaSemana(d) {
       const st = estadoItem(d, dia, it);
       const ic = st === "feito" ? ico("check", 15) : st === "bloqueado" ? ico("cadeado", 14) : st === "atrasado" ? "!" : st === "descartado" ? "–" : "•";
       const tit = `<span class="si-ic">${ic}</span><span class="si-t">${esc(it.titulo)}</span>`;
-      const pode = (st === "hoje" || st === "atrasado") && (it.provaId || it.acao === "tabuada" || it.acao === "gravar" || it.acao === "ler");
-      const href = it.provaId ? `#/prova/${encodeURIComponent(it.provaId)}` : it.acao === "tabuada" ? `#/tabuada/${encodeURIComponent(it.id)}` : urlLer(it);
+      const pode = (st === "hoje" || st === "atrasado") && (it.provaId || it.acao === "tabuada" || it.acao === "gravar" || it.acao === "ler" || (it.acao === "video" && it.yt));
+      const href = it.provaId ? `#/prova/${encodeURIComponent(it.provaId)}` : it.acao === "video" ? urlVideo(it.yt, it.id) : it.acao === "tabuada" ? `#/tabuada/${encodeURIComponent(it.id)}` : urlLer(it);
       return pode ? `<a class="sitem s-${st}" href="${href}">${tit}</a>` : `<div class="sitem s-${st}" ${st === "bloqueado" ? `title="Abre no dia ${dataBR(dia)}"` : ""}>${tit}</div>`;
     }).join("");
     const corAv = av ? (av.folga ? "var(--soft)" : (COR_DIA[av.cor] || [0, "var(--line)"])[1]) : "";
@@ -654,60 +657,165 @@ function graficoTempo(series, { altura = 260, meta = 8.5, compacto = false } = {
   });
   return `<svg class="tchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gráfico de notas no tempo">${g}</svg>`;
 }
-/* ---------- gráfico principal das notas (storytelling: uma mensagem, pouco ruído, rótulo direto) ---------- */
+/* ---------- Aprender: aulas em vídeo (YouTube dentro do app) ---------- */
+const MIN_ASSISTIDO = 80; // % do vídeo para contar como assistido
+const vidPct = (d, yt) => { const a = (d.assistidos || {})[yt]; return a ? Math.min(100, Math.round(+a.pct || 0)) : 0; };
+const thumb = yt => `https://i.ytimg.com/vi/${encodeURIComponent(yt)}/mqdefault.jpg`;
+const urlVideo = (yt, item) => `#/video/${encodeURIComponent(yt)}${item ? `?item=${encodeURIComponent(item)}` : ""}`;
+function cartaoVideo(d, v, item) {
+  const p = vidPct(d, v.yt), ok = p >= MIN_ASSISTIDO;
+  return `<a class="vcard ${ok ? "ok" : ""}" href="${urlVideo(v.yt, item)}" style="--mc:${corMat(v.materia)}">
+    <span class="vthumb"><img src="${thumb(v.yt)}" alt="" loading="lazy"><span class="vplay">▶</span>${v.minutos ? `<span class="vdur">${v.minutos} min</span>` : ""}${ok ? `<span class="vok">${ico("check", 16)} assistido</span>` : ""}</span>
+    <span class="vinfo"><span class="mchip" style="--mc:${corMat(v.materia)}">${esc(v.materia)}</span><b>${esc(v.titulo)}</b><span class="muted small">${esc(v.assunto || "")}${v.canal ? ` · ${esc(v.canal)}` : ""}</span>
+    <span class="vbar"><i style="width:${p}%"></i></span></span></a>`;
+}
+function abaAprender(d) {
+  const V = (d.videos || []).slice().sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+  if (!V.length) return `<div class="panel"><p class="muted">Ainda não há aulas em vídeo. Os adultos vão colocar as primeiras aqui.</p></div>`;
+  const h = d.hoje || hoje();
+  const deHoje = itensDoDia(d, h).filter(it => it.acao === "video" && it.yt).map(it => ({ it, v: V.find(x => x.yt === it.yt) || { yt: it.yt, titulo: it.titulo, materia: it.materia || "" } }));
+  const mats = [...new Set(V.map(v => v.materia))];
+  const vistos = V.filter(v => vidPct(d, v.yt) >= MIN_ASSISTIDO).length;
+  return `${deHoje.length ? `<section class="panel stack"><h2>Para hoje</h2><div class="vgrid">${deHoje.map(x => cartaoVideo(d, x.v, x.it.id)).join("")}</div></section>` : ""}
+    <p class="muted" style="margin:0">Aulas curtas de professores para você <b>aprender</b> antes de praticar. Assista com atenção: o vídeo conta como assistido quando você vê pelo menos ${MIN_ASSISTIDO}% dele. Você já assistiu <b>${vistos} de ${V.length}</b>.</p>
+    ${mats.map(m => { const vs = V.filter(v => v.materia === m); return `<section class="stack"><h2 style="color:${corMat(m)}">${esc(m)}</h2><div class="vgrid">${vs.map(v => cartaoVideo(d, v)).join("")}</div></section>`; }).join("")}`;
+}
+let ytApi = null;
+function carregarYT() {
+  if (window.YT && window.YT.Player) return Promise.resolve(window.YT);
+  if (ytApi) return ytApi;
+  ytApi = new Promise((ok, falha) => {
+    window.onYouTubeIframeAPIReady = () => ok(window.YT);
+    const s = document.createElement("script"); s.src = "https://www.youtube.com/iframe_api"; s.onerror = () => { ytApi = null; falha(new Error("Não consegui carregar o vídeo. Confira a internet.")); };
+    document.head.appendChild(s);
+  });
+  return ytApi;
+}
+const mmss = s => { s = Math.max(0, Math.floor(s || 0)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+async function telaVideo(yt) {
+  app.className = "shell-wrap";
+  const q = new URLSearchParams(location.hash.split("?")[1] || ""), itemId = q.get("item") || "";
+  const d = cache.aluna || (cache.aluna = await api("inicioAluna"));
+  const v = (d.videos || []).find(x => x.yt === yt) || { yt, titulo: "Aula em vídeo", materia: "" };
+  let item = null; (d.plano || []).forEach(p => (p.itens || []).forEach(it => { if (it.id === itemId) item = it; }));
+  const volta = sess.papel === "adulto" ? "#/aluna/" : "#/";
+  const ant = (d.assistidos || {})[yt] || {};
+  const outros = (d.videos || []).filter(x => x.materia === v.materia && x.yt !== yt).slice(0, 4);
+  const corpo = `<div class="vlay"><div class="stack">
+      <div class="vplayer" id="vp"><div id="yt-alvo"></div><div class="vescudo" id="vescudo" title="Clique para pausar ou continuar"></div>
+        <div class="vfim" id="vfim" hidden></div><div class="vcarga" id="vcarga">Carregando a aula…</div></div>
+      <div class="vctl"><button id="v-play" class="vbtn" aria-label="Tocar">▶</button><span class="vtempo" id="v-tempo">0:00 / 0:00</span>
+        <input type="range" id="v-seek" min="0" max="1000" value="0" aria-label="Posição do vídeo">
+        <button class="vbtn sm" id="v-volta" title="Voltar 10 segundos">↺ 10</button>
+        <select id="v-vel" aria-label="Velocidade"><option value="0.75">0,75×</option><option value="1" selected>1×</option><option value="1.25">1,25×</option></select>
+        <button class="vbtn sm" id="v-tela" title="Tela cheia">⛶</button></div>
+      <section class="panel stack"><span class="mchip" style="--mc:${corMat(v.materia)}">${esc(v.materia || "Aula")}</span><h2 style="margin:0">${esc(v.titulo)}</h2>
+        <span class="muted small">${esc(v.assunto || "")}${v.canal ? ` · aula do canal ${esc(v.canal)}` : ""}</span>
+        ${item && item.descricao ? `<p style="margin:0">${esc(item.descricao)}</p>` : v.porque ? `<p style="margin:0">${esc(v.porque)}</p>` : ""}</section></div>
+    <aside class="stack"><section class="panel stack"><h3>Seu progresso</h3><div class="vprog"><b id="v-pct">${Math.min(100, Math.round(+ant.pct || 0))}%</b><span class="muted small">assistido · precisa de ${MIN_ASSISTIDO}%</span></div><div class="bar" style="height:12px"><i id="v-bar" style="width:${Math.min(100, +ant.pct || 0)}%;background:var(--casa)"></i></div>
+        <p class="muted small" style="margin:0">Pular partes não conta. Se não entender, use <b>↺ 10</b> para ouvir de novo.</p>
+        <span id="v-st" class="small"></span><a class="btn ghost" href="${volta}${itemId ? "hoje" : "aprender"}">Voltar</a></section>
+      <section class="panel stack"><h3>Enquanto assiste</h3><ol class="passos"><li>Preste atenção no exemplo que o professor faz.</li><li>Se puder, anote no caderno uma coisa que você aprendeu.</li><li>No fim, conte para um adulto o que entendeu.</li></ol></section>
+      ${outros.length ? `<section class="panel stack"><h3>Mais aulas de ${esc(v.materia)}</h3>${outros.map(o => `<a class="vmini" href="${urlVideo(o.yt)}"><img src="${thumb(o.yt)}" alt="" loading="lazy"><span><b>${esc(o.titulo)}</b><span class="muted small">${vidPct(d, o.yt)}% assistido</span></span></a>`).join("")}</section>` : ""}</aside></div>`;
+  app.innerHTML = concha(itemId ? "hoje" : "aprender", "Aula em vídeo", corpo, d);
+  // assistir de verdade: conta só os segundos que tocaram
+  const vistos = new Set((ant.vistos || "").split(",").filter(Boolean).map(Number));
+  let player = null, dur = 0, timer = null, ultEnvio = 0, enviando = false, concluido = (+ant.pct || 0) >= MIN_ASSISTIDO, ultT = -1;
+  const pct = () => dur ? Math.min(100, vistos.size / Math.max(1, Math.floor(dur)) * 100) : 0;
+  const enviar = async (forcar) => {
+    if (enviando || !dur || sess.papel === "adulto") return; const agora = Date.now(); if (!forcar && agora - ultEnvio < 20000) return;
+    enviando = true; ultEnvio = agora;
+    try { await api("videoAssistido", { yt, item: itemId || undefined, pct: Math.round(pct()), duracao: Math.round(dur), vistos: [...vistos].sort((a, b) => a - b).join(","), posicao: Math.round((player && player.getCurrentTime && player.getCurrentTime()) || 0) });
+      d.assistidos = d.assistidos || {}; d.assistidos[yt] = Object.assign({}, d.assistidos[yt], { pct: Math.max(+((d.assistidos[yt] || {}).pct) || 0, Math.round(pct())), vistos: [...vistos].join(",") });
+      if (itemId && pct() >= MIN_ASSISTIDO && !d.feitos.includes(itemId)) d.feitos.push(itemId); }
+    catch (e) { const st = $("#v-st"); if (st) st.textContent = "Não salvou o progresso: " + e.message; }
+    enviando = false;
+  };
+  const atualizar = () => {
+    if (!player || !player.getCurrentTime) return;
+    const t = player.getCurrentTime() || 0; dur = player.getDuration() || dur;
+    const estado = player.getPlayerState();
+    if (estado === 1) { const s = Math.floor(t); if (ultT >= 0 && s >= ultT && s - ultT <= 3) for (let k = ultT; k <= s; k++) vistos.add(k); ultT = s; }
+    else ultT = Math.floor(t);
+    const p = Math.round(pct()), e = $("#v-pct"); if (!e) { clearInterval(timer); return; }
+    e.textContent = p + "%"; $("#v-bar").style.width = p + "%";
+    $("#v-tempo").textContent = `${mmss(t)} / ${mmss(dur)}`;
+    if (document.activeElement !== $("#v-seek")) $("#v-seek").value = dur ? Math.round(t / dur * 1000) : 0;
+    $("#v-play").textContent = estado === 1 ? "❚❚" : "▶";
+    if (!concluido && p >= MIN_ASSISTIDO) { concluido = true; enviar(true); $("#v-st").innerHTML = `<b style="color:var(--casa)">${ico("check", 16)} Aula assistida!</b> Muito bem.`; toast("Aula assistida! A Sol ganhou mais uma porção."); }
+    else enviar(false);
+  };
+  const fim = () => {
+    const f = $("#vfim"); if (!f) return; const ok = pct() >= MIN_ASSISTIDO;
+    f.hidden = false;
+    f.innerHTML = ok ? `<b>Muito bem!</b><span>Você assistiu a aula. Agora conte para um adulto o que aprendeu.</span><a class="btn" href="${volta}${itemId ? "hoje" : "aprender"}">Voltar</a>`
+      : `<b>Quase!</b><span>Você viu ${Math.round(pct())}% da aula. Para contar, precisa de ${MIN_ASSISTIDO}%: volte nas partes que pulou.</span><button id="v-denovo">Assistir de novo</button>`;
+    enviar(true);
+  };
+  try {
+    const YT = await carregarYT();
+    player = new YT.Player("yt-alvo", { host: "https://www.youtube-nocookie.com", videoId: yt,
+      playerVars: { controls: 0, rel: 0, modestbranding: 1, playsinline: 1, iv_load_policy: 3, disablekb: 1, fs: 0, cc_load_policy: 0, hl: "pt-BR", start: ant.posicao && (+ant.pct || 0) < 95 ? Math.max(0, +ant.posicao - 3) : 0 },
+      events: {
+        onReady: () => { dur = player.getDuration(); const c = $("#vcarga"); if (c) c.hidden = true; timer = setInterval(atualizar, 1000); },
+        onStateChange: e => { if (e.data === 0) fim(); else { const f = $("#vfim"); if (f && e.data === 1) f.hidden = true; } },
+        onError: () => { const c = $("#vcarga"); if (c) { c.hidden = false; c.textContent = "Este vídeo não abriu aqui. Peça para um adulto avisar o Claude."; } }
+      } });
+  } catch (e) { const c = $("#vcarga"); if (c) c.textContent = e.message; }
+  const toca = () => { if (!player || !player.getPlayerState) return; player.getPlayerState() === 1 ? player.pauseVideo() : player.playVideo(); };
+  $("#vescudo").onclick = toca; $("#v-play").onclick = toca;
+  $("#v-volta").onclick = () => player && player.seekTo(Math.max(0, player.getCurrentTime() - 10), true);
+  $("#v-seek").onchange = e => { if (player && dur) { player.seekTo(e.target.value / 1000 * dur, true); ultT = -1; } };
+  $("#v-vel").onchange = e => player && player.setPlaybackRate(Number(e.target.value));
+  $("#v-tela").onclick = () => { const vp = $("#vp"); if (document.fullscreenElement) document.exitFullscreen(); else if (vp.requestFullscreen) vp.requestFullscreen(); else if (vp.webkitRequestFullscreen) vp.webkitRequestFullscreen(); };
+  $("#vp").addEventListener("click", e => { if (e.target.id === "v-denovo") { player.seekTo(0, true); player.playVideo(); } });
+  const sair = () => { enviar(true); clearInterval(timer); window.removeEventListener("hashchange", sair); try { player && player.destroy(); } catch (e) { } };
+  window.addEventListener("hashchange", sair);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) { enviar(true); try { player && player.pauseVideo(); } catch (e) { } } }, { once: true });
+}
+
+/* ---------- gráfico principal das notas: média de cada semana, escola ao lado de casa ---------- */
 const MESC = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+function semanasDe(grupos, max = 8) {
+  const sem = {};
+  grupos.forEach((g, gi) => g.pts.forEach(p => { const s = segundaDe(p.x); (sem[s] = sem[s] || grupos.map(() => []))[gi].push(p); }));
+  return Object.keys(sem).sort().slice(-max).map(s => ({ s, por: sem[s].map(a => ({ pts: a, m: a.length ? a.reduce((t, p) => t + p.y, 0) / a.length : null })) }));
+}
 function graficoHistoria(grupos, { meta = 8.5 } = {}) {
-  const W = 760, H = 270, L = 28, R = 118, T = 16, B = 26;
-  const todos = grupos.flatMap(g => g.pts.map(p => p.x)).sort();
-  if (!todos.length) return `<p class="muted small" style="margin:8px 0">Sem notas ainda.</p>`;
-  const t0 = new Date(addDias(todos[0], -3) + "T12:00:00").getTime(), t1 = new Date(addDias(todos[todos.length - 1], 3) + "T12:00:00").getTime();
-  const X = iso => L + (new Date(iso + "T12:00:00").getTime() - t0) / Math.max(1, t1 - t0) * (W - L - R);
-  const Y = v => T + (1 - v / 10) * (H - T - B);
-  let g = "";
-  [0, 5, 10].forEach(v => g += `<text x="${L - 8}" y="${Y(v) + 4}" text-anchor="end" class="ax">${v}</text>`);
-  g += `<line x1="${L}" x2="${W - R}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--line)"/>`;
-  // meta: a única linha de referência, rotulada no começo
-  g += `<line x1="${L}" x2="${W - R}" y1="${Y(meta)}" y2="${Y(meta)}" stroke="var(--soft)" stroke-dasharray="4 4" stroke-width="1.2"/><text x="${L + 4}" y="${Y(meta) - 6}" class="ax">meta ${fmtN(meta)}</text>`;
-  // eixo x: começo de cada mês
-  const d0 = new Date(t0), d1 = new Date(t1);
-  for (let d = new Date(d0.getFullYear(), d0.getMonth() + 1, 1); d <= d1; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
-    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
-    g += `<line x1="${X(iso)}" x2="${X(iso)}" y1="${Y(0)}" y2="${Y(0) + 4}" stroke="var(--line)"/><text x="${X(iso)}" y="${H - 6}" text-anchor="middle" class="ax">${MESC[d.getMonth()]}</text>`;
-  }
-  const rotulos = [];
-  grupos.forEach(s => {
-    const pts = s.pts.slice().sort((a, b) => a.x.localeCompare(b.x) || (a.ordem || 0) - (b.ordem || 0));
-    if (!pts.length) return;
-    // tendência: média das 3 últimas notas, uma por dia (último valor do dia)
-    const porDia = []; pts.forEach((p, i) => { const m = pts.slice(Math.max(0, i - 2), i + 1).reduce((a, q) => a + q.y, 0) / Math.min(3, i + 1); const u = porDia[porDia.length - 1]; if (u && u.x === p.x) u.y = m; else porDia.push({ x: p.x, y: m }); });
-    if (porDia.length > 1) g += `<path d="${porDia.map((p, i) => (i ? "L" : "M") + X(p.x).toFixed(1) + " " + Y(p.y).toFixed(1)).join("")}" fill="none" stroke="${s.cor}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
-    pts.forEach(p => {
-      const cx = X(p.x).toFixed(1), cy = Y(p.y).toFixed(1), tip = esc(`${s.nome} · ${dataBR(p.x)} · ${p.rotulo || ""}: ${fmtN(p.y)}`);
-      g += p.prova ? `<circle cx="${cx}" cy="${cy}" r="5" fill="${s.cor}" stroke="var(--card)" stroke-width="2"/>` : `<circle cx="${cx}" cy="${cy}" r="4" fill="var(--card)" stroke="${s.cor}" stroke-width="1.8" opacity=".85"/>`;
-      g += `<circle cx="${cx}" cy="${cy}" r="12" fill="transparent" data-tip="${tip}"/>`;
+  const S = semanasDe(grupos);
+  if (!S.length) return `<p class="muted small" style="margin:8px 0">Sem notas ainda.</p>`;
+  const W = 760, H = 290, L = 30, R = 64, T = 22, B = 40, ng = grupos.length;
+  const Y = v => T + (1 - v / 10) * (H - T - B), passo = (W - L - R) / S.length, bw = Math.min(46, passo * .8 / ng);
+  let g = `<rect x="${L}" y="${Y(7)}" width="${W - L - R}" height="${Y(0) - Y(7)}" fill="var(--bad)" opacity=".05"/>`;
+  [0, 5, 7, 10].forEach(v => g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${L - 8}" y="${Y(v) + 4}" text-anchor="end" class="ax">${v}</text>`);
+  g += `<text x="${W - R + 6}" y="${Y(7) + 4}" class="ax">7 mínimo</text>`;
+  S.forEach((w, i) => {
+    const cx = L + passo * (i + .5), x0 = cx - bw * ng / 2;
+    w.por.forEach((c, gi) => {
+      if (c.m == null) return;
+      const x = x0 + gi * bw + 2, y = Y(c.m), cor = grupos[gi].cor;
+      const tip = esc(`${grupos[gi].nome} · semana de ${dataBR(w.s)} · média ${fmtN(c.m)}\n` + c.pts.map(p => `${dataBR(p.x)} ${p.rotulo || ""}: ${fmtN(p.y)}`).join("\n"));
+      g += `<rect x="${x}" y="${y}" width="${bw - 4}" height="${Y(0) - y}" rx="4" fill="${cor}" opacity="${c.m < 7 ? .55 : .9}"/>`;
+      g += `<text x="${x + (bw - 4) / 2}" y="${y - 6}" text-anchor="middle" class="ax lbl">${fmtN(c.m)}</text>`;
+      g += `<rect x="${x}" y="${T}" width="${bw - 4}" height="${Y(0) - T}" fill="transparent" data-tip="${tip}"/>`;
     });
-    const f = porDia[porDia.length - 1];
-    rotulos.push({ y: Y(f.y), cor: s.cor, nome: s.nome, m: f.y });
+    const fim = addDias(w.s, 6), atual = w.s === segundaDe(hoje());
+    g += `<text x="${cx}" y="${H - 22}" text-anchor="middle" class="ax ${atual ? "lbl" : ""}">${atual ? "esta semana" : "semana de"}</text><text x="${cx}" y="${H - 8}" text-anchor="middle" class="ax">${dataBR(w.s).slice(0, 5)} a ${dataBR(fim).slice(0, 5)}</text>`;
   });
-  // rótulo direto no fim da linha (no lugar da legenda), sem sobreposição
-  rotulos.sort((a, b) => a.y - b.y);
-  for (let i = 1; i < rotulos.length; i++) if (rotulos[i].y - rotulos[i - 1].y < 34) rotulos[i].y = rotulos[i - 1].y + 34;
-  rotulos.forEach(r => {
-    const lx = W - R + 12;
-    g += `<rect x="${lx}" y="${r.y - 12}" width="10" height="10" rx="3" fill="${r.cor}"/><text x="${lx + 15}" y="${r.y - 3}" class="ax lbl">${esc(r.nome)} ${fmtN(r.m)}</text><text x="${lx}" y="${r.y + 12}" class="ax">média recente</text>`;
-  });
-  return `<svg class="tchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Notas da escola e de casa ao longo do tempo, com a meta 8,5">${g}</svg>`;
+  g += `<line x1="${L}" x2="${W - R}" y1="${Y(meta)}" y2="${Y(meta)}" stroke="var(--sun)" stroke-dasharray="6 4" stroke-width="2"/><text x="${W - R + 6}" y="${Y(meta) + 4}" class="ax lbl">meta ${fmtN(meta)}</text>`;
+  return `<svg class="tchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Média das notas por semana, escola e casa, com a meta 8,5">${g}</svg>`;
 }
 function manchete(grupos, meta = 8.5) {
-  const est = m => m >= meta ? "você está na meta" : m >= 7 ? "você está perto da meta" : "é hora de reforçar";
-  const frases = grupos.filter(g => g.pts.length).map(g => {
-    const pts = g.pts.slice().sort((a, b) => a.x.localeCompare(b.x)), lugar = g.nome === "Escola" ? "Na escola" : "Em casa";
-    const m = pts.slice(-3).reduce((a, x) => a + x.y, 0) / Math.min(3, pts.length);
-    const provas = pts.filter(p => p.prova), up = provas[provas.length - 1];
-    if (up && up.y < 7 && m >= 7) return `${lugar}, as atividades vão bem, mas a última prova foi ${fmtN(up.y)}`;
-    return `${lugar}, ${est(m)} (${fmtN(m)})`;
-  });
-  return frases.length ? frases.join(". ") + "." : "Minhas notas ao longo do tempo";
+  const S = semanasDe(grupos);
+  const frases = grupos.map((g, gi) => {
+    const ws = S.filter(w => w.por[gi].m != null); if (!ws.length) return "";
+    const u = ws[ws.length - 1], a = ws[ws.length - 2], m = u.por[gi].m, lugar = g.nome === "Escola" ? "na escola" : "em casa";
+    const quando = u.s === segundaDe(hoje()) ? "Nesta semana" : `Na semana de ${dataBR(u.s).slice(0, 5)}`;
+    const comp = a ? (m > a.por[gi].m + .2 ? `, subiu de ${fmtN(a.por[gi].m)}` : m < a.por[gi].m - .2 ? `, caiu de ${fmtN(a.por[gi].m)}` : ", igual à semana anterior") : "";
+    const est = m >= meta ? "na meta" : m >= 7 ? "perto da meta" : "abaixo de 7: hora de reforçar";
+    return `${quando}, ${lugar}: <b>${fmtN(m)}</b> (${est}${comp})`;
+  }).filter(Boolean);
+  return frases.length ? frases.join(". ") + "." : "Minhas notas por semana";
 }
 
 document.addEventListener("mouseover", e => {
@@ -715,7 +823,7 @@ document.addEventListener("mouseover", e => {
   if (!t) { if (tip) tip.hidden = true; return; }
   if (!tip) { tip = document.createElement("div"); tip.id = "tip"; document.body.appendChild(tip); }
   tip.textContent = t.dataset.tip; tip.hidden = false; const r = t.getBoundingClientRect();
-  tip.style.left = Math.min(window.innerWidth - 260, r.left + r.width / 2 - 10) + "px"; tip.style.top = (r.top + window.scrollY - 40) + "px";
+  tip.style.left = Math.min(window.innerWidth - 260, r.left + r.width / 2 - 10) + "px"; tip.style.top = Math.max(window.scrollY + 4, r.top + window.scrollY - tip.offsetHeight - 8) + "px";
 });
 
 /* ---------- Minhas notas ---------- */
@@ -755,13 +863,11 @@ function abaNotas(d) {
   const VER = [["todas", "Todas"], ["prova", "Só provas"], ["atividade", "Só atividades"], ["escola", "Só escola"], ["casa", "Só casa"]];
   return `<div class="row between"><div class="chips">${mats.map(m => `<button data-fmat="${esc(m)}" class="${m === filtroMat ? "on" : ""}">${esc(m)}</button>`).join("")}</div><span class="muted small">Notas de 0 a 10 · meta 8,5 · abaixo de 7 = hora de reforçar</span></div>
    <div class="ntiles">${tiles}</div>
-   <div class="notas-grid"><section class="panel stack"><div class="row between"><span class="muted small" style="font-weight:700;letter-spacing:.02em">MINHAS NOTAS AO LONGO DO TEMPO</span><div class="seg">${VER.map(([k, t]) => `<button data-nver="${k}" class="${notasVer === k ? "on" : ""}">${t}</button>`).join("")}</div></div>
+   <div class="notas-grid"><section class="panel stack"><div class="row between"><span class="muted small" style="font-weight:700;letter-spacing:.02em">MINHAS NOTAS SEMANA A SEMANA</span><div class="seg">${VER.map(([k, t]) => `<button data-nver="${k}" class="${notasVer === k ? "on" : ""}">${t}</button>`).join("")}</div></div>
       <h3 style="margin:0;line-height:1.3">${manchete(grupos)}</h3>
-      <p class="muted small" style="margin:0">Cada bolinha é uma nota. <svg width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="4.5" fill="var(--soft)"/></svg> cheia = prova ou simulado · <svg width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="4" fill="none" stroke="var(--soft)" stroke-width="2"/></svg> vazia = atividade. A média recente é a das 3 últimas notas.</p>
+      <div class="leg-sem"><span><i style="background:var(--escola)"></i>Escola</span><span><i style="background:var(--casa)"></i>Casa</span><span><i class="tr"></i>meta 8,5</span></div><p class="muted small" style="margin:0">Cada barra é a <b>média da semana</b>. Barra apagada = média abaixo de 7. Passe o dedo ou o mouse na barra para ver cada nota.</p>
       ${graficoHistoria(grupos)}</section>
     <section class="panel stack"><h3>Média por matéria</h3><p class="muted small" style="margin:0">Todas as notas. A risquinha é a meta 8,5.</p>${barras}</section></div>
-   <h3 style="margin:4px 0 0">Cada tipo separado</h3>
-   <div class="nsmall">${SERIES_NOTA.map(s => `<section class="panel stack"><span class="nt-h">${amostra(s)}<b>${s.nome}</b></span>${graficoTempo([Object.assign({}, s, { pts: de(s).map(n => ({ x: n.data, y: n.nota, rotulo: n.titulo || n.tipo })) })], { altura: 170, compacto: true })}</section>`).join("")}</div>
    <section class="panel stack"><h3>Todas as notas</h3><div class="nlist">${notas.map(n => { const s = SERIES_NOTA.find(x => x.origem === n.origem && x.classe === n.classe); const l = `<span class="nl-d">${dataBR(n.data)}</span><span class="nl-o" style="--w:var(--${n.origem})">${n.origem === "casa" ? "Casa" : "Escola"}</span><span class="nl-t"><b>${esc(n.titulo || n.tipo)}</b><small>${amostra(s)} ${esc(n.materia)} · ${esc(n.tipo)}${n.classe === "prova" ? " · vale nota" : ""}</small></span><span class="nl-n ${clsNota(n.nota)}">${fmtN(n.nota)}</span>`; return n.tentativa ? `<a class="nl" href="#/resultado/${encodeURIComponent(n.tentativa)}">${l}</a>` : `<div class="nl">${l}</div>`; }).join("") || `<p class="muted">Nenhuma nota ainda.</p>`}</div></section>`;
 }
 
