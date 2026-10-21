@@ -302,7 +302,7 @@ function acaoItem(d, it) {
   if (it.acao === "livro") return `<button class="ghost" data-feito="${esc(it.id)}">Li hoje</button>`;
   return `<button class="ghost" data-feito="${esc(it.id)}">Marcar feito</button>`;
 }
-const MOMENTO = { aquecimento: ["Aquecimento", "#B8860B"], frio: ["Revisão de ontem · sangue frio", "#0E7C86"], quente: ["Preparar a aula de hoje · sangue quente", "#D2632A"], missao: ["Missão do dia", "#7A4FD6"], video: ["Aula em vídeo · aprender", "#D2632A"], prova: ["Prova · vale nota", "#C2413A"], simulado: ["Simulado · vale nota", "#C2413A"], extra: ["Extra", "#5E6483"], livro: ["Livro", "#5E6483"] };
+const MOMENTO = { aquecimento: ["Aquecimento", "#B8860B"], frio: ["Revisão de ontem · sangue frio", "#0E7C86"], quente: ["Preparar a aula de hoje · sangue quente", "#D2632A"], missao: ["Missão do dia", "#7A4FD6"], video: ["Aula em vídeo · aprender", "#D2632A"], ingles: ["Inglês", "#0E7C86"], recuperacao: ["Recuperação dos erros", "#B7791F"], prova: ["Prova · vale nota", "#C2413A"], simulado: ["Simulado · vale nota", "#C2413A"], extra: ["Extra", "#5E6483"], livro: ["Livro", "#5E6483"] };
 function linhaItem(d, dia, it, i, ativo) {
   const st = estadoItem(d, dia, it);
   const m = MOMENTO[it.momento] || ["Atividade", "#5E6483"];
@@ -474,7 +474,7 @@ async function telaRevisar() {
     const e = qs[i], q = e.questao, tipo = q.tipo || "mc";
     let corpo;
     if (tipo === "mc") corpo = `<div class="opts">${(q.opcoes || []).map((o, j) => { const L = "ABCDEFG"[j]; return `<button class="opt optb ${valor === L ? "sel" : ""} ${res && valor === L ? (res.certo ? "certa" : "errada") : ""}" data-rv="${L}" ${res ? "disabled" : ""}><span class="l">${L}</span><span>${esc(o)}</span></button>`; }).join("")}</div>`;
-    else corpo = `<div class="row">${tipo === "ditado" ? `<button class="ouvir" data-fala="${esc(q.falar || "")}">${ico("som", 18)} Ouvir</button>` : ""}<div class="resp-in"><input id="rv-in" value="${esc(valor)}" placeholder="Sua resposta" autocomplete="off" spellcheck="false" ${res ? "readonly" : ""}>${q.unidade ? `<span>${esc(q.unidade)}</span>` : ""}</div></div>`;
+    else corpo = `<div class="row">${tipo === "ditado" || q.falar ? `<button class="ouvir" data-fala="${esc(q.falar || "")}" data-lang="${esc(q.lang || "pt-BR")}">${ico("som", 18)} Ouvir</button>` : ""}<div class="resp-in"><input id="rv-in" value="${esc(valor)}" placeholder="Sua resposta" autocomplete="off" spellcheck="false" ${res ? "readonly" : ""}>${q.unidade ? `<span>${esc(q.unidade)}</span>` : ""}</div></div>`;
     const fb = res ? `<div class="fb ${res.certo ? "ok" : "no"}">${res.certo ? (res.resolvido ? "<b>Venceu!</b> Essa questão saiu do caderno." : `<b>Isso mesmo!</b> Ela volta no dia ${dataBR(res.proxima)} para você confirmar.`) : `<b>Ainda não.</b> A resposta certa é <b>${esc(res.correta)}</b>. Ela volta amanhã.`}${res.explicacao ? `<div style="margin-top:6px">${md(res.explicacao)}</div>` : ""}</div>` : "";
     app.innerHTML = `<div class="ptop"><div class="row between"><b style="font-family:var(--display);color:var(--accent)">Caderno de erros</b><span class="muted">${i + 1} de ${qs.length}</span></div><div class="pbar"><i style="width:${(i + (res ? 1 : 0)) / qs.length * 100}%"></i></div></div>
       <div class="stack" style="max-width:900px;margin:0 auto">
@@ -487,7 +487,7 @@ async function telaRevisar() {
   app.onkeydown = ev => { if (ev.key === "Enter" && ev.target.id === "rv-in") { const b = $("#rv-ok"); if (b) b.click(); } };
   app.onclick = async ev => {
     const b = ev.target.closest("button"); if (!b) return;
-    if (b.dataset.fala != null) { falar(b.dataset.fala); return; }
+    if (b.dataset.fala != null) { falar(b.dataset.fala, b.dataset.lang || "pt-BR"); return; }
     if (b.dataset.rv) { valor = b.dataset.rv; desenha(); return; }
     if (b.id === "rv-ok") {
       const inp = $("#rv-in"); if (inp) valor = inp.value;
@@ -1111,6 +1111,7 @@ function renderQuestao(q, valor, modo, info) {
   } else {
     corpo = `<div class="resp-in"><input data-q="${esc(q.id)}" ${tipo === "numero" ? 'inputmode="decimal"' : ""} value="${esc(valor || "")}" placeholder="Resposta" autocomplete="off" ${modo === "revisao" ? "readonly" : ""}>${q.unidade ? `<span>${esc(q.unidade)}</span>` : ""}</div>`;
   }
+  if (q.falar && tipo !== "ditado") corpo = `<div class="row" style="margin-bottom:8px"><button class="ouvir" type="button" data-fala="${esc(q.falar)}" data-lang="${esc(q.lang || "pt-BR")}">${ico("som", 18)} Ouvir</button></div>` + corpo;
   let rodape = "";
   if (modo === "revisao" && info) {
     const st = info.status === "pendente" ? `<span class="tag warn">esperando correção</span>` : Number(info.pontos) >= Number(info.max) ? `<span class="tag ok">certo</span>` : `<span class="tag bad">errado</span>`;
@@ -1215,7 +1216,24 @@ async function telaProva(id) {
         : `<div class="nav"><button class="ghost" id="voltar">Voltar</button><button id="entregar">Entregar</button></div>`}</div>`;
     }
     app.innerHTML = html;
+    trava(false);
   }
+  // trava contra chute: cada parte só libera o "Próximo" depois de um tempo mínimo de leitura
+  const SEG_Q = Number(p.segundosPorQuestao) || (VALE_NOTA(p.tipo) ? 20 : 15), SEG_LICAO = 10;
+  st.tb = st.tb || {};
+  function chaveTrava() { if (st.etapa === -2) return "l" + Math.min(st.li || 0, p.licao.length - 1); if (st.etapa >= 0 && st.etapa < (p.blocos || []).length) return "b" + st.etapa; return null; }
+  function exigido(k) { if (k[0] === "l") { const sec = p.licao[Number(k.slice(1))] || {}; return sec.tipo === "jogo" || sec.tipo === "pratica" || sec.tipo === "cartoes" ? 0 : SEG_LICAO; } const n = qs.filter(q => q.bloco === Number(k.slice(1))).length; return Math.min(150, n * SEG_Q); }
+  function trava(conta) {
+    if (sess.papel === "adulto") return;
+    const k = chaveTrava(); if (!k) return;
+    if (conta && !document.hidden) { st.tb[k] = (st.tb[k] || 0) + 1; if (st.tb[k] % 5 === 0) salvar(); }
+    const b = $(k[0] === "l" ? "#l-prox" : "#prox"); if (!b) return;
+    if (!b.dataset.lbl) b.dataset.lbl = b.textContent;
+    const falta = exigido(k) - (st.tb[k] || 0);
+    if (falta > 0) { b.disabled = true; b.textContent = k[0] === "l" ? `Leia com atenção · ${falta}s` : `Responda com calma · ${falta}s`; b.title = "O botão libera sozinho. Use o tempo para ler de novo e conferir."; }
+    else if (b.disabled) { b.disabled = false; b.textContent = b.dataset.lbl; b.title = ""; }
+  }
+  const relogio = setInterval(() => { if (!document.body.contains(app) || !location.hash.startsWith("#/prova/")) { clearInterval(relogio); return; } trava(true); }, 1000);
   function barra() {
     const pct = Math.round(resp() / qs.length * 100);
     return `<div class="ptop"><div class="row between"><b style="font-family:var(--display);color:var(--accent)">${esc(p.titulo)}</b><span class="muted" id="cont">${resp()}/${qs.length}</span></div><div class="pbar"><i style="width:${pct}%"></i></div></div>`;
@@ -1280,7 +1298,9 @@ async function telaResultado(tid) {
     revisao = `<div class="stack"><h2>Revisão da prova</h2>${(d.prova.blocos || []).map(b => `${b.lead ? `<div class="lead">${esc(b.lead)}</div>` : ""}${renderTexto(b.texto)}${(b.questoes || []).map(q => renderQuestao(q, d.respostasMarcadas[q.id], "revisao", info[q.id])).join("")}`).join("")}</div>`;
   }
   const extra = sess.papel === "adulto" ? `<a class="btn ghost mini" href="#/adulto/tentativa/${encodeURIComponent(tid)}">Ver como adulto</a>` : "";
-  app.innerHTML = topo(extra) + `<div class="stack">
+  const refazer = (cache.ultimo && cache.ultimo.tentativaId === tid) ? !!cache.ultimo.refazer : (!VALE_NOTA(t.tipo) && qs.length >= 4 && Number(t.minutos) * 60 <= qs.length * 30);
+  const avisoRapido = refazer ? `<div class="confirm" style="border-style:solid;border-color:var(--sun)"><h3 style="margin:0 0 4px">Foi rápido demais</h3><p style="margin:0">Você levou ${t.minutos} minuto${t.minutos > 1 ? "s" : ""} para ${qs.length} questões. Assim não dá para aprender. Essa atividade <b>volta para você refazer com calma</b>: leia a explicação, ouça e responda de novo.</p></div>` : "";
+  app.innerHTML = topo(extra) + `<div class="stack">${avisoRapido}
     <div class="panel"><div class="row" style="gap:22px">${anel(t.nota)}<div class="stack" style="gap:6px;flex:1;min-width:200px"><span class="mchip" style="--mc:${corMat(t.materia)};justify-self:start">${esc(t.materia)}</span><h2>${esc(msg)}</h2><p class="muted">${esc(t.titulo)} · ${t.pontos} de ${t.max} pontos · ${t.minutos} min</p></div></div></div>
     <div class="panel stack"><h3>Acertos por assunto</h3><div class="list">${barrasAssunto(d.respostas)}</div></div>
     <div class="panel stack"><h3>Como foi cada questão</h3><div class="review">${qs.map(cel).join("")}</div>

@@ -39,7 +39,11 @@ Cada prova é um JSON gravado em `app.provas.conteudo` no Supabase. O gabarito f
 
 ## Tipos de questão
 
-Todas aceitam `enunciado`, `habilidade`, `assunto`, `bncc`, `pontos` (padrão 1), `explicacao` (aparece na revisão), `apoio` (texto de apoio só da questão).
+Todas aceitam `enunciado`, `habilidade`, `assunto`, `bncc`, `pontos` (padrão 1), `explicacao` (aparece na revisão), `apoio` (texto de apoio só da questão) e `falar` + `lang` (mostra o botão Ouvir; `lang: "en-US"` para inglês).
+
+O `ditado` compara o texto exato (sem diferenciar maiúsculas). Para palavra com acento ou til, use `curta` com `falar`, `aceitas` e `ignorarAcentos: true`.
+
+Trava contra chute: em cada bloco, o botão de seguir só libera depois de 15 s por questão (20 s em prova e simulado; mude com `segundosPorQuestao`), e cada parte da lição pede 10 s. Atividade que não vale nota feita com 30 s ou menos por questão (contando a lição) volta uma vez para ela refazer.
 
 | tipo | correção | campos |
 |---|---|---|
@@ -76,6 +80,9 @@ Questão `ditado` (nos blocos): `{tipo:"ditado", falar:"palavra", correta:"palav
   {"id":"<id da prova>","momento":"frio|quente|missao|prova|simulado|extra","titulo":"...","minutos":10,"provaId":"<id da prova>"},
   {"id":"2026-10-16-gravar","momento":"extra","titulo":"Gravar a leitura","acao":"gravar","texto":"texto para ler"},
   {"id":"2026-10-16-livro","momento":"livro","titulo":"Ler o meu livro","acao":"livro"}]}
+```
+Momentos: aquecimento, frio, quente, missao, video, ingles, recuperacao, prova, simulado, extra, livro.
+```
 ```
 Aula em vídeo no plano: `{"id":"2026-10-22-video-<yt>","momento":"video","acao":"video","yt":"<id de 11 letras do YouTube>","titulo":"Aula: ...","minutos":8,"materia":"Matemática","descricao":"..."}`. Ela assiste dentro do app (player sem links para o YouTube) e o item fica feito quando ela vê 80% do vídeo; pular partes não conta.
 

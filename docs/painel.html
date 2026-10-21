@@ -900,7 +900,7 @@ tr.det td{background:var(--bg);padding:12px 14px}
   document.addEventListener("click", e=>{ const b=e.target.closest("[data-ir]"); if(!b) return; e.preventDefault(); show(b.dataset.ir); window.scrollTo({top:0}); });
 
   // ---------- plano e constância ----------
-  const MOM = {aquecimento:"Aquecimento", frio:"Revisão (frio)", quente:"Preparar aula (quente)", missao:"Missão", prova:"Prova", simulado:"Simulado", extra:"Extra", livro:"Livro", video:"Aula em vídeo"};
+  const MOM = {aquecimento:"Aquecimento", frio:"Revisão (frio)", quente:"Preparar aula (quente)", missao:"Missão", prova:"Prova", simulado:"Simulado", extra:"Extra", livro:"Livro", video:"Aula em vídeo", ingles:"Inglês", recuperacao:"Recuperação"};
   const DSEM = ["dom","seg","ter","qua","qui","sex","sáb"];
   function statusItem(it){
     if(it.provaId){ const p=(extra.provas||[]).find(x=>x.id===it.provaId); const t=(extra.tentativas||[]).filter(x=>x.provaId===it.provaId);
