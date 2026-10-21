@@ -91,5 +91,5 @@ Documento em `app.docs` col `dias`, id = data: `{data, cor, folga, itens:{cadern
 
 ## Aulas em vídeo (`app.docs`, col `videos`, id = id do YouTube)
 
-`{titulo, canal, materia, assunto, minutos, ordem, porque, oculto?}`. Aparecem na aba **Aprender** do app, agrupadas por matéria. Antes de cadastrar, confira que o vídeo permite incorporação (`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=<id>&format=json` responde 200).
+`{titulo, canal, materia, assunto, minutos, ordem, porque, oculto?}`. Aparecem na aba **Aprender** do app, agrupadas por matéria. Antes de cadastrar, confira que o vídeo permite incorporação (`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=<id>&format=json` responde 200). O player usa o host youtube.com (o youtube-nocookie devolve erro 150 nesses vídeos). Vídeos monetizados podem mostrar propaganda antes da aula.
 O quanto ela assistiu fica em col `assistidos` (id = id do vídeo): `{pct, duracao, vistos, posicao, data, vezes}`.

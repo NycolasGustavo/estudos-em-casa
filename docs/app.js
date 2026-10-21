@@ -703,7 +703,7 @@ async function telaVideo(yt) {
   const outros = (d.videos || []).filter(x => x.materia === v.materia && x.yt !== yt).slice(0, 4);
   const corpo = `<div class="vlay"><div class="stack">
       <div class="vplayer" id="vp"><div id="yt-alvo"></div><div class="vescudo" id="vescudo" title="Clique para pausar ou continuar"></div>
-        <div class="vfim" id="vfim" hidden></div><div class="vcarga" id="vcarga">Carregando a aula…</div></div>
+        <div class="vfim" id="vfim" hidden></div><div class="vanuncio" id="vanuncio" hidden>Propaganda do YouTube. Espere terminar: a aula começa logo depois.</div><div class="vcarga" id="vcarga">Carregando a aula…</div></div>
       <div class="vctl"><button id="v-play" class="vbtn" aria-label="Tocar">▶</button><span class="vtempo" id="v-tempo">0:00 / 0:00</span>
         <input type="range" id="v-seek" min="0" max="1000" value="0" aria-label="Posição do vídeo">
         <button class="vbtn sm" id="v-volta" title="Voltar 10 segundos">↺ 10</button>
@@ -720,7 +720,7 @@ async function telaVideo(yt) {
   app.innerHTML = concha(itemId ? "hoje" : "aprender", "Aula em vídeo", corpo, d);
   // assistir de verdade: conta só os segundos que tocaram
   const vistos = new Set((ant.vistos || "").split(",").filter(Boolean).map(Number));
-  let player = null, dur = 0, timer = null, ultEnvio = 0, enviando = false, concluido = (+ant.pct || 0) >= MIN_ASSISTIDO, ultT = -1;
+  let player = null, dur = 0, timer = null, ultEnvio = 0, enviando = false, concluido = (+ant.pct || 0) >= MIN_ASSISTIDO, ultT = -1, querTocar = false, esperando = 0;
   const pct = () => dur ? Math.min(100, vistos.size / Math.max(1, Math.floor(dur)) * 100) : 0;
   const enviar = async (forcar) => {
     if (enviando || !dur || sess.papel === "adulto") return; const agora = Date.now(); if (!forcar && agora - ultEnvio < 20000) return;
@@ -735,6 +735,7 @@ async function telaVideo(yt) {
     if (!player || !player.getCurrentTime) return;
     const t = player.getCurrentTime() || 0; dur = player.getDuration() || dur;
     const estado = player.getPlayerState();
+    const an = $("#vanuncio"); if (an) { if (querTocar && estado !== 1 && estado !== 2 && estado !== 0) { esperando++; an.hidden = esperando < 3; } else { esperando = 0; an.hidden = true; } }
     if (estado === 1) { const s = Math.floor(t); if (ultT >= 0 && s >= ultT && s - ultT <= 3) for (let k = ultT; k <= s; k++) vistos.add(k); ultT = s; }
     else ultT = Math.floor(t);
     const p = Math.round(pct()), e = $("#v-pct"); if (!e) { clearInterval(timer); return; }
@@ -754,7 +755,7 @@ async function telaVideo(yt) {
   };
   try {
     const YT = await carregarYT();
-    player = new YT.Player("yt-alvo", { host: "https://www.youtube-nocookie.com", videoId: yt,
+    player = new YT.Player("yt-alvo", { host: "https://www.youtube.com", videoId: yt,
       playerVars: { controls: 0, rel: 0, modestbranding: 1, playsinline: 1, iv_load_policy: 3, disablekb: 1, fs: 0, cc_load_policy: 0, hl: "pt-BR", start: ant.posicao && (+ant.pct || 0) < 95 ? Math.max(0, +ant.posicao - 3) : 0 },
       events: {
         onReady: () => { dur = player.getDuration(); const c = $("#vcarga"); if (c) c.hidden = true; timer = setInterval(atualizar, 1000); },
@@ -762,7 +763,7 @@ async function telaVideo(yt) {
         onError: () => { const c = $("#vcarga"); if (c) { c.hidden = false; c.textContent = "Este vídeo não abriu aqui. Peça para um adulto avisar o Claude."; } }
       } });
   } catch (e) { const c = $("#vcarga"); if (c) c.textContent = e.message; }
-  const toca = () => { if (!player || !player.getPlayerState) return; player.getPlayerState() === 1 ? player.pauseVideo() : player.playVideo(); };
+  const toca = () => { if (!player || !player.getPlayerState) return; if (player.getPlayerState() === 1) { querTocar = false; player.pauseVideo(); } else { querTocar = true; player.playVideo(); } };
   $("#vescudo").onclick = toca; $("#v-play").onclick = toca;
   $("#v-volta").onclick = () => player && player.seekTo(Math.max(0, player.getCurrentTime() - 10), true);
   $("#v-seek").onchange = e => { if (player && dur) { player.seekTo(e.target.value / 1000 * dur, true); ultT = -1; } };
