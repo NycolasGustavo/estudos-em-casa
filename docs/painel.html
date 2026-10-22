@@ -825,6 +825,11 @@ tr.det td{background:var(--bg);padding:12px 14px}
   function questoesDe(prova){ const m={}; ((prova&&prova.blocos)||[]).forEach(b=>(b.questoes||[]).forEach(q=>{ if(q.id) m[q.id]=q; })); return m; }
   function txtResp(q,v){ if(v==null||v==="") return "em branco"; if(q && q.tipo==="mc" && Array.isArray(q.opcoes)){ const i=LETRAS.indexOf(String(v).trim().toUpperCase()); const o=q.opcoes[i]; return o!=null? `${LETRAS[i]}) ${typeof o==="string"?o:(o.t||o.texto||"")}` : String(v); } return String(v)+(q&&q.unidade?" "+q.unidade:""); }
   const corta=(s,n)=>{ s=String(s||"").replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim(); return s.length>n? s.slice(0,n-1)+"…" : s; };
+  function racHTML(rc){ if(!rc) return ""; const p=[];
+    if(rc.pense) p.push(`Pare e pense: ${rc.ok1?'<b class="n-good">acertou o tipo de primeira</b>':`errou o tipo primeiro (${esc((rc.escolhas||[]).join(" → "))})`}`);
+    if(rc.conta) p.push(`conta escrita: <b>${esc(rc.conta)}</b>`);
+    if(rc.conferiu) p.push(`conferiu ${rc.conferiu}x${(rc.respostas||[]).length>1?` (tentativas: ${esc(rc.respostas.join(" → "))})`:""}`);
+    return p.length?`<div class="rh">${p.join(" · ")}</div>`:""; }
   function detalheHTML(tid){
     const d=pvDet[tid];
     if(!d) return '<span class="tag">Carregando as respostas…</span>';
@@ -836,7 +841,7 @@ tr.det td{background:var(--bg);padding:12px 14px}
       const cls=pe?"pend":ok?"ok":"err";
       return `<div class="resp ${cls}"><span class="rn">${r.numero}</span><div><div class="re">${esc(corta(q.tipo==="ditado"&&q.falar?`Ditado: “${q.falar}”`:(q.enunciado||"").replace(/\*\*/g,""),220))||'<span class="tag">(sem enunciado)</span>'}</div>
         <div class="rr"><span class="ela ${pe?"":ok?"ok":"err"}">Ela respondeu: <b>${esc(corta(txtResp(q,r.resposta),120))}</b></span>${!ok&&!pe&&r.correta!=null?`<span>Certa: <b>${esc(corta(txtResp(q,r.correta),120))}</b></span>`:""}${pe?`<span class="pill warn">esperando correção</span>`:ok?`<span class="pill good">acertou</span>`:`<span class="pill bad">errou</span>`}</div>
-        <div class="rh">${esc(r.habilidade||"")}${r.comentario?` · “${esc(r.comentario)}”`:""}</div></div></div>`; }).join("");
+        <div class="rh">${esc(r.habilidade||"")}${r.comentario?` · “${esc(r.comentario)}”`:""}</div>${racHTML(r.raciocinio)}</div></div>`; }).join("");
     return top+`<div class="resp-l">${itens||'<span class="tag">Sem respostas registradas.</span>'}</div>`;
   }
   document.addEventListener("click", async e=>{

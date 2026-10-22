@@ -61,6 +61,7 @@ async function render() {
     if (r[0] === "prova") return await telaProva(decodeURIComponent(r[1]));
     if (r[0] === "resultado") return await telaResultado(decodeURIComponent(r[1]));
     if (r[0] === "tabuada") return await telaTabuada(decodeURIComponent(r[1] || ""));
+    if (r[0] === "pausa") return await telaPausa(decodeURIComponent(r[1] || ""));
     if (r[0] === "revisar") return await telaRevisar();
     if (r[0] === "video") { pararFala(); return await telaVideo(decodeURIComponent(r[1] || "")); }
     if (r[0] === "adulto" && adulto) {
@@ -158,6 +159,7 @@ const diasAte = d => Math.round((new Date(d + "T12:00:00") - new Date(hoje() + "
 const quando = n => n === 0 ? "hoje" : n === 1 ? "amanhã" : n > 1 ? `em ${n} dias` : n === -1 ? "ontem" : `há ${-n} dias`;
 const TIPO_PROVA = { simulado: "Simulado", prova: "Prova", atividade: "Atividade", revisao: "Revisão", aquecimento: "Aquecimento", reforco: "Reforço" };
 const VALE_NOTA = t => t === "prova" || t === "simulado";
+const CHECK_ENTREGA = [["li", "Li cada pergunta com calma, até o fim."], ["tipo", "Nos problemas, vi se era juntar, tirar, comparar, repartir ou vezes."], ["conferi", "Conferi as contas e as respostas antes de entregar."]];
 const DIAS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 const AULAS = { 1: ["Disciplinar", "Educação Física"], 2: ["Inglês", "PLE · Leitura e Escrita"], 3: ["Artes", "Informática"], 4: ["Português"], 5: ["Matemática"] };
 const MANHA = {
@@ -300,16 +302,18 @@ function acaoItem(d, it) {
   if (it.acao === "video" && it.yt) return `<a class="btn" href="${urlVideo(it.yt, it.id)}">${ico("aprender", 18)} Assistir</a>`;
   if (it.acao === "gravar" || it.acao === "ler") return `<a class="btn" href="${urlLer(it)}">Ler</a>`;
   if (it.acao === "livro") return `<button class="ghost" data-feito="${esc(it.id)}">Li hoje</button>`;
+  if (it.acao === "pausa") return `<a class="btn" href="#/pausa/${encodeURIComponent(it.id)}">Fazer a pausa</a>`;
   if (it.acao === "meensina") return `<span class="trava">${ico("check", 18)} Um adulto marca à tarde</span>`;
   return `<button class="ghost" data-feito="${esc(it.id)}">Marcar feito</button>`;
 }
-const MOMENTO = { aquecimento: ["Aquecimento", "#B8860B"], frio: ["Revisão de ontem · sangue frio", "#0E7C86"], quente: ["Preparar a aula de hoje · sangue quente", "#D2632A"], missao: ["Missão do dia", "#7A4FD6"], video: ["Aula em vídeo · aprender", "#D2632A"], ingles: ["Inglês", "#0E7C86"], meensina: ["Me ensina · com um adulto", "#2F7D4F"], recuperacao: ["Recuperação dos erros", "#B7791F"], prova: ["Prova · vale nota", "#C2413A"], simulado: ["Simulado · vale nota", "#C2413A"], extra: ["Extra", "#5E6483"], livro: ["Livro", "#5E6483"] };
-function linhaItem(d, dia, it, i, ativo) {
+const MOMENTO = { aquecimento: ["Aquecimento", "#B8860B"], frio: ["Revisão de ontem · sangue frio", "#0E7C86"], quente: ["Preparar a aula de hoje · sangue quente", "#D2632A"], missao: ["Missão do dia", "#7A4FD6"], video: ["Aula em vídeo · aprender", "#D2632A"], ingles: ["Inglês", "#0E7C86"], meensina: ["Me ensina · com um adulto", "#2F7D4F"], pausa: ["Pausa ativa · mexa o corpo", "#2F7D4F"], recuperacao: ["Recuperação dos erros", "#B7791F"], prova: ["Prova · vale nota", "#C2413A"], simulado: ["Simulado · vale nota", "#C2413A"], extra: ["Extra", "#5E6483"], livro: ["Livro", "#5E6483"] };
+function linhaItem(d, dia, it, i, ativo, depoisPausa) {
   const st = estadoItem(d, dia, it);
   const m = MOMENTO[it.momento] || ["Atividade", "#5E6483"];
   let botao;
   if (st === "feito") botao = `<span class="feito">${ico("check", 18)} Feito</span>`;
   else if (st === "bloqueado") botao = `<span class="trava">${ico("cadeado", 18)} Abre ${DCURTO[diaSem(dia)].toLowerCase()} ${dataBR(dia)}</span>`;
+  else if (depoisPausa) botao = `<span class="trava">${ico("cadeado", 18)} Depois da pausa</span>`;
   else botao = acaoItem(d, it);
   return `<div class="item ${st === "feito" ? "ok" : ""} ${st === "bloqueado" ? "lock" : ""} ${ativo ? "ativo" : ""}"><div class="inum">${st === "feito" ? ico("check", 20) : st === "bloqueado" ? ico("cadeado", 18) : i + 1}</div>
     <div class="ibody"><span class="mom" style="--mm:${m[1]}">${m[0]}${it.minutos ? ` · ${it.minutos} min` : ""}</span><b>${esc(it.titulo)}</b>${it.descricao ? `<span class="muted small">${esc(it.descricao)}</span>` : ""}</div>${botao}</div>`;
@@ -527,7 +531,7 @@ function abaHoje(d) {
     estudo = `<section class="painel-mundo" style="--w:var(--casa)">${faixa("casa", `Estudo de hoje · ${plano.minutos || 45} minutos`)}
       <div class="pm-corpo"><span class="muted">${feitos === manha.length ? "<b>Tudo feito hoje! Parabéns!</b>" : `Faça na ordem, de cima para baixo. ${feitos} de ${manha.length} feitos.`}</span>
       <div class="bar" style="height:12px"><i style="width:${feitos / (manha.length || 1) * 100}%;background:var(--casa)"></i></div>
-      <div class="itens">${plano.itens.map((it, i) => linhaItem(d, h, it, i, i === prox)).join("")}</div></div></section>`;
+      <div class="itens">${(() => { const ip = plano.itens.findIndex(it => it.acao === "pausa" && !itemFeito(d, plano, it)); return plano.itens.map((it, i) => linhaItem(d, h, it, i, i === prox, ip >= 0 && i > ip && !itemFeito(d, plano, it) && it.acao !== "meensina")).join(""); })()}</div></div></section>`;
   } else {
     const prox = d.plano.filter(p => p._id > h && (p.itens || []).length).sort((a, b) => a._id.localeCompare(b._id))[0];
     estudo = `<section class="painel-mundo" style="--w:var(--casa)">${faixa("casa", "Estudo de hoje")}<div class="pm-corpo">
@@ -1041,6 +1045,28 @@ function ligarAluna(d) {
   };
 }
 
+/* pausa ativa entre os dois blocos de estudo */
+async function telaPausa(itemId) {
+  app.className = "wrap";
+  const volta = sess.papel === "adulto" ? "#/aluna/hoje" : "#/hoje", LIM = 300;
+  let t0 = 0, timer = null;
+  const ideias = ["10 polichinelos", "Alongar os braços para cima e encostar nos pés", "Beber um copo de água", "Ir até a janela e respirar fundo 5 vezes", "10 agachamentos devagar"];
+  const tela = () => {
+    const rest = t0 ? Math.max(0, LIM - Math.round((Date.now() - t0) / 1000)) : LIM;
+    const mm = Math.floor(rest / 60), ss = String(rest % 60).padStart(2, "0");
+    return `<div class="tab-wrap"><div class="tab-card stack"><h1>Pausa ativa</h1><p>Você terminou a primeira parte! Agora <b>5 minutos longe da tela</b>, mexendo o corpo. O cérebro volta mais atento.</p>
+      <ol class="passos">${ideias.map(x => `<li>${x}</li>`).join("")}</ol>
+      <div class="tab-conta" id="pz-t">${mm}:${ss}</div>
+      ${!t0 ? `<div class="row"><button id="pz-ir">Começar a pausa</button><a class="btn ghost" href="${volta}">Voltar</a></div>` : rest > 0 ? `<p class="muted">Quando o relógio zerar, o botão libera.</p><button disabled>Volto em ${mm}:${ss}</button>` : `<button id="pz-fim">Voltei! Continuar o estudo</button>`}</div></div>`;
+  };
+  const desenha = () => { app.innerHTML = tela(); };
+  app.onclick = async e => {
+    if (e.target.id === "pz-ir") { t0 = Date.now(); falar("Pausa ativa. Cinco minutos longe da tela. Mexa o corpo e beba água."); timer = setInterval(() => { if (!location.hash.startsWith("#/pausa/")) { clearInterval(timer); return; } desenha(); if (Date.now() - t0 >= LIM * 1000) { clearInterval(timer); falar("A pausa acabou. Vamos voltar!"); } }, 1000); desenha(); }
+    if (e.target.id === "pz-fim") { e.target.disabled = true; try { await api("marcarFeito", { item: itemId }); } catch (err) { } cache.aluna = null; location.hash = volta; }
+  };
+  desenha();
+}
+
 /* tabuada relâmpago */
 async function telaTabuada(itemId) {
   app.className = "wrap";
@@ -1109,8 +1135,23 @@ function renderTexto(t) {
     default: return `<div class="texto">${t.titulo ? `<h2>${esc(t.titulo)}</h2>` : ""}${(t.paragrafos || []).map(p => { const b = /^\*\*/.test(p); return `<p${b ? ' style="font-weight:600"' : ""}>${esc(p.replace(/^\*\*/, ""))}</p>`; }).join("")}${cred}</div>`;
   }
 }
+const PENSE_ROT = { juntar: ["Juntar", "+", "ao todo, no total, os dois juntos"], tirar: ["Tirar", "−", "gastou, perdeu, deu, sobrou"], comparar: ["Comparar", "−", "a mais, a menos, a diferença, quanto falta"], repartir: ["Repartir", "÷", "dividir igual, quanto cada um"], vezes: ["Vezes", "×", "grupos iguais, dobro, triplo"] };
+const PENSE_DICA = "Leia a pergunta de novo, devagar. \"A mais\", \"a menos\", \"a diferença\" e \"quanto falta\" são COMPARAR (conta de menos: maior menos menor). \"Ao todo\" é JUNTAR. \"Gastou\" ou \"sobrou\" é TIRAR. \"Cada um\" é REPARTIR. \"Grupos iguais\", \"dobro\" e \"triplo\" é VEZES.";
+function penseHTML(q, ps) {
+  const pe = q.pense || {}, ops = pe.opcoes || ["juntar", "tirar", "comparar", "repartir", "vezes"];
+  const fala = "Pare e pense. O que a pergunta pede? " + ops.map(o => (PENSE_ROT[o] || [o])[0]).join(", ") + "?";
+  if (ps.ok && (!pe.conta || ps.contaOk)) return `<div class="pense ok"><b>${ico("check", 16)} Pensei antes:</b> ${esc((PENSE_ROT[ps.escolha] || [ps.escolha])[0])}${ps.conta ? ` · conta: <b>${esc(ps.conta)}</b>` : ""}</div>`;
+  let h = `<div class="pense"><div class="row between"><b>✋ Pare e pense</b><button class="ouvir mini ghost" type="button" data-fala="${esc(fala)}">${ico("som", 16)}</button></div>`;
+  if (!ps.ok) {
+    h += `<p style="margin:6px 0">Antes de responder: <b>o que a pergunta pede?</b></p><div class="pense-ops">${ops.map(o => { const r = PENSE_ROT[o] || [o, "", ""]; const errou = (ps.escolhas || []).includes(o); return `<button type="button" class="pense-op ${errou ? "no" : ""}" data-pense-op="${esc(o)}" data-pense-q="${esc(q.id)}" ${errou ? "disabled" : ""}><b>${esc(r[0])} ${esc(r[1])}</b><small>${esc(r[2])}</small></button>`; }).join("")}</div>`;
+    if (ps.fb === "no") h += `<div class="fb no" style="margin-top:8px"><b>Ainda não.</b> ${md(ps.dica || PENSE_DICA)}</div>`;
+  } else {
+    h += `<div class="fb ok" style="margin:6px 0"><b>Isso!</b> É ${esc((PENSE_ROT[ps.escolha] || [ps.escolha])[0]).toLowerCase()}.</div><p style="margin:6px 0">Agora <b>escreva a conta</b> que você vai fazer:</p><div class="resp-in"><input data-pense-conta="${esc(q.id)}" value="${esc(ps.conta || "")}" placeholder="Ex.: 52 − 35" autocomplete="off"><button type="button" class="mini" data-pense-pronto="${esc(q.id)}">Pronto</button></div>`;
+  }
+  return h + `</div>`;
+}
 function renderQuestao(q, valor, modo, info) {
-  // modo: fazer | revisao
+  // modo: fazer | revisao   (no modo fazer, info = estado do "Pare e pense" da questão)
   const tipo = q.tipo || "mc";
   let corpo = "";
   if (tipo === "mc") {
@@ -1133,6 +1174,8 @@ function renderQuestao(q, valor, modo, info) {
     const st = info.status === "pendente" ? `<span class="tag warn">esperando correção</span>` : Number(info.pontos) >= Number(info.max) ? `<span class="tag ok">certo</span>` : `<span class="tag bad">errado</span>`;
     rodape = `<div class="row">${st}${info.correta && tipo !== "mc" ? `<span class="muted">Resposta esperada: <b>${esc(info.correta)}</b></span>` : ""}</div>${info.comentario ? `<div class="expl">${esc(info.comentario)}</div>` : ""}${q.explicacao ? `<div class="expl">${esc(q.explicacao)}</div>` : ""}`;
   }
+  if (modo === "fazer" && q.pense) { const ps = info || {}; const pronto = ps.ok && (!q.pense.conta || ps.contaOk); corpo = penseHTML(q, ps) + (pronto ? corpo : ""); }
+  if (modo === "revisao" && info && info.raciocinio && info.raciocinio.pense) { const rc = info.raciocinio; rodape += `<div class="expl">Pensou: ${esc((PENSE_ROT[rc.pense] || [rc.pense])[0])}${rc.ok1 === false ? " (acertou o tipo depois)" : ""}${rc.conta ? ` · conta: ${esc(rc.conta)}` : ""}</div>`; }
   return `<div class="q" id="q-${esc(q.id)}"><div class="q-h"><span class="num">${q.numero}</span><span>${md(q.enunciado)}</span></div>${q.apoio ? renderTexto(q.apoio) : ""}${corpo}${rodape}</div>`;
 }
 
@@ -1197,11 +1240,21 @@ async function telaProva(id) {
   carregando("Abrindo a prova…");
   const p = await api("prova", { id });
   const chave = "rasc-" + id;
-  const st = Object.assign({ etapa: -1, resp: {}, inicio: null }, store.get(chave, {}));
+  const st = Object.assign({ etapa: -1, resp: {}, inicio: null, pense: {}, primeira: {}, conf: {}, qi: 0, ck: {} }, store.get(chave, {}));
+  const TREINO = !VALE_NOTA(p.tipo);
+  ["pense", "primeira", "conf", "ck"].forEach(k => { st[k] = st[k] || {}; });
   const qs = []; (p.blocos || []).forEach((b, bi) => (b.questoes || []).forEach(q => qs.push(Object.assign({ bloco: bi }, q))));
   let confirmar = false, enviando = false;
   const salvar = () => store.set(chave, st);
   const resp = () => qs.filter(q => String(st.resp[q.id] || "").trim()).length;
+  const AUTO = q => ["mc", "numero", "curta", "ditado"].includes(q.tipo || "mc");
+  const pensePronto = q => !q.pense || (st.pense[q.id] && st.pense[q.id].ok && (!q.pense.conta || st.pense[q.id].contaOk));
+  function fbConf(q) {
+    const c = st.conf[q.id]; if (!c) return "";
+    if (c.certo) return `<div class="fb ok"><b>${c.n > 1 ? "Agora sim!" : "Isso mesmo!"}</b>${c.aviso ? ` ${esc(c.aviso)}` : ""}${c.n > 1 && c.explicacao ? `<div style="margin-top:6px">${md(c.explicacao)}</div>` : ""}</div>`;
+    if (c.n < 2) return `<div class="fb no"><b>Ainda não.</b> Leia a pergunta de novo, devagar, e refaça a conta. Depois clique em <b>Conferir de novo</b>. (A primeira resposta é a que vale nota, mas tentar de novo ajuda você a aprender.)</div>`;
+    return `<div class="fb no"><b>Ainda não.</b> Veja como se faz:${c.explicacao ? `<div style="margin-top:6px">${md(c.explicacao)}</div>` : ""}</div>`;
+  }
   function desenha() {
     let html = "";
     if (st.etapa === -1 || (st.etapa < 0 && !p.licao)) {
@@ -1211,15 +1264,28 @@ async function telaProva(id) {
       ${assuntosDe(qs).length ? `<div class="panel stack"><h3>O que cai nesta prova</h3><div class="chips">${assuntosDe(qs).map(a => `<span class="mchip" style="--mc:${corMat(p.materia)}">${esc(a)}</span>`).join("")}</div></div>` : ""}
       <div class="panel stack" ${p.licao ? "hidden" : ""}><h3>Como funciona</h3><p>${esc(p.instrucoes || "Leia com calma. Você pode voltar e trocar as respostas até entregar.")}</p><p class="muted small">Você pode parar e continuar depois: as respostas ficam guardadas neste aparelho até você entregar.</p></div>
       ${p.dica ? `<div class="confirm" style="border-style:solid"><p><b>Dica:</b> ${esc(p.dica)}</p></div>` : ""}
+      <label class="ck-ent" style="justify-content:flex-start"><input type="checkbox" data-adulto="1" ${st.adulto ? "checked" : ""}> Estou fazendo com um adulto do meu lado</label>
       <div class="nav"><span></span><button id="comecar">${resp() ? "Continuar de onde parei" : "Começar"}</button></div>`;
     } else if (st.etapa === -2) {
       const n = p.licao.length, li = Math.min(st.li || 0, n - 1);
       html = `<div class="ptop"><div class="row between"><b style="font-family:var(--display);color:var(--accent)">${esc(p.titulo)}</b><span class="muted">Aprender · ${li + 1} de ${n}</span></div><div class="pbar"><i style="width:${(li + 1) / (n + 1) * 100}%"></i></div></div>
         <div class="qcol" style="max-width:900px">${renderSecao(p.licao[li], li, n, p.materia)}</div>
         <div class="nav" style="max-width:900px"><button class="ghost" id="l-volta">${li === 0 ? "Início" : "Voltar"}</button><button id="l-prox">${li === n - 1 ? "Agora é com você →" : "Próximo"}</button></div>`;
+    } else if (TREINO && st.etapa < p.blocos.length) {
+      const qi = Math.min(st.qi || 0, qs.length - 1), q = qs[qi]; st.etapa = q.bloco;
+      const b = p.blocos[q.bloco] || {};
+      const c = st.conf[q.id];
+      const qh = renderQuestao(q, st.resp[q.id], "fazer", st.pense[q.id]) + (pensePronto(q) ? fbConf(q) : "");
+      const botao = !pensePronto(q) ? `<button id="prox" disabled>Primeiro, pare e pense ↑</button>`
+        : AUTO(q) && !c ? `<button id="conferir">Conferir</button>`
+        : AUTO(q) && c && !c.certo && c.n < 2 ? `<span class="row" style="gap:8px"><button class="ghost" id="conferir">Conferir de novo</button><button id="prox">${qi === qs.length - 1 ? "Revisar e entregar" : "Próxima"}</button></span>`
+        : `<button id="prox">${qi === qs.length - 1 ? "Revisar e entregar" : "Próxima"}</button>`;
+      html = barra() + `<div class="stack">${p.licao && qi === 0 ? `<div class="sem-audio">${ico("som", 20)} <b>Agora é com você.</b> Uma pergunta de cada vez. Leia com calma e confira cada resposta.</div>` : ""}<span class="muted">Pergunta ${qi + 1} de ${qs.length}</span>${b.lead ? `<div class="lead">${esc(b.lead)}</div>` : ""}
+        ${b.texto ? `<div class="leitura"><div class="leitura-texto">${renderTexto(b.texto)}</div><div class="stack">${qh}</div></div>` : `<div class="stack qcol">${qh}</div>`}
+        <div class="nav"><button class="ghost" id="voltar">${qi === 0 ? (p.licao ? "Voltar à lição" : "Início") : "Anterior"}</button>${botao}</div></div>`;
     } else if (st.etapa < p.blocos.length) {
       const b = p.blocos[st.etapa];
-      const qsB = qs.filter(q => q.bloco === st.etapa).map(q => renderQuestao(q, st.resp[q.id], "fazer")).join("");
+      const qsB = qs.filter(q => q.bloco === st.etapa).map(q => renderQuestao(q, st.resp[q.id], "fazer", st.pense[q.id])).join("");
       html = barra() + `<div class="stack">${p.licao && st.etapa === 0 ? `<div class="sem-audio">${ico("som", 20)} <b>Agora é com você.</b> Leia sozinha, com calma. Aqui não tem áudio, igual na escola.</div>` : ""}${b.titulo ? `<h2 style="color:var(--accent)">${esc(b.titulo)}</h2>` : ""}${b.lead ? `<div class="lead">${esc(b.lead)}</div>` : ""}
         ${b.texto ? `<div class="leitura"><div class="leitura-texto">${renderTexto(b.texto)}</div><div class="stack">${qsB}</div></div>` : `<div class="stack qcol">${qsB}</div>`}
         <div class="nav"><button class="ghost" id="voltar">${st.etapa === 0 ? (p.licao ? "Voltar à lição" : "Início") : "Voltar"}</button><button id="prox">${st.etapa === p.blocos.length - 1 ? "Revisar e entregar" : "Próximo"}</button></div></div>`;
@@ -1228,7 +1294,9 @@ async function telaProva(id) {
       html = barra() + `<div class="stack"><h2>Revisão</h2><p class="muted">Toque num número para voltar à questão.</p>
         <div class="review">${qs.map(q => `<button class="cell ${String(st.resp[q.id] || "").trim() ? "done" : "miss"}" data-goto="${esc(q.id)}">${q.numero}<small>${q.tipo === "mc" || !q.tipo ? (st.resp[q.id] || "—") : (String(st.resp[q.id] || "").trim() ? "ok" : "—")}</small></button>`).join("")}</div>
         ${faltam.length ? `<div class="confirm"><p>Faltam <b>${faltam.length}</b>: ${faltam.map(q => q.numero).join(", ")}. Questão em branco conta como erro.</p></div>` : `<div class="panel">Todas as questões respondidas.</div>`}
-        ${confirmar ? `<div class="confirm"><h3>Entregar agora?</h3><p>Depois de entregar não dá mais para mudar as respostas.</p><div class="nav"><button class="ghost" id="nao">Ainda não</button><button id="sim" ${enviando ? "disabled" : ""}>${enviando ? "Enviando…" : "Sim, entregar"}</button></div></div>`
+        ${confirmar ? `<div class="confirm"><div class="row between"><h3 style="margin:0">Antes de entregar, confira</h3><button class="ouvir mini ghost" type="button" data-fala="${esc(CHECK_ENTREGA.map(x => x[1]).join(". "))}">${ico("som", 16)}</button></div>
+          <div class="stack" style="gap:6px;margin:10px 0">${CHECK_ENTREGA.map(([k, t]) => `<label class="ck-ent"><input type="checkbox" data-ck="${k}" ${st.ck[k] ? "checked" : ""}> ${esc(t)}</label>`).join("")}</div>
+          <p class="small muted">Depois de entregar não dá mais para mudar as respostas.</p><div class="nav"><button class="ghost" id="nao">Ainda não</button><button id="sim" ${enviando || CHECK_ENTREGA.some(([k]) => !st.ck[k]) ? "disabled" : ""}>${enviando ? "Enviando…" : "Sim, entregar"}</button></div></div>`
         : `<div class="nav"><button class="ghost" id="voltar">Voltar</button><button id="entregar">Entregar</button></div>`}</div>`;
     }
     app.innerHTML = html;
@@ -1237,16 +1305,16 @@ async function telaProva(id) {
   // trava contra chute: cada parte só libera o "Próximo" depois de um tempo mínimo de leitura
   const SEG_Q = Number(p.segundosPorQuestao) || (VALE_NOTA(p.tipo) ? 20 : 15), SEG_LICAO = 10;
   st.tb = st.tb || {};
-  function chaveTrava() { if (st.etapa === -2) return "l" + Math.min(st.li || 0, p.licao.length - 1); if (st.etapa >= 0 && st.etapa < (p.blocos || []).length) return "b" + st.etapa; return null; }
-  function exigido(k) { if (k[0] === "l") { const sec = p.licao[Number(k.slice(1))] || {}; return sec.tipo === "jogo" || sec.tipo === "pratica" || sec.tipo === "cartoes" ? 0 : SEG_LICAO; } const n = qs.filter(q => q.bloco === Number(k.slice(1))).length; return Math.min(150, n * SEG_Q); }
+  function chaveTrava() { if (st.etapa === -2) return "l" + Math.min(st.li || 0, p.licao.length - 1); if (TREINO && st.etapa >= 0 && st.etapa < (p.blocos || []).length) { const q = qs[Math.min(st.qi || 0, qs.length - 1)]; return st.conf[q.id] || !pensePronto(q) ? null : "q" + q.id; } if (st.etapa >= 0 && st.etapa < (p.blocos || []).length) return "b" + st.etapa; return null; }
+  function exigido(k) { if (k[0] === "q") return SEG_Q; if (k[0] === "l") { const sec = p.licao[Number(k.slice(1))] || {}; return sec.tipo === "jogo" || sec.tipo === "pratica" || sec.tipo === "cartoes" ? 0 : SEG_LICAO; } const n = qs.filter(q => q.bloco === Number(k.slice(1))).length; return Math.min(150, n * SEG_Q); }
   function trava(conta) {
     if (sess.papel === "adulto") return;
     const k = chaveTrava(); if (!k) return;
     if (conta && !document.hidden) { st.tb[k] = (st.tb[k] || 0) + 1; if (st.tb[k] % 5 === 0) salvar(); }
-    const b = $(k[0] === "l" ? "#l-prox" : "#prox"); if (!b) return;
+    const b = $(k[0] === "l" ? "#l-prox" : k[0] === "q" ? "#conferir, #prox" : "#prox"); if (!b) return;
     if (!b.dataset.lbl) b.dataset.lbl = b.textContent;
     const falta = exigido(k) - (st.tb[k] || 0);
-    if (falta > 0) { b.disabled = true; b.textContent = k[0] === "l" ? `Leia com atenção · ${falta}s` : `Responda com calma · ${falta}s`; b.title = "O botão libera sozinho. Use o tempo para ler de novo e conferir."; }
+    if (falta > 0) { b.disabled = true; b.textContent = k[0] === "l" ? `Leia com atenção · ${falta}s` : k[0] === "q" ? `Leia de novo e confira · ${falta}s` : `Responda com calma · ${falta}s`; b.title = "O botão libera sozinho. Use o tempo para ler de novo e conferir."; }
     else if (b.disabled) { b.disabled = false; b.textContent = b.dataset.lbl; b.title = ""; }
   }
   const relogio = setInterval(() => { if (!document.body.contains(app) || !location.hash.startsWith("#/prova/")) { clearInterval(relogio); return; } trava(true); }, 1000);
@@ -1256,7 +1324,11 @@ async function telaProva(id) {
   }
   const atualizaBarra = () => { const c = $("#cont"); if (c) c.textContent = `${resp()}/${qs.length}`; const i = $(".pbar i"); if (i) i.style.width = Math.round(resp() / qs.length * 100) + "%"; };
   app.oninput = app.onchange = e => {
-    const t = e.target; if (!t.dataset || !t.dataset.q) return;
+    const t = e.target;
+    if (t.dataset && t.dataset.penseConta) { const ps = st.pense[t.dataset.penseConta] = st.pense[t.dataset.penseConta] || {}; ps.conta = t.value; salvar(); return; }
+    if (t.dataset && t.dataset.adulto) { st.adulto = t.checked; salvar(); return; }
+    if (t.dataset && t.dataset.ck) { st.ck[t.dataset.ck] = t.checked; salvar(); const sb = $("#sim"); if (sb && !enviando) sb.disabled = CHECK_ENTREGA.some(([k]) => !st.ck[k]); return; }
+    if (!t.dataset || !t.dataset.q) return;
     st.resp[t.dataset.q] = t.value; salvar();
     if (t.type === "radio") t.closest(".opts").querySelectorAll(".opt").forEach(o => o.classList.toggle("sel", o.contains(t)));
     atualizaBarra();
@@ -1278,18 +1350,52 @@ async function telaProva(id) {
     if (sec && b.dataset.jg) { sec._i = 0; sec._ac = 0; sec._fim = false; sec._rest = sec.segundos || 60; clearInterval(sec._t); sec._t = setInterval(() => { sec._rest--; const t = document.querySelector("[data-jt]"); if (t) t.textContent = sec._rest + "s"; if (sec._rest <= 0) { clearInterval(sec._t); sec._fim = true; desenha(); } }, 1000); desenha(); return; }
     if (sec && b.dataset.jo != null) { const q = sec.questoes[sec._i]; if (Number(b.dataset.jo) === Number(q.correta)) sec._ac++; sec._i++; if (sec._i >= sec.questoes.length) { clearInterval(sec._t); sec._fim = true; } desenha(); return; }
     if (sec && b.dataset.fc) { const f = b.dataset.fc; if (f === "virar") sec._virado = !sec._virado; else if (f === "sabia") { sec._fila.shift(); sec._virado = false; } else if (f === "nao") { sec._fila.push(sec._fila.shift()); sec._virado = false; } else if (f === "de-novo") { sec._fila = null; } desenha(); if (f === "virar" && sec._virado) { const c = sec.cartoes[sec._fila[0]]; c && c.falarVerso !== false && falar(String(c.verso).replace(/\*\*/g, "")); } return; }
+    if (b.dataset.penseOp) {
+      const qid = b.dataset.penseQ, q = qs.find(x => x.id === qid), ps = st.pense[qid] = st.pense[qid] || { escolhas: [] };
+      ps.escolhas = ps.escolhas || []; b.disabled = true;
+      try { const r = await api("conferir", { id, qid, modo: "pense", escolha: b.dataset.penseOp }); ps.escolhas.push(b.dataset.penseOp); if (ps.ok1 == null) ps.ok1 = !!r.certo;
+        if (r.certo) { ps.ok = true; ps.escolha = b.dataset.penseOp; ps.fb = "ok"; if (!(q.pense && q.pense.conta)) falar("Isso! Agora responda."); } else { ps.fb = "no"; ps.dica = r.dica; } }
+      catch (err) { toast(err.message); }
+      salvar(); desenha(); return;
+    }
+    if (b.dataset.pensePronto) {
+      const qid = b.dataset.pensePronto, ps = st.pense[qid] = st.pense[qid] || {};
+      const v = String(($(`[data-pense-conta="${qid}"]`) || {}).value || ps.conta || "").trim();
+      if (!/\d/.test(v)) { toast("Escreva a conta com os números, por exemplo 52 − 35."); return; }
+      ps.conta = v; ps.contaOk = true; salvar(); desenha(); return;
+    }
+    if (b.id === "conferir") {
+      const q = qs[Math.min(st.qi || 0, qs.length - 1)], v = String(st.resp[q.id] || "").trim();
+      if (!v) { toast("Responda primeiro. Depois clique em Conferir."); return; }
+      b.disabled = true;
+      try { const r = await api("conferir", { id, qid: q.id, resposta: v }); if (st.primeira[q.id] == null) st.primeira[q.id] = st.resp[q.id];
+        const c = st.conf[q.id] || { n: 0 }; st.conf[q.id] = { certo: r.certo, explicacao: r.explicacao, aviso: r.aviso, n: c.n + 1, respostas: (c.respostas || []).concat(v) };
+        falar(r.certo ? "Isso mesmo!" : "Ainda não. Leia a explicação."); }
+      catch (err) { toast(err.message); }
+      salvar(); desenha(); return;
+    }
+    if (TREINO && st.etapa >= 0 && st.etapa < p.blocos.length && (b.id === "prox" || b.id === "voltar")) {
+      pararFala();
+      if (b.id === "prox") { if ((st.qi || 0) < qs.length - 1) { st.qi = (st.qi || 0) + 1; st.etapa = qs[st.qi].bloco; } else st.etapa = p.blocos.length; }
+      else { if ((st.qi || 0) > 0) { st.qi--; st.etapa = qs[st.qi].bloco; } else if (p.licao) { st.etapa = -2; st.li = p.licao.length - 1; } else st.etapa = -1; }
+      salvar(); desenha(); topoPg(); return;
+    }
     if (b.id === "l-prox") { pararFala(); if ((st.li || 0) < p.licao.length - 1) { st.li = (st.li || 0) + 1; } else { st.etapa = 0; st.licaoOk = true; } salvar(); desenha(); topoPg(); return; }
     if (b.id === "l-volta") { pararFala(); if ((st.li || 0) > 0) st.li--; else st.etapa = -1; salvar(); desenha(); topoPg(); return; }
     if (b.id === "comecar") { if (!st.inicio) st.inicio = new Date().toISOString(); if (p.licao && !st.licaoOk) { st.etapa = -2; st.li = st.li || 0; } else st.etapa = Math.max(0, st.etapa); salvar(); desenha(); topoPg(); }
     else if (b.id === "prox") { st.etapa++; salvar(); desenha(); topoPg(); }
-    else if (b.id === "voltar") { if (st.etapa === 0 && p.licao) { st.etapa = -2; st.li = p.licao.length - 1; } else st.etapa--; confirmar = false; salvar(); desenha(); topoPg(); }
-    else if (b.dataset.goto) { const q = qs.find(x => x.id === b.dataset.goto); st.etapa = q.bloco; salvar(); desenha(); const el = document.getElementById("q-" + q.id); if (el) el.scrollIntoView({ block: "center" }); }
+    else if (b.id === "voltar") { if (TREINO && st.etapa >= p.blocos.length) { st.etapa = qs[qs.length - 1].bloco; st.qi = qs.length - 1; } else if (st.etapa === 0 && p.licao) { st.etapa = -2; st.li = p.licao.length - 1; } else st.etapa--; confirmar = false; salvar(); desenha(); topoPg(); }
+    else if (b.dataset.goto) { const q = qs.find(x => x.id === b.dataset.goto); st.etapa = q.bloco; st.qi = qs.indexOf(q); salvar(); desenha(); const el = document.getElementById("q-" + q.id); if (el) el.scrollIntoView({ block: "center" }); }
     else if (b.id === "entregar") { confirmar = true; desenha(); }
     else if (b.id === "nao") { confirmar = false; desenha(); }
     else if (b.id === "sim" && !enviando) {
       enviando = true; desenha();
       try {
-        const r = await api("entregar", { id, respostas: st.resp, inicio: st.inicio });
+        const rac = {};
+        qs.forEach(q => { const ps = st.pense[q.id], c = st.conf[q.id]; if (!ps && !c) return;
+          rac[q.id] = Object.assign({}, ps ? { pense: (ps.escolhas || [])[0] || ps.escolha, escolhas: ps.escolhas || [], ok1: ps.ok1, conta: ps.conta || "" } : {}, c ? { conferiu: c.n, respostas: c.respostas || [], final: st.resp[q.id] } : {}); });
+        const envio = Object.assign({}, st.resp, st.primeira, { __raciocinio: rac, __adulto: !!st.adulto, __checklist: CHECK_ENTREGA.every(([k]) => st.ck[k]) });
+        const r = await api("entregar", { id, respostas: envio, inicio: st.inicio });
         store.del(chave); cache.ultimo = r;
         app.onclick = app.oninput = app.onchange = null;
         location.hash = "#/resultado/" + encodeURIComponent(r.tentativaId);
