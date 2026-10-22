@@ -41,7 +41,7 @@ Cada prova é um JSON gravado em `app.provas.conteudo` no Supabase. O gabarito f
 
 Todas aceitam `enunciado`, `habilidade`, `assunto`, `bncc`, `pontos` (padrão 1), `explicacao` (aparece na revisão), `apoio` (texto de apoio só da questão) e `falar` + `lang` (mostra o botão Ouvir; `lang: "en-US"` para inglês).
 
-O `ditado` compara o texto exato (sem diferenciar maiúsculas). **Colher de chá do til (desde 21/10):** em `ditado` e `curta`, a palavra certa escrita só sem o til (ã, õ) conta como certa, mas a resposta recebe o comentário "Faltou o til. O certo é: …", que aparece no resultado, na revisão e no caderno de erros. Outros acentos continuam valendo; para aceitá-los, use `curta` com `ignorarAcentos: true`.
+O `ditado` compara o texto exato (sem diferenciar maiúsculas). **Colher de chá do til (desde 21/10):** em `ditado` e `curta`, a palavra certa escrita só sem o til (ã, õ) conta como certa, mas a resposta recebe o comentário "Faltou o til. O certo é: …", que aparece no resultado, na revisão e no caderno de erros. Outros acentos continuam valendo; para aceitá-los, use `curta` com `ignorarAcentos: true`. **Número escrito em frase (desde 22/10):** em `numero`, se a resposta não for só o número, vale o último número escrito ("Tem 33 alunos", "128 - 95 = 33"); conta como certa com o comentário "Resposta certa! Da próxima vez, escreva só o número". O "Faça junto" da lição segue a mesma regra e também aceita a falta do til.
 
 Trava contra chute: em cada bloco, o botão de seguir só libera depois de 15 s por questão (20 s em prova e simulado; mude com `segundosPorQuestao`), e cada parte da lição pede 10 s. Atividade que não vale nota feita com 30 s ou menos por questão (contando a lição) volta uma vez para ela refazer.
 
