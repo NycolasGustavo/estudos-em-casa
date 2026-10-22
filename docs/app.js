@@ -1537,7 +1537,7 @@ async function telaResultado(tid) {
     revisao = `<div class="stack"><h2>Revisão da prova</h2>${(d.prova.blocos || []).map(b => `${b.lead ? `<div class="lead">${esc(b.lead)}</div>` : ""}${renderTexto(b.texto)}${(b.questoes || []).map(q => renderQuestao(q, d.respostasMarcadas[q.id], "revisao", info[q.id])).join("")}`).join("")}</div>`;
   }
   const extra = sess.papel === "adulto" ? `<a class="btn ghost mini" href="#/adulto/tentativa/${encodeURIComponent(tid)}">Ver como adulto</a>` : "";
-  const refazer = (cache.ultimo && cache.ultimo.tentativaId === tid) ? !!cache.ultimo.refazer : (!VALE_NOTA(t.tipo) && qs.length >= 4 && Number(t.minutos) * 60 <= qs.length * 30);
+  const refazer = (cache.ultimo && cache.ultimo.tentativaId === tid) ? !!cache.ultimo.refazer : (!VALE_NOTA(t.tipo) && qs.length >= 4 && Number(t.minutos) * 60 <= qs.length * 30 && Number(t.nota) < 8);
   const avisoRapido = refazer ? `<div class="confirm" style="border-style:solid;border-color:var(--sun)"><h3 style="margin:0 0 4px">Foi rápido demais</h3><p style="margin:0">Você levou ${t.minutos} minuto${t.minutos > 1 ? "s" : ""} para ${qs.length} questões. Assim não dá para aprender. Essa atividade <b>volta para você refazer com calma</b>: leia a explicação, ouça e responda de novo.</p></div>` : "";
   const ganhou = cache.ultimo && cache.ultimo.tentativaId === tid ? Number(cache.ultimo.estrelas) || 0 : 0;
   const bannerEst = ganhou ? `<div class="confirm" style="border-style:solid;border-color:#E0A93B;background:#FFF8E6"><b>⭐ +${ganhou} estrela${ganhou > 1 ? "s" : ""} de foco!</b> Você ganhou por parar e pensar, mostrar a conta, conferir e fazer com calma.</div>` : "";
