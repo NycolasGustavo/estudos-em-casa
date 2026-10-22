@@ -41,7 +41,7 @@ Cada prova é um JSON gravado em `app.provas.conteudo` no Supabase. O gabarito f
 
 Todas aceitam `enunciado`, `habilidade`, `assunto`, `bncc`, `pontos` (padrão 1), `explicacao` (aparece na revisão), `apoio` (texto de apoio só da questão) e `falar` + `lang` (mostra o botão Ouvir; `lang: "en-US"` para inglês).
 
-O `ditado` compara o texto exato (sem diferenciar maiúsculas). Para palavra com acento ou til, use `curta` com `falar`, `aceitas` e `ignorarAcentos: true`.
+O `ditado` compara o texto exato (sem diferenciar maiúsculas). **Colher de chá do til (desde 21/10):** em `ditado` e `curta`, a palavra certa escrita só sem o til (ã, õ) conta como certa, mas a resposta recebe o comentário "Faltou o til. O certo é: …", que aparece no resultado, na revisão e no caderno de erros. Outros acentos continuam valendo; para aceitá-los, use `curta` com `ignorarAcentos: true`.
 
 Trava contra chute: em cada bloco, o botão de seguir só libera depois de 15 s por questão (20 s em prova e simulado; mude com `segundosPorQuestao`), e cada parte da lição pede 10 s. Atividade que não vale nota feita com 30 s ou menos por questão (contando a lição) volta uma vez para ela refazer.
 
@@ -81,7 +81,11 @@ Questão `ditado` (nos blocos): `{tipo:"ditado", falar:"palavra", correta:"palav
   {"id":"2026-10-16-gravar","momento":"extra","titulo":"Gravar a leitura","acao":"gravar","texto":"texto para ler"},
   {"id":"2026-10-16-livro","momento":"livro","titulo":"Ler o meu livro","acao":"livro"}]}
 ```
-Momentos: aquecimento, frio, quente, missao, video, ingles, recuperacao, prova, simulado, extra, livro.
+Momentos: aquecimento, frio, quente, missao, video, ingles, recuperacao, prova, simulado, extra, livro, meensina.
+
+**Tabuada da semana:** o item `acao:"tabuada"` aceita `foco` (a tabuada da semana: 14 das 20 contas são dela), `revisar` (tabuadas já vistas para as outras 6 contas, ex. `[2,3,4,5]`) e `dica` (aparece na tela inicial). O resultado grava `tabuadaFoco` em `medicoes`. Sem `foco`, as contas são sorteadas como antes. Sequência combinada: 6 (22 a 30/10), 7 (3 a 6/11), 8, 9.
+
+**Me ensina:** item `{"id":"AAAA-MM-DD-meensina","acao":"meensina","momento":"meensina","titulo":"Me ensina","minutos":10}` no fim do plano de cada dia de aula, e no documento do plano o campo `meEnsina: [{p, r}]` com a pergunta armadilha do dia e a resposta. A aluna vê "Um adulto marca à tarde" e não consegue marcar sozinha (a API recusa). O adulto marca no visto do café da tarde (linha "Me ensina"), onde aparece a pergunta do dia; ao salvar o dia, o item fica feito. O item não conta nos minutos da manhã, na tigela da Sol nem na ofensiva.
 ```
 ```
 Aula em vídeo no plano: `{"id":"2026-10-22-video-<yt>","momento":"video","acao":"video","yt":"<id de 11 letras do YouTube>","titulo":"Aula: ...","minutos":8,"materia":"Matemática","descricao":"..."}`. Ela assiste dentro do app (player sem links para o YouTube) e o item fica feito quando ela vê 80% do vídeo; pular partes não conta.

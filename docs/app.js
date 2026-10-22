@@ -300,9 +300,10 @@ function acaoItem(d, it) {
   if (it.acao === "video" && it.yt) return `<a class="btn" href="${urlVideo(it.yt, it.id)}">${ico("aprender", 18)} Assistir</a>`;
   if (it.acao === "gravar" || it.acao === "ler") return `<a class="btn" href="${urlLer(it)}">Ler</a>`;
   if (it.acao === "livro") return `<button class="ghost" data-feito="${esc(it.id)}">Li hoje</button>`;
+  if (it.acao === "meensina") return `<span class="trava">${ico("check", 18)} Um adulto marca à tarde</span>`;
   return `<button class="ghost" data-feito="${esc(it.id)}">Marcar feito</button>`;
 }
-const MOMENTO = { aquecimento: ["Aquecimento", "#B8860B"], frio: ["Revisão de ontem · sangue frio", "#0E7C86"], quente: ["Preparar a aula de hoje · sangue quente", "#D2632A"], missao: ["Missão do dia", "#7A4FD6"], video: ["Aula em vídeo · aprender", "#D2632A"], ingles: ["Inglês", "#0E7C86"], recuperacao: ["Recuperação dos erros", "#B7791F"], prova: ["Prova · vale nota", "#C2413A"], simulado: ["Simulado · vale nota", "#C2413A"], extra: ["Extra", "#5E6483"], livro: ["Livro", "#5E6483"] };
+const MOMENTO = { aquecimento: ["Aquecimento", "#B8860B"], frio: ["Revisão de ontem · sangue frio", "#0E7C86"], quente: ["Preparar a aula de hoje · sangue quente", "#D2632A"], missao: ["Missão do dia", "#7A4FD6"], video: ["Aula em vídeo · aprender", "#D2632A"], ingles: ["Inglês", "#0E7C86"], meensina: ["Me ensina · com um adulto", "#2F7D4F"], recuperacao: ["Recuperação dos erros", "#B7791F"], prova: ["Prova · vale nota", "#C2413A"], simulado: ["Simulado · vale nota", "#C2413A"], extra: ["Extra", "#5E6483"], livro: ["Livro", "#5E6483"] };
 function linhaItem(d, dia, it, i, ativo) {
   const st = estadoItem(d, dia, it);
   const m = MOMENTO[it.momento] || ["Atividade", "#5E6483"];
@@ -330,7 +331,7 @@ const descartado = (d, it) => { const a = (d.feitosInfo || {})["adiado-" + it.id
 function avaliacaoDe(d, dia) { return (d.diario || []).find(x => x.data === dia) || null; }
 // ok | falhou | pendente | neutro
 function statusDia(d, dia) {
-  const h = d.hoje || hoje(), its = itensDoDia(d, dia).filter(it => !descartado(d, it));
+  const h = d.hoje || hoje(), its = itensDoDia(d, dia).filter(it => !descartado(d, it) && it.acao !== "meensina");
   const av = avaliacaoDe(d, dia);
   if (!its.length || (av && av.folga)) return "neutro";
   const ok = its.every(it => { const f = dataFeito(d, it); return f && f <= dia; });
@@ -352,7 +353,7 @@ function ofensiva(d) {
   return { dias: n, quebrouOntem, hojeOk: statusDia(d, h) === "ok" };
 }
 function comidaHoje(d) {
-  const h = d.hoje || hoje(), its = itensDoDia(d, h);
+  const h = d.hoje || hoje(), its = itensDoDia(d, h).filter(it => it.acao !== "meensina");
   const feitosHoje = new Set(Object.keys(d.feitosInfo || {}).filter(k => (d.feitosInfo[k] || {}).data === h && !k.startsWith("adiado-")));
   d.historico.filter(x => x.data === h).forEach(x => feitosHoje.add("prova:" + x.provaId));
   const deHoje = its.filter(it => { const f = dataFeito(d, it); return f === h; }).length;
@@ -475,7 +476,7 @@ async function telaRevisar() {
     let corpo;
     if (tipo === "mc") corpo = `<div class="opts">${(q.opcoes || []).map((o, j) => { const L = "ABCDEFG"[j]; return `<button class="opt optb ${valor === L ? "sel" : ""} ${res && valor === L ? (res.certo ? "certa" : "errada") : ""}" data-rv="${L}" ${res ? "disabled" : ""}><span class="l">${L}</span><span>${esc(o)}</span></button>`; }).join("")}</div>`;
     else corpo = `<div class="row">${tipo === "ditado" || q.falar ? `<button class="ouvir" data-fala="${esc(q.falar || "")}" data-lang="${esc(q.lang || "pt-BR")}">${ico("som", 18)} Ouvir</button>` : ""}<div class="resp-in"><input id="rv-in" value="${esc(valor)}" placeholder="Sua resposta" autocomplete="off" spellcheck="false" ${res ? "readonly" : ""}>${q.unidade ? `<span>${esc(q.unidade)}</span>` : ""}</div></div>`;
-    const fb = res ? `<div class="fb ${res.certo ? "ok" : "no"}">${res.certo ? (res.resolvido ? "<b>Venceu!</b> Essa questão saiu do caderno." : `<b>Isso mesmo!</b> Ela volta no dia ${dataBR(res.proxima)} para você confirmar.`) : `<b>Ainda não.</b> A resposta certa é <b>${esc(res.correta)}</b>. Ela volta amanhã.`}${res.explicacao ? `<div style="margin-top:6px">${md(res.explicacao)}</div>` : ""}</div>` : "";
+    const fb = res ? `<div class="fb ${res.certo ? "ok" : "no"}">${res.certo ? (res.resolvido ? "<b>Venceu!</b> Essa questão saiu do caderno." : `<b>Isso mesmo!</b> Ela volta no dia ${dataBR(res.proxima)} para você confirmar.`) : `<b>Ainda não.</b> A resposta certa é <b>${esc(res.correta)}</b>. Ela volta amanhã.`}${res.aviso ? `<div style="margin-top:6px"><b>Atenção:</b> ${esc(res.aviso)}</div>` : ""}${res.explicacao ? `<div style="margin-top:6px">${md(res.explicacao)}</div>` : ""}</div>` : "";
     app.innerHTML = `<div class="ptop"><div class="row between"><b style="font-family:var(--display);color:var(--accent)">Caderno de erros</b><span class="muted">${i + 1} de ${qs.length}</span></div><div class="pbar"><i style="width:${(i + (res ? 1 : 0)) / qs.length * 100}%"></i></div></div>
       <div class="stack" style="max-width:900px;margin:0 auto">
       <div class="row" style="gap:6px"><span class="mchip" style="--mc:${corMat(e.materia)}">${esc(e.materia)}</span><span class="tag">${esc(poderDe(e.habilidade || "").nome)}</span>${e.vezes > 1 ? `<span class="tag warn">já errou ${e.vezes} vezes</span>` : ""}</div>
@@ -520,11 +521,12 @@ function abaHoje(d) {
   const dataTxt = `${DIAS[diaSem(h)]}, ${dataBR(h)}`;
   let estudo;
   if (plano && plano.itens && plano.itens.length) {
-    const feitos = plano.itens.filter(it => itemFeito(d, plano, it)).length;
-    const prox = plano.itens.findIndex(it => !itemFeito(d, plano, it));
+    const manha = plano.itens.filter(it => it.acao !== "meensina");
+    const feitos = manha.filter(it => itemFeito(d, plano, it)).length;
+    const prox = plano.itens.findIndex(it => it.acao !== "meensina" && !itemFeito(d, plano, it));
     estudo = `<section class="painel-mundo" style="--w:var(--casa)">${faixa("casa", `Estudo de hoje · ${plano.minutos || 45} minutos`)}
-      <div class="pm-corpo"><span class="muted">${feitos === plano.itens.length ? "<b>Tudo feito hoje! Parabéns!</b>" : `Faça na ordem, de cima para baixo. ${feitos} de ${plano.itens.length} feitos.`}</span>
-      <div class="bar" style="height:12px"><i style="width:${feitos / plano.itens.length * 100}%;background:var(--casa)"></i></div>
+      <div class="pm-corpo"><span class="muted">${feitos === manha.length ? "<b>Tudo feito hoje! Parabéns!</b>" : `Faça na ordem, de cima para baixo. ${feitos} de ${manha.length} feitos.`}</span>
+      <div class="bar" style="height:12px"><i style="width:${feitos / (manha.length || 1) * 100}%;background:var(--casa)"></i></div>
       <div class="itens">${plano.itens.map((it, i) => linhaItem(d, h, it, i, i === prox)).join("")}</div></div></section>`;
   } else {
     const prox = d.plano.filter(p => p._id > h && (p.itens || []).length).sort((a, b) => a._id.localeCompare(b._id))[0];
@@ -1043,12 +1045,26 @@ function ligarAluna(d) {
 async function telaTabuada(itemId) {
   app.className = "wrap";
   const N = 20, LIM = 120;
+  // tabuada da semana: o item do plano pode trazer "foco" (ex.: 6) e "revisar" (ex.: [6] já vistas)
+  let it = null;
+  try { const d = cache.aluna || (cache.aluna = await api("inicioAluna")); (d.plano || []).forEach(p => (p.itens || []).forEach(x => { if (x.id === itemId) it = x; })); } catch (e) { }
+  const foco = it && Number(it.foco) >= 2 ? Number(it.foco) : 0;
+  const revisar = it && Array.isArray(it.revisar) ? it.revisar.map(Number).filter(n => n >= 2) : [];
   const pesos = [2, 3, 4, 5, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9];
-  const qs = Array.from({ length: N }, () => { const a = pesos[Math.floor(Math.random() * pesos.length)], b = 2 + Math.floor(Math.random() * 8); return Math.random() < .5 ? [a, b] : [b, a]; });
+  const sorteia = a => { const b = 2 + Math.floor(Math.random() * 9); return Math.random() < .5 ? [a, b] : [b, a]; };
+  let qs;
+  if (foco) {
+    // 14 contas da tabuada da semana (todos os fatos de 2 a 10, embaralhados) + 6 de revisão
+    const fatos = [2, 3, 4, 5, 6, 7, 8, 9, 10].sort(() => Math.random() - .5);
+    const doFoco = Array.from({ length: 14 }, (_, k) => { const b = fatos[k % fatos.length]; return Math.random() < .5 ? [foco, b] : [b, foco]; });
+    const outras = revisar.length ? revisar : [2, 3, 4, 5];
+    const rev = Array.from({ length: N - 14 }, () => sorteia(outras[Math.floor(Math.random() * outras.length)]));
+    qs = doFoco.concat(rev).sort(() => Math.random() - .5);
+  } else qs = Array.from({ length: N }, () => sorteia(pesos[Math.floor(Math.random() * pesos.length)]));
   let i = 0, ac = 0, t0 = 0, timer = null, erros = [];
   const volta = sess.papel === "adulto" ? "#/aluna/hoje" : "#/hoje";
   const tela = () => {
-    if (!t0) return `<div class="tab-wrap"><div class="tab-card stack"><h1>Tabuada relâmpago</h1><p>São <b>${N} contas</b> de vezes em até <b>2 minutos</b>. Digite a resposta e aperte <b>Enter</b>.</p><div class="row"><button id="tb-ir">Começar</button><a class="btn ghost" href="${volta}">Voltar</a></div></div></div>`;
+    if (!t0) return `<div class="tab-wrap"><div class="tab-card stack"><h1>Tabuada relâmpago</h1>${foco ? `<div class="expl">Tabuada da semana: <b>a do ${foco}</b>. A maioria das contas é dela; algumas são de revisão.${it && it.dica ? ` Dica: ${esc(it.dica)}` : ""}</div>` : ""}<p>São <b>${N} contas</b> de vezes em até <b>2 minutos</b>. Digite a resposta e aperte <b>Enter</b>.</p><div class="row"><button id="tb-ir">Começar</button><a class="btn ghost" href="${volta}">Voltar</a></div></div></div>`;
     if (i >= N) return "";
     const rest = Math.max(0, LIM - Math.round((Date.now() - t0) / 1000));
     return `<div class="tab-wrap"><div class="tab-card stack"><div class="row between"><span class="muted">${i + 1} de ${N}</span><b id="tb-t">${rest}s</b></div><div class="tab-conta">${qs[i][0]} × ${qs[i][1]} =</div><input id="tb-r" inputmode="numeric" autocomplete="off" class="tab-in"><div class="pbar"><i style="width:${i / N * 100}%"></i></div></div></div>`;
@@ -1057,7 +1073,7 @@ async function telaTabuada(itemId) {
     clearInterval(timer);
     const seg = Math.round((Date.now() - t0) / 1000);
     app.innerHTML = `<div class="tab-wrap"><div class="tab-card stack"><h1>${ac} de ${N}!</h1><p>Você levou ${seg} segundos${ac ? `, cerca de ${(seg / ac).toFixed(1).replace(".", ",")} segundos por conta certa` : ""}.</p>${erros.length ? `<div class="expl">Para treinar: ${erros.map(e => `${e[0]} × ${e[1]} = <b>${e[0] * e[1]}</b>`).join(" · ")}</div>` : `<div class="expl">Nenhum erro!</div>`}<span class="muted small" id="tb-s">Salvando…</span><a class="btn" href="${volta}">Voltar para Hoje</a></div></div>`;
-    try { await api("registrarTabuada", { acertos: ac, total: N, segundos: seg }); $("#tb-s").textContent = "Resultado salvo."; } catch (e) { $("#tb-s").textContent = e.message; }
+    try { await api("registrarTabuada", { acertos: ac, total: N, segundos: seg, foco: foco || "" }); $("#tb-s").textContent = "Resultado salvo."; } catch (e) { $("#tb-s").textContent = e.message; }
   };
   const desenha = () => { app.innerHTML = tela(); const r = $("#tb-r"); if (r) r.focus(); };
   app.onclick = e => { if (e.target.id === "tb-ir") { t0 = Date.now(); timer = setInterval(() => { const rest = LIM - Math.round((Date.now() - t0) / 1000); const t = $("#tb-t"); if (t) t.textContent = Math.max(0, rest) + "s"; if (rest <= 0) { i = N; fim(); } }, 500); desenha(); } };
@@ -1304,6 +1320,7 @@ async function telaResultado(tid) {
     <div class="panel"><div class="row" style="gap:22px">${anel(t.nota)}<div class="stack" style="gap:6px;flex:1;min-width:200px"><span class="mchip" style="--mc:${corMat(t.materia)};justify-self:start">${esc(t.materia)}</span><h2>${esc(msg)}</h2><p class="muted">${esc(t.titulo)} · ${t.pontos} de ${t.max} pontos · ${t.minutos} min</p></div></div></div>
     <div class="panel stack"><h3>Acertos por assunto</h3><div class="list">${barrasAssunto(d.respostas)}</div></div>
     <div class="panel stack"><h3>Como foi cada questão</h3><div class="review">${qs.map(cel).join("")}</div>
+    ${(() => { const tl = qs.filter(q => info[q.id] && /^Faltou o til/.test(info[q.id].comentario || "")); return tl.length ? `<div class="expl"><b>Contou como certo, mas atenção ao til:</b> ${tl.map(q => `questão ${q.numero} (${esc(String(info[q.id].comentario).replace(/^.*O certo é: /, "").replace(/ \(.*$/, ""))})`).join(", ")}. Da próxima vez, escreva com o til.</div>` : ""; })()}
     ${erradas.length && !t.revisaoLiberada ? `<p class="muted">Para revisar com um adulto:</p><div class="list">${erradas.map(q => `<div class="li"><span><b>${q.numero}.</b> ${esc(q.habilidade || "")}</span></div>`).join("")}</div>` : ""}
     ${!t.revisaoLiberada ? `<p class="muted small">Quando um adulto liberar a revisão, você vai ver aqui as respostas certas e as explicações.</p>` : ""}</div>
     ${revisao}

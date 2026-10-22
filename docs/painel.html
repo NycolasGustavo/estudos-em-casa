@@ -646,18 +646,18 @@ tr.det td{background:var(--bg);padding:12px 14px}
     ["sala","Terminou as atividades de sala, sem nada em branco","Termine as atividades da sala antes de guardar o caderno."],
     ["deveres","Mostrou os deveres de casa feitos (ou combinou quando vai fazer)","Faça os deveres de casa e mostre para um adulto."],
     ["agenda","Anotou na agenda os recados e as provas da professora","Preste atenção nos recados da professora e anote tudo na agenda."],
-    ["aula","Explicou com clareza o que aprendeu na aula","Preste atenção na aula para conseguir explicar o que aprendeu."],
+    ["aula","Me ensina: explicou com clareza uma coisa da aula e uma do app (e acertou a pergunta do dia)","Preste atenção na aula e no app para conseguir me ensinar o que aprendeu."],
     ["estudo","Fez todo o estudo da manhã no app","Faça todo o estudo da manhã antes de ir para a aula."],
     ["ontem","Cumpriu o que ficou devendo do dia anterior","Não esqueça o que ficou devendo."]
   ];
   let vc = {};
   const addD=(iso,n)=>{ const x=new Date(iso+"T12:00:00"); x.setDate(x.getDate()+n); return x.toISOString().slice(0,10); };
   function vcInfo(dia){
-    const p=state.plano.find(x=>x._id===dia); const its=(p&&p.itens)||[];
+    const p=state.plano.find(x=>x._id===dia); const its=((p&&p.itens)||[]).filter(i=>i.acao!=="meensina"); const me=(p&&p.meEnsina)||[];
     const feitos=its.filter(i=>statusItem(i).feito).length;
     const ant=state.dias.filter(x=>x.data<dia && !x.folga).sort((a,b)=>a.data<b.data?1:-1)[0];
     const dev=ant?[...(ant.devendo||[]), ...(ant.deveres||[]).map((t,i)=>"Dever: "+t+(state.feitos.some(f=>f._id===`${ant.data}-dever-${i}`)?" (ela marcou Fiz)":""))]:[];
-    return {its, feitos, ant, dev};
+    return {its, feitos, ant, dev, me};
   }
   function vcRender(){
     const dia=$("d-data").value||hoje(), inf=vcInfo(dia);
@@ -665,7 +665,8 @@ tr.det td{background:var(--bg);padding:12px 14px}
     if(vc.estudo==null && inf.its.length) vc.estudo = inf.feitos===inf.its.length;
     $("vc-lista").innerHTML = linhas.map(([k,t,l])=>{
       const extra = k==="estudo" ? `<div class="tag">No app: ${inf.feitos} de ${inf.its.length} feitos (${inf.its.map(i=>(statusItem(i).feito?"✓ ":"✗ ")+esc(i.titulo)).join(" · ")})</div>`
-        : k==="ontem" ? `<div class="tag">De ${fmtData(inf.ant.data)}: ${inf.dev.map(esc).join(" · ")}</div>` : "";
+        : k==="ontem" ? `<div class="tag">De ${fmtData(inf.ant.data)}: ${inf.dev.map(esc).join(" · ")}</div>`
+        : k==="aula" ? `<div class="tag">2 min: ela explica uma coisa da aula de hoje e uma do app, sem olhar. Depois faça a pergunta do dia.</div>${inf.me.length?inf.me.map(m=>`<details class="tag" style="margin-top:4px"><summary><b>Pergunta do dia:</b> ${esc(m.p)}</summary>Resposta: ${esc(m.r)}</details>`).join(""):""}` : "";
       const falhas=state.dias.filter(x=>x.data<dia && x.data>=addD(dia,-14) && x.itens && x.itens[k]===false).length;
       return `<div class="vc-row ${vc[k]===true?"sim":vc[k]===false?"nao":""}"><div class="vc-t"><b>${t}${falhas>=2?` <span class="pill ${falhas>=3?"bad":"warn"}">${falhas}x em 14 dias</span>`:""}</b>${extra}${vc[k]===false?`<input class="vc-lem" data-lem="${k}" value="${esc(vc["l_"+k]!=null?vc["l_"+k]:l)}" title="Lembrete que aparece para ela amanhã">`:""}</div>
         <div class="segmented"><button type="button" data-vc="${k}" data-v="1" aria-pressed="${vc[k]===true}">Fez</button><button type="button" data-vc="${k}" data-v="0" aria-pressed="${vc[k]===false}">Não fez</button></div></div>`; }).join("");
@@ -714,6 +715,8 @@ tr.det td{background:var(--bg);padding:12px 14px}
     try{ await db.collection("dias").doc(data).set({data, cor:c.cor, folga, itens, devendo, lembretes, deveres, escondeu:$("d-esc").checked, branco:+$("d-branco").value||0, estrelas:+$("d-est").value||0,
         obs:$("d-obs").value.trim(), combinado:$("d-comb").value.trim(), notasEscola:$("d-notas").checked,
         agenda:itens.agenda??null, cadernos:itens.caderno??null, aula:itens.aula??null, quem:SESS.nome, atualizadoEm:new Date().toISOString()});
+      const pl=state.plano.find(x=>x._id===data);
+      if(!folga && itens.aula!=null && pl && (pl.itens||[]).some(i=>i.acao==="meensina")){ const mid=(pl.itens.find(i=>i.acao==="meensina")||{}).id; try{ await api("gravarDoc",{col:"feitos", id:mid, data:{data, item:mid, explicou:itens.aula, quem:SESS.nome, em:new Date().toISOString()}}); }catch(_){ } }
       setMsg("m-dia", folga?"Folga registrada.":`Dia salvo: ${c.cor}.`, true); vcCarregar(); }
     catch(err){ setMsg("m-dia","Não foi possível salvar. Tente de novo."); } });
 
@@ -900,7 +903,7 @@ tr.det td{background:var(--bg);padding:12px 14px}
   document.addEventListener("click", e=>{ const b=e.target.closest("[data-ir]"); if(!b) return; e.preventDefault(); show(b.dataset.ir); window.scrollTo({top:0}); });
 
   // ---------- plano e constância ----------
-  const MOM = {aquecimento:"Aquecimento", frio:"Revisão (frio)", quente:"Preparar aula (quente)", missao:"Missão", prova:"Prova", simulado:"Simulado", extra:"Extra", livro:"Livro", video:"Aula em vídeo", ingles:"Inglês", recuperacao:"Recuperação"};
+  const MOM = {aquecimento:"Aquecimento", frio:"Revisão (frio)", quente:"Preparar aula (quente)", missao:"Missão", prova:"Prova", simulado:"Simulado", extra:"Extra", livro:"Livro", video:"Aula em vídeo", ingles:"Inglês", recuperacao:"Recuperação", meensina:"Me ensina"};
   const DSEM = ["dom","seg","ter","qua","qui","sex","sáb"];
   function statusItem(it){
     if(it.provaId){ const p=(extra.provas||[]).find(x=>x.id===it.provaId); const t=(extra.tentativas||[]).filter(x=>x.provaId===it.provaId);
