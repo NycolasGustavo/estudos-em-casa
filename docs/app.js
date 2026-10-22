@@ -62,6 +62,7 @@ async function render() {
     if (r[0] === "resultado") return await telaResultado(decodeURIComponent(r[1]));
     if (r[0] === "tabuada") return await telaTabuada(decodeURIComponent(r[1] || ""));
     if (r[0] === "pausa") return await telaPausa(decodeURIComponent(r[1] || ""));
+    if (r[0] === "pare") return await telaPare(decodeURIComponent(r[1] || ""));
     if (r[0] === "revisar") return await telaRevisar();
     if (r[0] === "video") { pararFala(); return await telaVideo(decodeURIComponent(r[1] || "")); }
     if (r[0] === "adulto" && adulto) {
@@ -264,15 +265,15 @@ function cartaoAgenda(a, podeApagar) {
 async function telaAluna(aba) {
   app.className = "shell-wrap";
   if (aba === "agenda") aba = "aulas";
-  if (!NAV.some(t => t[0] === aba) && aba !== "ler") aba = "hoje";
+  if (!NAV.some(t => t[0] === aba) && aba !== "ler" && aba !== "ensina") aba = "hoje";
   if (telaAluna.ultima !== aba) { semanaOff = 0; telaAluna.ultima = aba; }
   if (!cache.aluna) app.innerHTML = `<p class="muted" style="padding:40px">Carregando…</p>`;
   const d = await api("inicioAluna");
   cache.aluna = d;
   const primeiro = (d.nome || sess.nome || "").split(" ")[0];
-  const T = { hoje: `Oi, <span class="hl">${esc(primeiro)}</span>!`, aulas: "Minha agenda", notas: "Minhas notas", materias: "Matérias", agenda: "Agenda", livros: "Livros", ler: "Ler em voz alta", erros: "Caderno de erros", aprender: "Aprender com vídeos" };
-  const f = { hoje: abaHoje, aulas: abaAulas, notas: abaNotas, materias: abaMaterias, agenda: abaAgenda, livros: abaLivros, ler: abaLer, erros: abaErros, aprender: abaAprender }[aba];
-  app.innerHTML = concha(aba === "ler" ? "hoje" : aba, T[aba], f(d), d);
+  const T = { hoje: `Oi, <span class="hl">${esc(primeiro)}</span>!`, aulas: "Minha agenda", notas: "Minhas notas", materias: "Matérias", agenda: "Agenda", livros: "Livros", ler: "Ler em voz alta", ensina: "Me ensina", erros: "Caderno de erros", aprender: "Aprender com vídeos" };
+  const f = { hoje: abaHoje, aulas: abaAulas, notas: abaNotas, materias: abaMaterias, agenda: abaAgenda, livros: abaLivros, ler: abaLer, ensina: abaEnsina, erros: abaErros, aprender: abaAprender }[aba];
+  app.innerHTML = concha(aba === "ler" || aba === "ensina" ? "hoje" : aba, T[aba], f(d), d);
   ligarAluna(d);
 }
 
@@ -302,8 +303,9 @@ function acaoItem(d, it) {
   if (it.acao === "video" && it.yt) return `<a class="btn" href="${urlVideo(it.yt, it.id)}">${ico("aprender", 18)} Assistir</a>`;
   if (it.acao === "gravar" || it.acao === "ler") return `<a class="btn" href="${urlLer(it)}">Ler</a>`;
   if (it.acao === "livro") return `<button class="ghost" data-feito="${esc(it.id)}">Li hoje</button>`;
+  if (it.acao === "pare") return `<a class="btn" href="#/pare/${encodeURIComponent(it.id)}">Jogar</a>`;
   if (it.acao === "pausa") return `<a class="btn" href="#/pausa/${encodeURIComponent(it.id)}">Fazer a pausa</a>`;
-  if (it.acao === "meensina") return `<span class="trava">${ico("check", 18)} Um adulto marca à tarde</span>`;
+  if (it.acao === "meensina") return `<span style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;white-space:nowrap">${sess.papel !== "adulto" ? `<a class="btn ghost mini" href="#/ensina?item=${encodeURIComponent(it.id)}">Gravar (opcional)</a>` : ""}<span class="trava">${ico("check", 18)} Um adulto marca à tarde</span></span>`;
   return `<button class="ghost" data-feito="${esc(it.id)}">Marcar feito</button>`;
 }
 const MOMENTO = { aquecimento: ["Aquecimento", "#B8860B"], frio: ["Revisão de ontem · sangue frio", "#0E7C86"], quente: ["Preparar a aula de hoje · sangue quente", "#D2632A"], missao: ["Missão do dia", "#7A4FD6"], video: ["Aula em vídeo · aprender", "#D2632A"], ingles: ["Inglês", "#0E7C86"], meensina: ["Me ensina · com um adulto", "#2F7D4F"], pausa: ["Pausa ativa · mexa o corpo", "#2F7D4F"], recuperacao: ["Recuperação dos erros", "#B7791F"], prova: ["Prova · vale nota", "#C2413A"], simulado: ["Simulado · vale nota", "#C2413A"], extra: ["Extra", "#5E6483"], livro: ["Livro", "#5E6483"] };
@@ -543,9 +545,9 @@ function abaHoje(d) {
   const aula = infoAula(), proxEsc = d.agenda.filter(a => diasAte(a.data) >= 0).slice(0, 3);
   const lendo = d.livros.filter(l => l.status === "lendo");
   return `<p class="hoje-data">${dataTxt}</p>
-   <div class="home3"><div class="stack c1">${cardDevendo(d)}${estudo}
+   <div class="home3"><div class="stack c1">${cardHumor(d)}${cardDevendo(d)}${estudo}
     ${atrasados.length ? `<section class="painel-mundo" style="--w:var(--bad)"><div class="faixa" style="--w:var(--bad)"><b>FICOU PARA TRÁS</b><span>faça quando terminar o de hoje</span></div><div class="pm-corpo"><div class="itens">${atrasados.slice(-4).map(([dia, it], i) => linhaItem(d, dia, Object.assign({}, it, { descricao: `Era para ${DCURTO[diaSem(dia)].toLowerCase()}, ${dataBR(dia)}` }), i, false)).join("")}</div></div></section>` : ""}
-   </div><aside class="stack c2">${cardSol(d)}${cardDia(d)}</aside><aside class="stack c3">
+   </div><aside class="stack c2">${cardSol(d)}${cardEstrelas(d)}${cardDia(d)}</aside><aside class="stack c3">
     <section class="painel-mundo" style="--w:var(--escola)">${faixa("escola", "Hoje à tarde")}<div class="pm-corpo">${aula.aulas.length ? `${aula.aulas.map(a => `<div class="aula-l"><span class="mchip" style="--mc:${corMat(a.split(" ")[0])}">${esc(a)}</span></div>`).join("")}<span class="muted small">13:15 às 17:15 · ${esc(aula.linha)}</span>` : `<span>${esc(aula.linha)}</span>`}
       <h3 style="margin-top:8px">Vem aí na escola</h3>${proxEsc.length ? proxEsc.map(a => cartaoAgenda(a, false)).join("") : `<span class="muted small">Nenhuma prova anotada. Ouviu falar de prova? Anote na Agenda.</span>`}</div></section>${cardRecompensa(d)}
     <section class="panel stack"><h3>Lendo agora</h3>${lendo.length ? lendo.map(l => `<div><b>${esc(l.titulo)}</b><div class="muted small">desde ${dataBR(l.inicio)}</div></div>`).join("") : `<span class="muted small">Nenhum livro. Comece um na aba Livros.</span>`}</section>
@@ -568,8 +570,8 @@ function minhaSemana(d) {
       const st = estadoItem(d, dia, it);
       const ic = st === "feito" ? ico("check", 15) : st === "bloqueado" ? ico("cadeado", 14) : st === "atrasado" ? "!" : st === "descartado" ? "–" : "•";
       const tit = `<span class="si-ic">${ic}</span><span class="si-t">${esc(it.titulo)}</span>`;
-      const pode = (st === "hoje" || st === "atrasado") && (it.provaId || it.acao === "tabuada" || it.acao === "gravar" || it.acao === "ler" || (it.acao === "video" && it.yt));
-      const href = it.provaId ? `#/prova/${encodeURIComponent(it.provaId)}` : it.acao === "video" ? urlVideo(it.yt, it.id) : it.acao === "tabuada" ? `#/tabuada/${encodeURIComponent(it.id)}` : urlLer(it);
+      const pode = (st === "hoje" || st === "atrasado") && (it.provaId || it.acao === "tabuada" || it.acao === "pare" || it.acao === "gravar" || it.acao === "ler" || (it.acao === "video" && it.yt));
+      const href = it.provaId ? `#/prova/${encodeURIComponent(it.provaId)}` : it.acao === "video" ? urlVideo(it.yt, it.id) : it.acao === "tabuada" ? `#/tabuada/${encodeURIComponent(it.id)}` : it.acao === "pare" ? `#/pare/${encodeURIComponent(it.id)}` : urlLer(it);
       return pode ? `<a class="sitem s-${st}" href="${href}">${tit}</a>` : `<div class="sitem s-${st}" ${st === "bloqueado" ? `title="Abre no dia ${dataBR(dia)}"` : ""}>${tit}</div>`;
     }).join("");
     const corAv = av ? (av.folga ? "var(--soft)" : (COR_DIA[av.cor] || [0, "var(--line)"])[1]) : "";
@@ -879,6 +881,33 @@ function abaNotas(d) {
 }
 
 /* ---------- recompensa da semana ---------- */
+function cardEstrelas(d) {
+  const e = d.estrelas || { saldo: 0, hoje: 0, semana: 0, ultimas: [] }, r = d.recompensa || {}, preco = Number(r.estrelas) || 0;
+  const falta = preco ? Math.max(0, preco - e.saldo) : 0;
+  return `<section class="panel stack estrelas-c"><div class="row between"><h3 style="margin:0">⭐ Estrelas de foco</h3><b class="est-n">${e.saldo}</b></div>
+    <span class="small">Hoje: <b>+${e.hoje}</b> · nesta semana: <b>+${e.semana}</b></span>
+    ${preco ? `<div class="bar" style="height:10px"><i style="width:${Math.min(100, e.saldo / preco * 100)}%;background:#E0A93B"></i></div><span class="small">${falta ? `Faltam <b>${falta}</b> estrelas para: ${esc(r.texto || "a recompensa")}` : `Você já pode trocar por: <b>${esc(r.texto || "a recompensa")}</b>! Peça para um adulto.`}</span>` : ""}
+    <span class="muted small">Você ganha estrelas quando para e pensa, mostra a conta, confere antes de entregar, faz com calma, faz o caderno de erros e joga o Pare!</span>
+    ${(e.ultimas || []).filter(x => x.qtd > 0).slice(0, 3).map(x => `<span class="small">+${x.qtd} ${esc(x.motivo || "")}</span>`).join("")}</section>`;
+}
+const HUMORES = [["animada", "😄", "Animada"], ["bem", "🙂", "Bem"], ["maisoumenos", "😐", "Mais ou menos"], ["triste", "😟", "Triste ou preocupada"], ["irritada", "😠", "Irritada"]];
+let humorSel = null;
+function cardHumor(d) {
+  if (d.humorHoje || sess.papel === "adulto") return "";
+  return `<section class="panel stack humor-c"><h3 style="margin:0">Como você está chegando hoje?</h3>
+    <div class="humor-ops">${HUMORES.map(([k, e, t]) => `<button type="button" class="humor-op ${humorSel === k ? "sel" : ""}" data-humor="${k}"><span>${e}</span><small>${t}</small></button>`).join("")}</div>
+    ${humorSel ? `<span class="small">E a sua energia?</span><div class="row" style="gap:8px;flex-wrap:wrap">${[["cansada", "🪫 Cansada"], ["normal", "🔋 Normal"], ["eletrica", "⚡ Elétrica"]].map(([k, t]) => `<button type="button" class="ghost" data-energia="${k}">${t}</button>`).join("")}</div>` : ""}</section>`;
+}
+function respiracao(fim) {
+  const ov = document.createElement("div"); ov.className = "resp-ov";
+  ov.innerHTML = `<div class="resp-box stack"><h2>Vamos respirar juntas</h2><p>Siga a bolinha: ela cresce quando você puxa o ar e diminui quando você solta.</p><div class="resp-bola"></div><b id="resp-txt">Puxe o ar…</b><span class="muted small" id="resp-n"></span><div class="row" style="justify-content:center;gap:8px"><button class="ghost" id="resp-pular">Pular</button></div></div>`;
+  document.body.appendChild(ov);
+  let n = 0; const total = 12;
+  const passo = () => { if (!document.body.contains(ov)) return; const dentro = n % 2 === 0; const t = $("#resp-txt"); if (t) t.textContent = dentro ? "Puxe o ar…" : "Solte devagar…"; ov.querySelector(".resp-bola").classList.toggle("grande", dentro); falar(dentro ? "Puxe o ar" : "Solte devagar"); const c = $("#resp-n"); if (c) c.textContent = `${Math.floor(n / 2) + 1} de ${total / 2}`; n++; if (n > total) { acabar(true); return; } setTimeout(passo, 5000); };
+  const acabar = ok => { if (!document.body.contains(ov)) return; ov.remove(); fim(ok); };
+  ov.querySelector("#resp-pular").onclick = () => acabar(false);
+  setTimeout(passo, 600);
+}
 function cardRecompensa(d) {
   const r = d.recompensa; if (!r || !r.texto) return "";
   const h = d.hoje || hoje(), ini = segundaDe(h), meta = Number(r.meta) || 4;
@@ -992,6 +1021,19 @@ function abaLer(d) {
      ${feito ? `<span class="feito">${ico("check", 18)} Feito</span>` : itemId ? `<button data-feito="${esc(itemId)}" data-volta="${volta}">Li em voz alta</button>` : ""}<a class="btn ghost" href="${volta}">Voltar para Hoje</a></div></aside></div>`;
 }
 
+function abaEnsina(d) {
+  const q = new URLSearchParams((location.hash.split("?")[1] || "")), itemId = q.get("item") || ((d.hoje || hoje()) + "-meensina");
+  const volta = sess.papel === "adulto" ? "#/aluna/hoje" : "#/hoje";
+  return `<div class="home"><div class="stack col-main"><div class="panel stack"><h2>Me ensina: grave a sua explicação</h2>
+     <p>Explique como se estivesse ensinando alguém. Fale devagar, em 1 ou 2 minutos.</p>
+     <ol class="passos"><li><b>O que eu aprendi hoje no app:</b> "Hoje eu aprendi que…"</li><li><b>Um problema, passo a passo:</b> "Primeiro eu li… É juntar, tirar ou comparar, porque… A conta é… Deu…"</li><li><b>Uma coisa da aula de hoje na escola.</b></li></ol>
+     <div class="grav"><video id="gv" autoplay muted playsinline style="width:100%;max-width:420px;border-radius:12px;background:#111"></video>
+       <div class="row" style="gap:8px;flex-wrap:wrap"><button id="g-ligar">Ligar câmera e microfone</button><button id="g-rec" hidden>Gravar</button><button id="g-stop" class="ghost" hidden>Parar</button></div>
+       <span class="muted small" id="g-st"></span>
+       <div id="g-prev" class="stack" hidden><video id="gp" controls playsinline style="width:100%;max-width:420px;border-radius:12px"></video><div class="row" style="gap:8px"><button class="ghost" id="g-ref">Gravar de novo</button><button id="g-env">Enviar para os adultos</button></div></div>
+       <input type="hidden" id="g-tit" value="Me ensina"><input type="hidden" id="g-item" value="${esc(itemId)}-video"><input type="hidden" id="g-tipo" value="meensina"></div></div></div>
+   <aside class="col-side"><div class="panel stack"><h3>Para que serve</h3><p class="small">Ensinar é o melhor jeito de aprender. Quem explica precisa pensar com calma em cada passo. À tarde, um adulto assiste e conversa com você.</p><a class="btn ghost" href="${volta}">Voltar para Hoje</a></div></aside></div>`;
+}
 function ligarGravador() {
   let stream = null, rec = null, partes = [], blob = null, t0 = 0;
   const st = m => { const e = $("#g-st"); if (e) e.textContent = m; };
@@ -1018,7 +1060,7 @@ function ligarGravador() {
       if (!r.ok) throw new Error(r.erro || "Falha ao preparar o envio.");
       const up = await fetch(r.dados.signedUrl, { method: "PUT", headers: { "Content-Type": blob.type || "video/webm" }, body: blob });
       if (!up.ok) throw new Error("O envio do vídeo falhou.");
-      await api("registrarGravacao", { caminho: r.dados.caminho, tipo: "leitura", titulo: $("#g-tit").value, segundos: Math.round((Date.now() - t0) / 1000), item: $("#g-item").value || undefined });
+      await api("registrarGravacao", { caminho: r.dados.caminho, tipo: ($("#g-tipo") || {}).value || "leitura", titulo: $("#g-tit").value, segundos: Math.round((Date.now() - t0) / 1000), item: $("#g-item").value || undefined });
       if (stream) stream.getTracks().forEach(t => t.stop());
       toast("Vídeo enviado! Os adultos vão assistir."); location.hash = sess.papel === "adulto" ? "#/aluna/hoje" : "#/hoje";
     } catch (e) { b.disabled = false; st(e.message); }
@@ -1027,9 +1069,18 @@ function ligarGravador() {
 }
 function ligarAluna(d) {
   const corpo = $("#corpo");
+  if ($("#g-ligar")) ligarGravador();
   const exec = async (acao, dados, msg, b) => { if (b) b.disabled = true; try { await api(acao, dados); toast(msg); render(); } catch (e) { toast(e.message); if (b) b.disabled = false; } };
   corpo.onclick = e => {
     const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.humor) { humorSel = b.dataset.humor; render(); return; }
+    if (b.dataset.energia) {
+      const h = humorSel, en = b.dataset.energia; b.disabled = true;
+      const salvarH = respirou => api("registrarHumor", { humor: h, energia: en, respirou }).then(() => { humorSel = null; cache.aluna = null; render(); }).catch(err => toast(err.message));
+      if (h === "triste" || h === "irritada") { toast("Obrigada por contar. Antes de começar, 1 minuto de respiração."); respiracao(ok => salvarH(ok)); }
+      else salvarH(false);
+      return;
+    }
     if (b.dataset.fmat) { filtroMat = b.dataset.fmat; render(); }
     else if (b.dataset.nver) { notasVer = notasVer === b.dataset.nver && b.dataset.nver.includes("-") ? "todas" : b.dataset.nver; render(); }
     else if (b.dataset.sem) { semanaOff = Math.max(-1, Math.min(1, semanaOff + Number(b.dataset.sem))); render(); }
@@ -1043,6 +1094,71 @@ function ligarAluna(d) {
     else if (b.dataset.st) { const box = b.parentElement; box.dataset.val = b.dataset.st; box.querySelectorAll("button").forEach(x => x.classList.toggle("on", Number(x.dataset.st) <= Number(b.dataset.st))); }
     else if (b.dataset.fimOk) { const id = b.dataset.fimOk; const st = Number(corpo.querySelector(`[data-stars="${id}"]`).dataset.val || 0); if (!st) return toast("Escolha as estrelas."); exec("livroTerminar", { id, estrelas: st, frase: corpo.querySelector(`[data-frase="${id}"]`).value }, "Parabéns por terminar o livro!", b); }
   };
+}
+
+/* jogo "Pare!": treino e medida do controle inibitório (ir / não ir) */
+async function telaPare(itemId) {
+  app.className = "wrap";
+  const volta = sess.papel === "adulto" ? "#/aluna/hoje" : "#/hoje";
+  let d = null; try { d = cache.aluna || (cache.aluna = await api("inicioAluna")); } catch (e) { }
+  const ult = ((d && d.jogos) || []).find(j => j.jogo === "pare");
+  let nivel = ult ? Number(ult.nivel) || 1 : 1;
+  if (ult && ult.falsos <= 3 && ult.omissoes <= 4) nivel = Math.min(5, nivel + 1); else if (ult && ult.falsos >= 8) nivel = Math.max(1, nivel - 1);
+  const DUR = 1150 - 100 * (nivel - 1), ISI = 550, N = 20;
+  const r = n => 2 + Math.floor(Math.random() * n);
+  const CORES = [["VERDE", "#1E9E4A"], ["AZUL", "#2F55C9"], ["VERMELHO", "#D23B3B"], ["AMARELO", "#C9A100"]];
+  const RODADAS = [
+    { titulo: "Rodada 1", regra: "Aperte quando a conta for de MAIS. Não aperte na conta de MENOS.", gera: () => { const go = Math.random() < .7, a = r(8), b = r(8); return { go, html: `<span class="pare-conta">${a} ${go ? "+" : "−"} ${b}</span>` }; } },
+    { titulo: "Rodada 2", regra: "Aperte quando a COR das letras for VERDE. Não ligue para a palavra escrita.", gera: () => { const go = Math.random() < .6; const tinta = go ? CORES[0] : CORES[1 + Math.floor(Math.random() * 3)]; const palavra = Math.random() < .6 ? CORES[Math.floor(Math.random() * 4)][0] : tinta[0]; return { go, html: `<span class="pare-cor" style="color:${tinta[1]}">${palavra}</span>` }; } },
+    { titulo: "Rodada 3", regra: "Agora é o contrário! Aperte na conta de MENOS. Não aperte na conta de MAIS.", gera: () => { const go = Math.random() < .7, a = r(8), b = r(8); return { go, html: `<span class="pare-conta">${a} ${go ? "−" : "+"} ${b}</span>` }; } }
+  ];
+  let ri = 0, i = 0, estim = null, t0 = 0, apertou = false, rodando = false, timers = [];
+  const res = RODADAS.map(() => ({ acertos: 0, omissoes: 0, falsos: 0, rts: [] }));
+  const limpa = () => { timers.forEach(clearTimeout); timers = []; };
+  const intro = () => {
+    rodando = false;
+    app.innerHTML = `<div class="tab-wrap"><div class="tab-card stack"><h1>Pare! · ${RODADAS[ri].titulo} de 3</h1><p style="font-size:20px">${RODADAS[ri].regra}</p>
+      <p class="muted">Aperte a <b>barra de espaço</b> ou o botão grande. Se errar, tudo bem: o importante é <b>segurar o dedo</b> quando não é para apertar. Nível ${nivel}.</p>
+      <div class="row"><button id="pr-ir">Começar a rodada</button><button class="ghost ouvir" data-fala="${esc(RODADAS[ri].regra)}">${ico("som", 18)} Ouvir</button>${ri === 0 ? `<a class="btn ghost" href="${volta}">Voltar</a>` : ""}</div></div></div>`;
+    falar(RODADAS[ri].regra);
+  };
+  const tela = h => { app.innerHTML = `<div class="tab-wrap"><div class="tab-card stack" style="align-items:center"><span class="muted">${RODADAS[ri].titulo} · ${Math.min(i + 1, N)} de ${N}</span><div class="pare-alvo">${h}</div><button id="pr-ap" class="pare-btn">AGORA!</button></div></div>`; };
+  const proximo = () => {
+    if (i >= N) { ri++; i = 0; if (ri >= RODADAS.length) return fim(); return intro(); }
+    estim = RODADAS[ri].gera(); apertou = false; t0 = performance.now(); tela(estim.html);
+    timers.push(setTimeout(() => {
+      const rr = res[ri];
+      if (estim.go && !apertou) rr.omissoes++;
+      if (!estim.go && !apertou) rr.acertos++;
+      tela(`<span class="pare-fix">+</span>`); i++;
+      timers.push(setTimeout(proximo, ISI));
+    }, DUR));
+  };
+  const aperta = () => {
+    if (!rodando || !estim || apertou) return; apertou = true;
+    const rr = res[ri], rt = Math.round(performance.now() - t0);
+    if (estim.go) { rr.acertos++; rr.rts.push(rt); } else { rr.falsos++; const a = $(".pare-alvo"); if (a) a.classList.add("erro"); }
+  };
+  const fim = async () => {
+    rodando = false; limpa();
+    const tot = res.reduce((a, x) => ({ acertos: a.acertos + x.acertos, omissoes: a.omissoes + x.omissoes, falsos: a.falsos + x.falsos, rts: a.rts.concat(x.rts) }), { acertos: 0, omissoes: 0, falsos: 0, rts: [] });
+    const rt = tot.rts.length ? Math.round(tot.rts.reduce((a, b) => a + b, 0) / tot.rts.length) : null;
+    app.innerHTML = `<div class="tab-wrap"><div class="tab-card stack"><h1>${tot.falsos <= 3 ? "Que freio!" : "Muito bem!"}</h1>
+      <p>Você acertou <b>${tot.acertos}</b> de ${N * RODADAS.length}: apertou na hora certa ou segurou o dedo quando não era para apertar.</p>
+      <ul class="passos"><li>Apertou quando não era para apertar: <b>${tot.falsos}</b> ${tot.falsos <= 3 ? "(ótimo controle!)" : "(da próxima vez, espere um pouquinho antes de apertar)"}</li><li>Deixou passar: <b>${tot.omissoes}</b></li></ul>
+      <span class="muted small" id="pr-s">Salvando…</span><a class="btn" href="${volta}">Voltar para Hoje</a></div></div>`;
+    try { await api("registrarJogo", { jogo: "pare", acertos: tot.acertos, omissoes: tot.omissoes, falsos: tot.falsos, total: N * RODADAS.length, rtMedio: rt == null ? "" : rt, nivel, item: itemId, rodadas: res.map(x => ({ acertos: x.acertos, omissoes: x.omissoes, falsos: x.falsos })) }); cache.aluna = null; $("#pr-s").textContent = "Resultado salvo. +1 estrela de foco!"; }
+    catch (e) { $("#pr-s").textContent = e.message; }
+  };
+  app.onclick = e => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.fala) { falar(b.dataset.fala); return; }
+    if (b.id === "pr-ir") { pararFala(); rodando = true; i = 0; tela(`<span class="pare-fix">+</span>`); timers.push(setTimeout(proximo, 900)); }
+    if (b.id === "pr-ap") aperta();
+  };
+  app.onkeydown = e => { if (e.code === "Space") { e.preventDefault(); aperta(); } };
+  window.addEventListener("hashchange", function sair() { limpa(); app.onkeydown = null; window.removeEventListener("hashchange", sair); });
+  intro();
 }
 
 /* pausa ativa entre os dois blocos de estudo */
@@ -1423,7 +1539,9 @@ async function telaResultado(tid) {
   const extra = sess.papel === "adulto" ? `<a class="btn ghost mini" href="#/adulto/tentativa/${encodeURIComponent(tid)}">Ver como adulto</a>` : "";
   const refazer = (cache.ultimo && cache.ultimo.tentativaId === tid) ? !!cache.ultimo.refazer : (!VALE_NOTA(t.tipo) && qs.length >= 4 && Number(t.minutos) * 60 <= qs.length * 30);
   const avisoRapido = refazer ? `<div class="confirm" style="border-style:solid;border-color:var(--sun)"><h3 style="margin:0 0 4px">Foi rápido demais</h3><p style="margin:0">Você levou ${t.minutos} minuto${t.minutos > 1 ? "s" : ""} para ${qs.length} questões. Assim não dá para aprender. Essa atividade <b>volta para você refazer com calma</b>: leia a explicação, ouça e responda de novo.</p></div>` : "";
-  app.innerHTML = topo(extra) + `<div class="stack">${avisoRapido}
+  const ganhou = cache.ultimo && cache.ultimo.tentativaId === tid ? Number(cache.ultimo.estrelas) || 0 : 0;
+  const bannerEst = ganhou ? `<div class="confirm" style="border-style:solid;border-color:#E0A93B;background:#FFF8E6"><b>⭐ +${ganhou} estrela${ganhou > 1 ? "s" : ""} de foco!</b> Você ganhou por parar e pensar, mostrar a conta, conferir e fazer com calma.</div>` : "";
+  app.innerHTML = topo(extra) + `<div class="stack">${bannerEst}${avisoRapido}
     <div class="panel"><div class="row" style="gap:22px">${anel(t.nota)}<div class="stack" style="gap:6px;flex:1;min-width:200px"><span class="mchip" style="--mc:${corMat(t.materia)};justify-self:start">${esc(t.materia)}</span><h2>${esc(msg)}</h2><p class="muted">${esc(t.titulo)} · ${t.pontos} de ${t.max} pontos · ${t.minutos} min</p></div></div></div>
     <div class="panel stack"><h3>Acertos por assunto</h3><div class="list">${barrasAssunto(d.respostas)}</div></div>
     <div class="panel stack"><h3>Como foi cada questão</h3><div class="review">${qs.map(cel).join("")}</div>

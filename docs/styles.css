@@ -546,3 +546,20 @@ a.nl:hover{background:var(--bg)}
 .pense-op.no{opacity:.45;text-decoration:line-through}
 .ck-ent{display:flex;align-items:center;gap:10px;font-size:16px;padding:6px 0;cursor:pointer}
 .ck-ent input{width:22px;height:22px}
+/* jogo Pare!, estrelas, termômetro e respiração */
+.pare-alvo{min-height:160px;display:flex;align-items:center;justify-content:center;border-radius:18px;width:100%;transition:background .15s}
+.pare-alvo.erro{background:#FBE3E3}
+.pare-conta{font-size:64px;font-weight:800;font-family:var(--display,inherit)}
+.pare-cor{font-size:60px;font-weight:900;letter-spacing:2px}
+.pare-fix{font-size:40px;color:#9AA3B5}
+.pare-btn{font-size:24px;padding:18px 48px;border-radius:16px;justify-content:center;text-align:center;width:100%}
+.estrelas-c .est-n{font-size:28px;color:#B8860B}
+.humor-ops{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.humor-op{display:flex;flex-direction:column;align-items:center;gap:4px;background:#fff;color:inherit;border:1.5px solid var(--line,#DDE1EA);border-radius:14px;padding:10px 6px}
+.humor-op span{font-size:34px}.humor-op small{font-size:12px;color:#5E6483;text-align:center}
+.humor-op.sel{border-color:var(--accent,#2F55C9);background:#EEF2FD}
+@media (max-width:560px){.humor-ops{grid-template-columns:repeat(3,1fr)}}
+.resp-ov{position:fixed;inset:0;background:rgba(20,28,45,.55);display:flex;align-items:center;justify-content:center;z-index:50}
+.resp-box{background:#fff;border-radius:20px;padding:24px;max-width:420px;width:calc(100% - 32px);text-align:center;align-items:center}
+.resp-bola{width:90px;height:90px;border-radius:50%;background:#9DC3F0;margin:18px auto;transition:transform 4.5s ease-in-out}
+.resp-bola.grande{transform:scale(1.9)}

@@ -104,3 +104,16 @@ Documento em `app.docs` col `dias`, id = data: `{data, cor, folga, itens:{cadern
 
 `{titulo, canal, materia, assunto, minutos, ordem, porque, oculto?}`. Aparecem na aba **Aprender** do app, agrupadas por matéria. Antes de cadastrar, confira que o vídeo permite incorporação (`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=<id>&format=json` responde 200). O player usa o host youtube.com (o youtube-nocookie devolve erro 150 nesses vídeos). Vídeos monetizados podem mostrar propaganda antes da aula.
 O quanto ela assistiu fica em col `assistidos` (id = id do vídeo): `{pct, duracao, vistos, posicao, data, vezes}`.
+
+## Funções executivas (desde 22/10/2026)
+
+Base: laudo neuropsicológico (atenção e controle inibitório baixos, memória operacional abaixo da média, memória auditiva como ponto forte). Plano completo em `claude/funcoes-executivas-plano.md` no projeto.
+
+- **`pense` nas questões de problema:** `{"correta": "comparar" | ["tirar","comparar"], "conta": true, "dica": "..."}`. Tipos: `juntar`, `tirar`, `comparar`, `repartir`, `vezes` (ou `opcoes` própria). As alternativas só aparecem depois que ela acerta o tipo (conferido no servidor, `api('conferir', {modo:'pense'})`) e escreve a conta, se `conta: true`. `sem_gabarito` esconde `pense.correta`. Vale em treinos e provas. Use em todo problema com enunciado; não use em cálculo puro nem em Português.
+- **Treinos** (tudo que não é `prova`/`simulado`): uma questão por tela, botão **Conferir** (`api('conferir')`), retorno imediato. A **primeira** resposta conferida é a que vale nota; a segunda tentativa só ensina. A explicação aparece depois da 2ª tentativa. Provas continuam com todas as questões na tela e sem retorno.
+- **Entrega:** checklist de 3 itens obrigatório. A entrega envia `__raciocinio` (por questão: tipo escolhido, acertou de primeira, conta, tentativas), `__adulto` (marcou "estou com um adulto") e `__checklist`. O raciocínio fica em `app.respostas.raciocinio` e aparece no painel em "Ver respostas".
+- **Itens de plano:** `acao: "pausa"` (5 min, os itens seguintes ficam travados até a pausa terminar; entra depois de ~30 min de estudo) e `acao: "pare"` (jogo Pare! de ir/não ir, 3 min, logo depois da tabuada; nível sobe sozinho; grava em `jogos`).
+- **Estrelas de foco** (`docs` col `estrelas`, dadas só pelo servidor): +1 pense certo de primeira, +1 conta mostrada, +1 checklist, +2 feito com calma (sem cair na trava), +2 caderno de erros do dia, +1 jogo Pare!. Troca: preço em estrelas na recompensa (visto do café da tarde); o adulto desconta no painel.
+- **Termômetro** (`humor`, um por dia): carinha + energia ao abrir "Hoje". Triste ou irritada abre 1 minuto de respiração guiada.
+- **Me ensina gravado:** `#/ensina?item=...` usa o gravador (tipo `meensina`); o adulto assiste em Plano › Gravações.
+- **Painel › Foco e autocontrole:** `app.fe_resumo()` por semana.
