@@ -459,11 +459,27 @@ function abaErros(d) {
   const e = d.erros || { devidos: 0, ativos: 0, vencidos: 0, porHabilidade: [] };
   const porMat = {}; e.porHabilidade.forEach(x => (porMat[x.materia] = porMat[x.materia] || []).push(x));
   return `<div class="erros-top"><div class="panel stack"><h2>${e.devidos ? `${e.devidos} para revisar hoje` : "Nada para revisar hoje"}</h2>
-      <p class="muted" style="margin:0">Toda questão que você erra vem para este caderno. Ela volta depois de <b>1 dia</b>, <b>3 dias</b>, <b>7 dias</b> e <b>21 dias</b>. Acertou 4 vezes seguidas? <b>Venceu!</b> Errou? Ela volta amanhã.</p>
+      <p class="muted" style="margin:0">Toda questão que você erra vem para este caderno. Ela volta como uma <b>questão nova da mesma regra</b> depois de <b>1 dia</b>, <b>3 dias</b>, <b>7 dias</b> e <b>21 dias</b>. Acertou 4 vezes seguidas? <b>Venceu!</b> Errou? Ela volta amanhã. São no máximo <b>8 por dia</b>.</p>
       ${e.devidos ? `<div><a class="btn" href="#/revisar">Revisar agora</a></div>` : ""}</div>
     <div class="kpi-e"><b>${e.ativos}</b><span>no caderno</span></div><div class="kpi-e ok"><b>${e.vencidos}</b><span>vencidos</span></div></div>
    ${Object.keys(porMat).map(m => `<section class="panel stack" style="border-top:5px solid ${corMat(m)}"><h3 style="color:${corMat(m)}">${esc(m)}</h3><div class="list">${porMat[m].map(x => `<div class="li"><div><b>${esc(poderDe(x.habilidade).nome)}</b><div class="muted small">${esc(x.habilidade)}</div></div><div class="row" style="gap:6px">${x.devidos ? `<span class="tag warn">${x.devidos} hoje</span>` : ""}${x.ativos ? `<span class="tag">${x.ativos} no caderno</span>` : ""}${x.vencidos ? `<span class="tag ok">${x.vencidos} vencido${x.vencidos > 1 ? "s" : ""}</span>` : ""}</div></div>`).join("")}</div></section>`).join("") || `<div class="panel muted">Seu caderno está vazio. Os erros das próximas atividades aparecem aqui.</div>`}`;
 }
+// regra curta mostrada antes do primeiro cartão de cada habilidade no caderno
+const REGRAS = [
+  [/compara/i, "\"A mais\", \"a menos\", \"diferença\" e \"quanto falta\" é COMPARAR: conta de MENOS, o maior menos o menor. Não some os dois números!"],
+  [/adjetivo|substantivo|classes de palavras/i, "Teste do MUITO: se dá para dizer \"muito ___\" (muito bonito), é ADJETIVO: diz como é. Se não dá (muito mesa), é SUBSTANTIVO: é nome, cabe o/a antes."],
+  [/per[ií]metro/i, "Perímetro é a VOLTA (cerca, rodapé, fita): some todos os lados. Área é o espaço de DENTRO."],
+  [/[áa]rea/i, "Área é o espaço de DENTRO: conte os quadradinhos ou faça linhas × colunas. Perímetro é a volta."],
+  [/resto/i, "O resto é sempre MENOR que o número que divide. Se sobrar alguém, precisa de mais um (carro, caixa, mesa)."],
+  [/trajeto|direita|esquerda/i, "Conte só os passos que você anda, não a casa onde está. Letra = fileira (de cima para baixo). Número = coluna (da esquerda para a direita)."],
+  [/malha/i, "Endereço: letra primeiro (fileira), número depois (coluna). Mesma fileira = mesma letra."],
+  [/dobro|triplo/i, "Dobro = vezes 2. Triplo = vezes 3."],
+  [/pontua/i, "Frase que mostra emoção (Que lindo!) termina com ponto de exclamação (!). Pergunta termina com (?)."],
+  [/conectivo|como = porque/i, "\"Como\" no começo da frase quer dizer \"porque\"."],
+  [/tempo/i, "1 hora = 60 minutos. Meia hora = 30 minutos."],
+  [/multiplica/i, "Separe em partes: 7 × 16 = 7 × 10 + 7 × 6."]
+];
+const regraDe = h => { const r = REGRAS.find(([re]) => re.test(h || "")); return r ? r[1] : ""; };
 async function telaRevisar() {
   app.className = "wrap";
   carregando("Buscando seus erros…");
@@ -485,9 +501,10 @@ async function telaRevisar() {
     const fb = res ? `<div class="fb ${res.certo ? "ok" : "no"}">${res.certo ? (res.resolvido ? "<b>Venceu!</b> Essa questão saiu do caderno." : `<b>Isso mesmo!</b> Ela volta no dia ${dataBR(res.proxima)} para você confirmar.`) : `<b>Ainda não.</b> A resposta certa é <b>${esc(res.correta)}</b>. Ela volta amanhã.`}${res.aviso ? `<div style="margin-top:6px"><b>Atenção:</b> ${esc(res.aviso)}</div>` : ""}${res.explicacao ? `<div style="margin-top:6px">${md(res.explicacao)}</div>` : ""}</div>` : "";
     app.innerHTML = `<div class="ptop"><div class="row between"><b style="font-family:var(--display);color:var(--accent)">Caderno de erros</b><span class="muted">${i + 1} de ${qs.length}</span></div><div class="pbar"><i style="width:${(i + (res ? 1 : 0)) / qs.length * 100}%"></i></div></div>
       <div class="stack" style="max-width:900px;margin:0 auto">
-      <div class="row" style="gap:6px"><span class="mchip" style="--mc:${corMat(e.materia)}">${esc(e.materia)}</span><span class="tag">${esc(poderDe(e.habilidade || "").nome)}</span>${e.vezes > 1 ? `<span class="tag warn">já errou ${e.vezes} vezes</span>` : ""}</div>
+      <div class="row" style="gap:6px"><span class="mchip" style="--mc:${corMat(e.materia)}">${esc(e.materia)}</span><span class="tag">${esc(poderDe(e.habilidade || "").nome)}</span>${e.var ? `<span class="tag ok">questão nova, mesma regra</span>` : ""}${e.vezes > 1 ? `<span class="tag warn">já errou ${e.vezes} vezes</span>` : ""}</div>
+      ${regraDe(e.habilidade) && (i === 0 || qs[i - 1].habilidade !== e.habilidade || (res && !res.certo)) ? `<div class="regra"><b>Lembre a regra:</b> ${esc(regraDe(e.habilidade))}</div>` : ""}
       ${q._lead ? `<div class="lead">${esc(q._lead)}</div>` : ""}${q._texto ? renderTexto(q._texto) : ""}
-      <div class="q"><div class="q-h"><span class="num">${i + 1}</span><span>${md(q.enunciado)}</span></div>${q.apoio ? renderTexto(q.apoio) : ""}${corpo}${fb}</div>
+      <div class="q"><div class="q-h"><span class="num">${i + 1}</span><span>${realce(md(q.enunciado))}</span></div>${q.apoio ? renderTexto(q.apoio) : ""}${corpo}${fb}</div>
       <div class="nav">${res ? `<span></span><button id="rv-prox">${i === qs.length - 1 ? "Terminar" : "Próxima"}</button>` : `<a class="btn ghost" href="${volta}">Sair</a><button id="rv-ok" ${enviando ? "disabled" : ""}>Conferir</button>`}</div></div>`;
     const inp = $("#rv-in"); if (inp && !res) inp.focus();
   };
@@ -500,7 +517,7 @@ async function telaRevisar() {
       const inp = $("#rv-in"); if (inp) valor = inp.value;
       if (!String(valor).trim()) return toast("Responda primeiro.");
       enviando = true; desenha();
-      try { res = await api("responderErro", { id: qs[i].id, resposta: valor }); if (res.certo) acertos++; } catch (e) { toast(e.message); }
+      try { res = await api("responderErro", { id: qs[i].id, resposta: valor, var: qs[i].var || null }); if (res.certo) acertos++; } catch (e) { toast(e.message); }
       enviando = false; desenha(); return;
     }
     if (b.id === "rv-prox") { i++; res = null; valor = ""; desenha(); window.scrollTo({ top: 0 }); }
@@ -1251,18 +1268,29 @@ function renderTexto(t) {
     default: return `<div class="texto">${t.titulo ? `<h2>${esc(t.titulo)}</h2>` : ""}${(t.paragrafos || []).map(p => { const b = /^\*\*/.test(p); return `<p${b ? ' style="font-weight:600"' : ""}>${esc(p.replace(/^\*\*/, ""))}</p>`; }).join("")}${cred}</div>`;
   }
 }
-const PENSE_ROT = { juntar: ["Juntar", "+", "ao todo, no total, os dois juntos"], tirar: ["Tirar", "−", "gastou, perdeu, deu, sobrou"], comparar: ["Comparar", "−", "a mais, a menos, a diferença, quanto falta"], repartir: ["Repartir", "÷", "dividir igual, quanto cada um"], vezes: ["Vezes", "×", "grupos iguais, dobro, triplo"] };
+const PENSE_ROT = { juntar: ["Juntar", "+", "ao todo, no total, os dois juntos"], tirar: ["Tirar", "−", "gastou, perdeu, deu, sobrou"], comparar: ["Comparar", "−", "a mais, a menos, a diferença, quanto falta"], repartir: ["Repartir", "÷", "dividir igual, quanto cada um"], vezes: ["Vezes", "×", "grupos iguais, dobro, triplo"], perimetro: ["A volta", "(perímetro)", "cerca, rodapé, fita, dar uma volta: some todos os lados"], area: ["O de dentro", "(área)", "pintar, cobrir, piso, tapete: linhas × colunas"], sim: ["Sim, dá", "", "soa certo"], nao: ["Não dá", "", "soa estranho"] };
+const PENSE_DICAS = { classe: "Fale baixinho: \"muito ___\". Se soa certo (muito bonito, muito alto), **dá**. Se soa estranho (muito mesa, muito janela), **não dá**.", medida: "**Perímetro é a VOLTA** (cerca, rodapé, fita, dar uma volta): some todos os lados. **Área é o espaço de DENTRO** (pintar, cobrir, piso, tapete): conte os quadradinhos ou faça linhas × colunas." };
+const REGRA_CLASSE = `<div class="regra">Dá <b>"muito"</b> → <b>ADJETIVO</b> (diz como é)<br>Não dá → <b>SUBSTANTIVO</b> (é nome: cabe o/a antes)</div>`;
+// destaca as palavras que mudam a resposta (freio visual)
+const realce = html => html.replace(/(^|[^\p{L}])(não|a mais|a menos|diferença|quanto falta|mais que|menos que)(?![\p{L}])/giu, '$1<mark class="kw">$2</mark>');
 const PENSE_DICA = "Leia a pergunta de novo, devagar. \"A mais\", \"a menos\", \"a diferença\" e \"quanto falta\" são COMPARAR (conta de menos: maior menos menor). \"Ao todo\" é JUNTAR. \"Gastou\" ou \"sobrou\" é TIRAR. \"Cada um\" é REPARTIR. \"Grupos iguais\", \"dobro\" e \"triplo\" é VEZES.";
 function penseHTML(q, ps) {
-  const pe = q.pense || {}, ops = pe.opcoes || ["juntar", "tirar", "comparar", "repartir", "vezes"];
-  const fala = "Pare e pense. O que a pergunta pede? " + ops.map(o => (PENSE_ROT[o] || [o])[0]).join(", ") + "?";
-  if (ps.ok && (!pe.conta || ps.contaOk)) return `<div class="pense ok"><b>${ico("check", 16)} Pensei antes:</b> ${esc((PENSE_ROT[ps.escolha] || [ps.escolha])[0])}${ps.conta ? ` · conta: <b>${esc(ps.conta)}</b>` : ""}</div>`;
+  const pe = q.pense || {}, classe = pe.tipo === "classe", medida = pe.tipo === "medida";
+  const ops = pe.opcoes || (classe ? ["sim", "nao"] : medida ? ["perimetro", "area"] : ["juntar", "tirar", "comparar", "repartir", "vezes"]);
+  const pal = esc(pe.palavra || "");
+  const fala = classe ? `Pare e pense. Teste do muito: dá para dizer muito ${pe.palavra || ""}?` : medida ? "Pare e pense. A pergunta pede a volta, que é o perímetro, ou o espaço de dentro, que é a área?" : "Pare e pense. O que a pergunta pede? " + ops.map(o => (PENSE_ROT[o] || [o])[0]).join(", ") + "?";
+  const nome = o => (PENSE_ROT[o] || [o])[0];
+  if (ps.ok && (!pe.conta || ps.contaOk)) {
+    if (classe) return `<div class="pense ok"><b>${ico("check", 16)} Teste do muito:</b> "muito ${pal}" ${ps.escolha === "sim" ? "<b>dá</b>" : "<b>não dá</b>"}.${REGRA_CLASSE}</div>`;
+    return `<div class="pense ok"><b>${ico("check", 16)} Pensei antes:</b> ${esc(nome(ps.escolha))}${ps.conta ? ` · conta: <b>${esc(ps.conta)}</b>` : ""}</div>`;
+  }
   let h = `<div class="pense"><div class="row between"><b>✋ Pare e pense</b><button class="ouvir mini ghost" type="button" data-fala="${esc(fala)}">${ico("som", 16)}</button></div>`;
   if (!ps.ok) {
-    h += `<p style="margin:6px 0">Antes de responder: <b>o que a pergunta pede?</b></p><div class="pense-ops">${ops.map(o => { const r = PENSE_ROT[o] || [o, "", ""]; const errou = (ps.escolhas || []).includes(o); return `<button type="button" class="pense-op ${errou ? "no" : ""}" data-pense-op="${esc(o)}" data-pense-q="${esc(q.id)}" ${errou ? "disabled" : ""}><b>${esc(r[0])} ${esc(r[1])}</b><small>${esc(r[2])}</small></button>`; }).join("")}</div>`;
-    if (ps.fb === "no") h += `<div class="fb no" style="margin-top:8px"><b>Ainda não.</b> ${md(ps.dica || PENSE_DICA)}</div>`;
+    const perg = classe ? `Teste do MUITO: dá para dizer <b>"muito ${pal}"</b>?` : medida ? `Antes de responder: a pergunta pede <b>a volta</b> ou <b>o de dentro</b>?` : `Antes de responder: <b>o que a pergunta pede?</b>`;
+    h += `<p style="margin:6px 0">${perg}</p><div class="pense-ops">${ops.map(o => { const r = PENSE_ROT[o] || [o, "", ""]; const errou = (ps.escolhas || []).includes(o); return `<button type="button" class="pense-op ${errou ? "no" : ""}" data-pense-op="${esc(o)}" data-pense-q="${esc(q.id)}" ${errou ? "disabled" : ""}><b>${esc(r[0])} ${esc(r[1])}</b><small>${esc(r[2])}</small></button>`; }).join("")}</div>`;
+    if (ps.fb === "no") h += `<div class="fb no" style="margin-top:8px"><b>Ainda não.</b> ${md(ps.dica || PENSE_DICAS[pe.tipo] || PENSE_DICA)}</div>`;
   } else {
-    h += `<div class="fb ok" style="margin:6px 0"><b>Isso!</b> É ${esc((PENSE_ROT[ps.escolha] || [ps.escolha])[0]).toLowerCase()}.</div><p style="margin:6px 0">Agora <b>escreva a conta</b> que você vai fazer:</p><div class="resp-in"><input data-pense-conta="${esc(q.id)}" value="${esc(ps.conta || "")}" placeholder="Ex.: 52 − 35" autocomplete="off"><button type="button" class="mini" data-pense-pronto="${esc(q.id)}">Pronto</button></div>`;
+    h += `<div class="fb ok" style="margin:6px 0"><b>Isso!</b> É ${esc(nome(ps.escolha)).toLowerCase()}.</div><p style="margin:6px 0">Agora <b>escreva a conta</b> que você vai fazer:</p><div class="resp-in"><input data-pense-conta="${esc(q.id)}" value="${esc(ps.conta || "")}" placeholder="${medida ? "Ex.: 9 + 5 + 9 + 5" : "Ex.: 52 − 35"}" autocomplete="off"><button type="button" class="mini" data-pense-pronto="${esc(q.id)}">Pronto</button></div>`;
   }
   return h + `</div>`;
 }
@@ -1291,8 +1319,8 @@ function renderQuestao(q, valor, modo, info) {
     rodape = `<div class="row">${st}${info.correta && tipo !== "mc" ? `<span class="muted">Resposta esperada: <b>${esc(info.correta)}</b></span>` : ""}</div>${info.comentario ? `<div class="expl">${esc(info.comentario)}</div>` : ""}${q.explicacao ? `<div class="expl">${esc(q.explicacao)}</div>` : ""}`;
   }
   if (modo === "fazer" && q.pense) { const ps = info || {}; const pronto = ps.ok && (!q.pense.conta || ps.contaOk); corpo = penseHTML(q, ps) + (pronto ? corpo : ""); }
-  if (modo === "revisao" && info && info.raciocinio && info.raciocinio.pense) { const rc = info.raciocinio; rodape += `<div class="expl">Pensou: ${esc((PENSE_ROT[rc.pense] || [rc.pense])[0])}${rc.ok1 === false ? " (acertou o tipo depois)" : ""}${rc.conta ? ` · conta: ${esc(rc.conta)}` : ""}</div>`; }
-  return `<div class="q" id="q-${esc(q.id)}"><div class="q-h"><span class="num">${q.numero}</span><span>${md(q.enunciado)}</span></div>${q.apoio ? renderTexto(q.apoio) : ""}${corpo}${rodape}</div>`;
+  if (modo === "revisao" && info && info.raciocinio && info.raciocinio.pense) { const rc = info.raciocinio; rodape += `<div class="expl">${q.pense && q.pense.tipo === "classe" ? `Teste do muito: ` : "Pensou: "}${esc((PENSE_ROT[rc.pense] || [rc.pense])[0])}${rc.ok1 === false ? " (acertou o tipo depois)" : ""}${rc.conta ? ` · conta: ${esc(rc.conta)}` : ""}</div>`; }
+  return `<div class="q" id="q-${esc(q.id)}"><div class="q-h"><span class="num">${q.numero}</span><span>${realce(md(q.enunciado))}</span></div>${q.apoio ? renderTexto(q.apoio) : ""}${corpo}${rodape}</div>`;
 }
 
 /* ---------------- lição interativa (parte de ensinar da atividade) ---------------- */
@@ -1498,7 +1526,7 @@ async function telaProva(id) {
     }
     if (b.id === "l-prox") { pararFala(); if ((st.li || 0) < p.licao.length - 1) { st.li = (st.li || 0) + 1; } else { st.etapa = 0; st.licaoOk = true; } salvar(); desenha(); topoPg(); return; }
     if (b.id === "l-volta") { pararFala(); if ((st.li || 0) > 0) st.li--; else st.etapa = -1; salvar(); desenha(); topoPg(); return; }
-    if (b.id === "comecar") { if (!st.inicio) st.inicio = new Date().toISOString(); if (p.licao && !st.licaoOk) { st.etapa = -2; st.li = st.li || 0; } else st.etapa = Math.max(0, st.etapa); salvar(); desenha(); topoPg(); }
+    if (b.id === "comecar") { if (!st.inicio) st.inicio = new Date().toISOString(); if (p.licao && p.licao.length && !st.licaoOk) { st.etapa = -2; st.li = st.li || 0; } else st.etapa = Math.max(0, st.etapa); salvar(); desenha(); topoPg(); }
     else if (b.id === "prox") { st.etapa++; salvar(); desenha(); topoPg(); }
     else if (b.id === "voltar") { if (TREINO && st.etapa >= p.blocos.length) { st.etapa = qs[qs.length - 1].bloco; st.qi = qs.length - 1; } else if (st.etapa === 0 && p.licao) { st.etapa = -2; st.li = p.licao.length - 1; } else st.etapa--; confirmar = false; salvar(); desenha(); topoPg(); }
     else if (b.dataset.goto) { const q = qs.find(x => x.id === b.dataset.goto); st.etapa = q.bloco; st.qi = qs.indexOf(q); salvar(); desenha(); const el = document.getElementById("q-" + q.id); if (el) el.scrollIntoView({ block: "center" }); }
