@@ -110,6 +110,8 @@ function telaLogin() {
       <div class="pin" id="pin"></div>
       <div class="erro" id="erro"></div>
       <div class="pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, "⌫", 0, "OK"].map(k => `<button data-k="${k}" class="${k === "OK" ? "ok" : k === "⌫" ? "apaga" : ""}" aria-label="${k === "⌫" ? "apagar" : k === "OK" ? "entrar" : k}">${k === "OK" ? "Entrar" : k}</button>`).join("")}</div>
+      <form id="lg-senha-f" class="row" hidden style="gap:8px;margin-top:10px"><input type="password" id="lg-senha" autocomplete="current-password" placeholder="Senha do adulto" style="flex:1;min-width:0"><button type="submit">Entrar</button></form>
+      <button type="button" class="ghost mini" id="lg-adulto" style="margin-top:10px;align-self:center">Sou adulto: entrar com senha</button>
     </section></div>`;
   const pinsEl = $("#pin");
   const desenha = () => { const n = Math.max(6, pin.length); pinsEl.innerHTML = Array.from({ length: n }, (_, i) => `<span class="${i < pin.length ? "f" : ""}">${i < pin.length ? "•" : ""}</span>`).join(""); };
@@ -120,9 +122,12 @@ function telaLogin() {
     catch (e) { $("#erro").textContent = e.message; pin = ""; desenha(); }
   };
   desenha();
-  const tecla = k => { if (k === "⌫") pin = pin.slice(0, -1); else if (k === "OK") return enviar(); else if (pin.length < 8) { pin += k; $("#erro").textContent = ""; } desenha(); if (pin.length === 6 && k !== "⌫") setTimeout(enviar, 150); };
+  // PIN da Isabella: 6 números (entra sozinho no 6º). Senha de adulto: pode ter letras (Enter para entrar).
+  const tecla = k => { if (k === "⌫") pin = pin.slice(0, -1); else if (k === "OK") return enviar(); else if (pin.length < 16) { pin += k; $("#erro").textContent = ""; } desenha(); if (pin.length === 6 && /^\d{6}$/.test(pin) && k !== "⌫") setTimeout(() => { if (/^\d{6}$/.test(pin)) enviar(); }, 150); };
   app.querySelectorAll(".pad button").forEach(b => b.onclick = () => tecla(b.dataset.k));
-  document.onkeydown = e => { if (!$("#pin")) { document.onkeydown = null; return; } if (/^\d$/.test(e.key)) tecla(e.key); else if (e.key === "Backspace") tecla("⌫"); else if (e.key === "Enter") enviar(); };
+  $("#lg-adulto").onclick = () => { $("#lg-senha-f").hidden = false; $("#lg-adulto").hidden = true; $("#lg-senha").focus(); };
+  $("#lg-senha-f").onsubmit = e => { e.preventDefault(); pin = $("#lg-senha").value; $("#lg-senha").value = ""; enviar(); };
+  document.onkeydown = e => { if (!$("#pin")) { document.onkeydown = null; return; } if (e.target && e.target.id === "lg-senha") return; if (/^[0-9A-Za-z]$/.test(e.key)) tecla(e.key); else if (e.key === "Backspace") tecla("⌫"); else if (e.key === "Enter") enviar(); };
 }
 
 /* ---------------- gráficos ---------------- */
