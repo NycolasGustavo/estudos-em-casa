@@ -42,7 +42,7 @@ async function api(acao, dados = {}) {
 }
 function sair(silencioso) {
   if (sess && !silencioso) api("sair").catch(() => { });
-  sess = null; store.del("estudos-sessao");
+  sess = null; store.del("estudos-sessao"); faixaAdulto();
   location.hash = "#/entrar"; render();
 }
 
@@ -55,6 +55,7 @@ async function render() {
   const r = rota();
   if (!sess) { if (r[0] !== "entrar") { location.hash = "#/entrar"; return; } return telaLogin(); }
   const adulto = sess.papel === "adulto";
+  faixaAdulto(r);
   app.className = "wrap" + (adulto && r[0] === "adulto" ? " wide" : "");
   try {
     if (r[0] === "entrar") { if (adulto) { location.href = "painel.html"; return; } location.hash = "#/"; return; }
@@ -77,6 +78,14 @@ async function render() {
     app.innerHTML = topo() + `<div class="panel stack"><h2>Não consegui carregar</h2><p>${esc(e.message)}</p><div><button id="tentar">Tentar de novo</button></div></div>`;
     $("#tentar").onclick = render;
   }
+}
+// aviso fixo: adulto vendo as telas da Isabella (o que for feito aqui não conta como dela)
+function faixaAdulto(r) {
+  let f = document.getElementById("faixa-adulto");
+  const mostra = sess && sess.papel === "adulto" && (r || rota())[0] !== "adulto";
+  if (!mostra) { if (f) f.remove(); return; }
+  if (!f) { f = document.createElement("div"); f.id = "faixa-adulto"; f.className = "faixa-adulto"; f.setAttribute("role", "alert"); document.body.prepend(f); }
+  f.innerHTML = `<span><b>Login do adulto (${esc(sess.nome)}).</b> Os vídeos e o termômetro de humor não contam para a Isabella neste login.</span><button class="mini" id="sair">Sair e entrar com o PIN da Isabella</button>`;
 }
 function topo(extra = "") {
   return `<header class="top"><a class="brand" href="${sess && sess.papel === "adulto" ? "painel.html" : "#/"}" style="text-decoration:none"><svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="8" fill="var(--accent)"/><path d="M6 9c3-1.5 5.5-1.5 8 0v11c-2.5-1.5-5-1.5-8 0zM22 9c-3-1.5-5.5-1.5-8 0v11c2.5-1.5 5-1.5 8 0z" fill="#fff"/></svg>Estudos em Casa</a><div class="row">${extra}<span class="muted hide-sm">${esc(sess.nome)}</span><button class="mini ghost" id="sair">Sair</button></div></header>`;
