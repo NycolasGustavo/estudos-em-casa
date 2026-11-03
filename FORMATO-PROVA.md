@@ -121,3 +121,10 @@ Base: laudo neuropsicológico (atenção e controle inibitório baixos, memória
 - **Termômetro** (`humor`, um por dia): carinha + energia ao abrir "Hoje". Triste ou irritada abre 1 minuto de respiração guiada.
 - **Me ensina gravado:** `#/ensina?item=...` usa o gravador (tipo `meensina`); o adulto assiste em Plano › Gravações.
 - **Painel › Foco e autocontrole:** `app.fe_resumo()` por semana.
+
+## Escada (domínio + rodadas) — nov/2026
+- `conteudo.dominio` (ex.: 8): a atividade só conta como **feita** quando a melhor nota ≥ domínio, ou quando acabam as tentativas (`provas.tentativas`, ex.: 3).
+- `conteudo.rodadas`: lista de `blocos` alternativos. 1ª tentativa usa `blocos`; a 2ª usa `rodadas[0]`; a 3ª `rodadas[1]` (`app.conteudo_da_vez`). IDs de questão diferentes por rodada (a1…, b1…, c1…). `questao_completa` procura em todas.
+- Item de plano com `requer: "<provaId>"`: fica trancado até a prova exigida estar feita (domínio atingido).
+- `momento: "escada"` = "Escada da divisão · reforço". Gerador no servidor: `app.montar_escada(pid, nivel, nome, dia, dica, pares int[38])` (18 contas + 1 exemplo; explicações por `app.passos_div`).
+- Tabuada: `#/tabuada/livre-N` é treino extra (não salva nem conta como o do dia); aparece no fim da tabuada do dia.
