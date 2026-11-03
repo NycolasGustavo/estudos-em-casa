@@ -15,7 +15,7 @@
   --accent:#2F55C9; --accent-soft:#E6ECFB; --mark:#F5D547;
   --good:#1E8A5A; --warn:#B7791F; --bad:#C2413A; --black:#2A2A2A;
   --good-s:#E3F4EA; --warn-s:#FBF1D4; --bad-s:#FBE3E1; --black-s:#E7E7E7;
-  --prova:#2F55C9; --escola:#7C93D9; --casa:#1E8A5A;
+  --prova:#2F55C9; --escola:#7C93D9; --casa:#1E8A5A; --casa-p:#D2632A; --video:#B8860B; --outros:#9AA3B5;
   --display:"Bricolage Grotesque", "Figtree", system-ui, sans-serif;
   --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
@@ -25,7 +25,7 @@
   --accent:#8AA6FF; --accent-soft:#25305C; --mark:#E8C93A;
   --good:#4CC28A; --warn:#E3A84A; --bad:#F07A72; --black:#C9CBD6;
   --good-s:#173A2A; --warn-s:#3D3216; --bad-s:#43211F; --black-s:#2C2F45;
-  --prova:#8AA6FF; --escola:#A9B8F0; --casa:#4CC28A; color-scheme:dark}}
+  --prova:#8AA6FF; --escola:#A9B8F0; --casa:#4CC28A; --casa-p:#F0965A; --video:#E3B84A; --outros:#6E7598; color-scheme:dark}}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
@@ -128,6 +128,8 @@ section[data-pane="etapa0"] > .chart, section[data-pane="etapa0"] > .panel:last-
 .mini .name{font-weight:600}
 .mini .avg{font-family:var(--display);font-size:24px;font-weight:700}
 .mini svg{width:100%;height:42px;display:block;margin-top:4px}
+.hab-l{display:grid;grid-template-columns:minmax(140px,1.4fr) 2fr auto;gap:6px 12px;align-items:center;font-size:14px}.hab-b{height:10px;border-radius:6px;background:var(--line);overflow:hidden}.hab-b i{display:block;height:100%;border-radius:6px}
+#m-resumo tbody tr{cursor:pointer}#m-resumo tbody tr[aria-current=true]{background:var(--accent-soft)}
 .insight{background:var(--accent-soft);border-radius:8px;padding:10px 12px;font-size:14px;margin-top:12px}
 .segmented{display:flex;flex-wrap:wrap;gap:6px}
 .segmented button{font:inherit;font-weight:600;font-size:14px;border-radius:8px;padding:8px 14px;cursor:pointer;border:2px solid transparent}
@@ -254,22 +256,38 @@ tr.det td{background:var(--bg);padding:12px 14px}
     <div class="panel">
       <div class="row">
         <div class="chips" id="chips"></div>
-        <label style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--muted);font-weight:600">Ano <select id="ano" style="width:auto"></select></label>
+        <label hidden>Ano <select id="ano" style="width:auto"></select></label>
       </div>
+    </div>
+    <div class="panel">
+      <div class="row"><h2 style="margin:0">Resumo por matéria</h2><span class="tag">Últimas 4 semanas · clique numa linha para ver a matéria</span></div>
+      <div id="m-resumo" style="margin-top:8px"></div>
     </div>
     <section class="kpis" id="m-kpis" style="margin:0"></section>
     <div class="panel chart">
-      <div class="row"><h2 id="m-title" style="margin:0">Português</h2><span class="tag">Média semanal, nota de 0 a 10 · semana do ano</span></div>
-      <div id="ch-materia" style="margin-top:8px"></div>
+      <div class="row"><h2 id="m-title" style="margin:0">Português</h2><span class="tag">Notas ao longo do tempo · cada ponto é uma nota; a linha é a média da semana</span></div>
+      <div id="ch-notas" style="margin-top:8px"></div>
       <div class="legend">
-        <span style="--sw:var(--prova)">Provas e simulados da escola</span>
-        <span style="--sw:var(--escola)">Atividades da escola</span>
-        <span style="--sw:var(--casa)">Atividades e provas em casa</span>
-        <span class="dash" style="--sw:var(--good)">8,5 meta de excelência</span>
+        <span style="--sw:var(--prova)">Escola · provas e simulados</span>
+        <span style="--sw:var(--escola)">Escola · tarefas e trabalhos</span>
+        <span style="--sw:var(--casa-p)">Casa · provas e simulados</span>
+        <span style="--sw:var(--casa)">Casa · atividades e treinos</span>
+        <span class="dash" style="--sw:var(--good)">8,5 meta</span>
         <span class="dash" style="--sw:var(--bad)">7,0 mínimo</span>
       </div>
       <div class="insight" id="m-insight"></div>
     </div>
+    <div class="panel chart">
+      <div class="row"><h2 style="margin:0">Horas de estudo em casa por semana</h2><span class="tag" id="h-tag"></span></div>
+      <div id="ch-horas" style="margin-top:8px"></div>
+      <div class="legend">
+        <span style="--sw:var(--casa)">Atividades e treinos</span>
+        <span style="--sw:var(--casa-p)">Provas e simulados</span>
+        <span style="--sw:var(--video)">Aulas em vídeo</span>
+        <span style="--sw:var(--outros)">Tabuada e leitura</span>
+      </div>
+    </div>
+    <div class="panel"><div class="row"><h2 style="margin:0">Habilidades da matéria</h2><span class="tag">Acerto nas questões de casa · do mais fraco ao mais forte</span></div><div id="m-hab" style="margin-top:8px"></div></div>
     <div class="panel">
       <h2>Registrar nota</h2>
       <form class="entry" id="f-reg">
@@ -399,8 +417,9 @@ tr.det td{background:var(--bg);padding:12px 14px}
     <div class="panel">
       <div class="row" style="align-items:flex-end"><div><h2 style="margin:0 0 2px">Tudo o que ela fez em casa</h2>
         <p class="tag" style="margin:0"><span class="cat nota">Vale nota</span> provas e simulados: entram no boletim. <span class="cat treino">Treino</span> atividades, revisões e reforços: servem para aprender e mostram onde ela erra.</p></div>
-        <label class="pv-mat">Matéria <select id="pv-mat" style="width:auto"></select></label></div>
-      <div class="chips" id="pv-filtros" style="margin-top:12px"></div>
+      </div>
+      <div class="chips" id="pv-mat" style="margin-top:12px" aria-label="Matéria"></div>
+      <div class="chips" id="pv-filtros" style="margin-top:8px"></div>
       <div id="t-provas"></div>
     </div>
     <div class="panel"><h2>Habilidades</h2><p class="tag" style="margin:0">Cada questão das provas de casa soma na sua habilidade. O alerta só acende com 3 questões ou mais.</p><div id="t-hab"></div></div>
@@ -511,6 +530,67 @@ tr.det td{background:var(--bg);padding:12px 14px}
     el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Cor dos dias por semana">${g}</svg>`;
   }
 
+  // ---------- desempenho por matéria (casa + escola) ----------
+  const CAP_MIN = 45; // atividade esquecida aberta não vira hora de estudo
+  const semanaDe = iso => mondayOf(iso);
+  const diasAtras = n => { const d=new Date(hoje()+"T12:00:00"); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); };
+  const hm = min => { min=Math.round(min||0); const h=Math.floor(min/60), m=min%60; return h ? `${h}h${m?String(m).padStart(2,"0"):""}` : `${m} min`; };
+  function horasMateria(m){
+    const out=[];
+    (extra.tentativas||[]).filter(t=>t.materia===m && t.data).forEach(t=>out.push({data:t.data, min:Math.min(+t.minutos||0, CAP_MIN), cat:(t.tipo==="prova"||t.tipo==="simulado")?"provas":"atividades"}));
+    const vm={}; (state.videos||[]).forEach(v=>vm[v._id]=v);
+    (state.assistidos||[]).forEach(a=>{ const v=vm[a._id]; if(!v||v.materia!==m) return; const dur=(+a.duracao)||((+v.minutos||0)*60); const min=dur*Math.min(100,+a.pct||0)/100/60; if(min>0) out.push({data:a.primeira||a.data, min, cat:"videos"}); });
+    if(m==="Matemática") (state.medicoes||[]).filter(x=>/tabuada/i.test(x.origem||"")).forEach(x=>out.push({data:x.data, min:Math.min(2,((+x.tabuadaSeg||6)*(+x.tabuadaTotal||20))/60), cat:"outros"}));
+    if(m==="Português") (state.feitos||[]).filter(f=>/-livro$/.test(f.item||f._id||"")).forEach(f=>out.push({data:f.data, min:10, cat:"outros"}));
+    return out.filter(x=>x.data);
+  }
+  function notasMateria(m){
+    const pts=[];
+    state.avaliacoes.map(norm).filter(r=>r.materia===m && r.nota!=null && r.data).forEach(r=>{ const casaProva=/Prova \(casa\)/.test(r.tipo);
+      pts.push({data:r.data, nota:r.nota, s: r.grupo==="prova"?"ep": r.grupo==="escola"?"ea": casaProva?"cp":"ca", tit:`${r.tipo}${r.titulo?" · "+r.titulo:""}`}); });
+    (extra.tentativas||[]).filter(t=>t.materia===m && t.status==="corrigida" && t.data).forEach(t=>pts.push({data:t.data, nota:+t.nota, s:(t.tipo==="prova"||t.tipo==="simulado")?"cp":"ca", tit:t.titulo, id:t.id, min:t.minutos}));
+    return pts.sort((a,b)=>a.data<b.data?-1:1);
+  }
+  const SER={ep:["Escola · provas e simulados","var(--prova)"], ea:["Escola · tarefas e trabalhos","var(--escola)"], cp:["Casa · provas e simulados","var(--casa-p)"], ca:["Casa · atividades e treinos","var(--casa)"]};
+  function chartNotas(el, pts){
+    if(!pts.length){ el.innerHTML=`<div class="empty">Ainda não há notas de ${esc(materia)}.</div>`; return; }
+    const W=760,H=300,L=36,R=16,T=14,B=34;
+    const t0=new Date(Math.min(new Date(pts[0].data+"T12:00:00").getTime(), new Date(diasAtras(28)+"T12:00:00").getTime())), t1=new Date(hoje()+"T12:00:00");
+    const X=iso=>L+(new Date(iso+"T12:00:00")-t0)/Math.max(1,t1-t0)*(W-L-R), Y=v=>T+(1-v/10)*(H-T-B);
+    let g="";
+    for(const v of [0,2,4,6,8,10]) g+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${L-8}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v}</text>`;
+    g+=`<line x1="${L}" x2="${W-R}" y1="${Y(8.5)}" y2="${Y(8.5)}" stroke="var(--good)" stroke-dasharray="5 4" stroke-width="1.2"/><line x1="${L}" x2="${W-R}" y1="${Y(7)}" y2="${Y(7)}" stroke="var(--bad)" stroke-dasharray="5 4" stroke-width="1.2"/>`;
+    const nt=6; for(let i=0;i<=nt;i++){ const d=new Date(t0.getTime()+(t1-t0)*i/nt).toISOString().slice(0,10); g+=`<text x="${X(d)}" y="${H-12}" font-size="11" fill="var(--muted)" text-anchor="middle">${d.slice(8)}/${d.slice(5,7)}</text>`; }
+    for(const k of ["ca","cp","ea","ep"]){ const ps=pts.filter(p=>p.s===k); if(!ps.length) continue; const col=SER[k][1];
+      ps.forEach(p=>{ g+=`<circle cx="${X(p.data).toFixed(1)}" cy="${Y(p.nota).toFixed(1)}" r="${k==="ca"?3.2:4.5}" fill="${col}" fill-opacity="${k==="ca"?.35:.9}" stroke="${col}" stroke-width="1"><title>${esc(`${fmtData(p.data)} · ${SER[k][0]} · ${p.tit||""}: ${f1(p.nota)}`)}</title></circle>`; });
+      const by={}; ps.forEach(p=>{ const w=semanaDe(p.data); (by[w]=by[w]||[]).push(p.nota); });
+      const ws=Object.keys(by).sort(); if(ws.length>1){ g+=`<path d="${ws.map((w,i)=>{ const mid=new Date(w+"T12:00:00"); mid.setDate(mid.getDate()+3); const iso=mid.toISOString().slice(0,10)>hoje()?hoje():mid.toISOString().slice(0,10); return (i?"L":"M")+X(iso).toFixed(1)+" "+Y(avg(by[w])).toFixed(1); }).join(" ")}" fill="none" stroke="${col}" stroke-width="2.2" stroke-linejoin="round"/>`; }
+    }
+    el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Notas de ${esc(materia)} ao longo do tempo">${g}</svg>`;
+  }
+  function chartHoras(el, rows){
+    const ult=semanaDe(hoje()); const ws=[]; for(let i=7;i>=0;i--){ const d=new Date(ult+"T12:00:00"); d.setDate(d.getDate()-7*i); ws.push(d.toISOString().slice(0,10)); }
+    const cats=[["atividades","var(--casa)"],["provas","var(--casa-p)"],["videos","var(--video)"],["outros","var(--outros)"]];
+    const by={}; ws.forEach(w=>by[w]={atividades:0,provas:0,videos:0,outros:0});
+    rows.forEach(r=>{ const w=semanaDe(r.data); if(by[w]) by[w][r.cat]+=r.min; });
+    const tot=w=>cats.reduce((s,[c])=>s+by[w][c],0); const mx=Math.max(60, ...ws.map(tot));
+    const top=Math.ceil(mx/60)*60;
+    const W=760,H=240,L=44,R=12,T=18,B=30, step=(W-L-R)/ws.length, bw=Math.min(46,step*.6), Y=v=>T+(1-v/top)*(H-T-B);
+    let g=""; for(let v=0; v<=top; v+=top/4) g+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${L-6}" y="${Y(v)+4}" text-anchor="end" font-size="10.5" fill="var(--muted)">${hm(v)}</text>`;
+    ws.forEach((w,i)=>{ let acc=0; const x=L+step*i+(step-bw)/2;
+      cats.forEach(([c,col])=>{ const n=by[w][c]; if(n<=0) return; g+=`<rect x="${x.toFixed(1)}" y="${Y(acc+n).toFixed(1)}" width="${bw.toFixed(1)}" height="${(Y(acc)-Y(acc+n)).toFixed(1)}" fill="${col}"><title>Semana de ${fmtData(w)} · ${({atividades:"atividades e treinos",provas:"provas e simulados",videos:"aulas em vídeo",outros:"tabuada e leitura"})[c]}: ${hm(n)}</title></rect>`; acc+=n; });
+      if(acc>0) g+=`<text x="${(x+bw/2).toFixed(1)}" y="${(Y(acc)-5).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">${hm(acc)}</text>`;
+      g+=`<text x="${(x+bw/2).toFixed(1)}" y="${H-10}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${w.slice(8)}/${w.slice(5,7)}</text>`; });
+    el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Horas de estudo por semana em ${esc(materia)}">${g}</svg>`;
+  }
+  function resumoMateria(m){
+    const d28=diasAtras(27), hr=horasMateria(m), np=notasMateria(m);
+    const h4=hr.filter(r=>r.data>=d28).reduce((s,r)=>s+r.min,0), hT=hr.reduce((s,r)=>s+r.min,0);
+    const ca=np.filter(p=>p.s==="ca"), cp=np.filter(p=>p.s==="cp"), es=np.filter(p=>p.s==="ep"||p.s==="ea");
+    const ca4=ca.filter(p=>p.data>=d28);
+    const hab=(extra.habilidades||[]).filter(h=>h.materia===m); const qT=hab.reduce((s,h)=>s+(+h.total||0),0), qC=hab.reduce((s,h)=>s+(+h.certas||0),0);
+    return {h4, hT, ca, cp, es, ca4, nAtiv4:ca4.length, mAtiv4:avg(ca4.map(p=>p.nota)), mProvas:avg(cp.slice(-3).map(p=>p.nota)), mEscola:avg(es.slice(-3).map(p=>p.nota)), acerto:qT?qC/qT*100:null, qT, hab};
+  }
   // ---------- render ----------
   function render(){
     const R=regs();
@@ -544,40 +624,45 @@ tr.det td{background:var(--bg);padding:12px 14px}
     const cnt={}; R.forEach(r=>cnt[r.materia]=(cnt[r.materia]||0)+1);
     $("chips").innerHTML = MATERIAS.map(m=>`<button class="chip" aria-pressed="${m===materia}" data-mat="${m}">${m}${cnt[m]?`<span class="n">${cnt[m]}</span>`:""}</button>`).join("");
     $("m-title").textContent=materia;
-    const rs=R.filter(r=>r.materia===materia);
-    chartMateria($("ch-materia"), rs, ano);
-
-    // kpis da matéria
-    const last=(gp,n)=>{ const s=rs.filter(r=>gp?r.grupo===gp:true).sort((a,b)=>a.data<b.data?-1:1); return avg(s.slice(-n).map(r=>r.nota)); };
-    const ap=last("prova",3), ae=last("escola",3), ac=last("casa",3);
-    const all=rs.slice().sort((a,b)=>a.data<b.data?-1:1); const rec3=avg(all.slice(-3).map(r=>r.nota)), prev3=avg(all.slice(-6,-3).map(r=>r.nota));
-    const tend = rec3!=null && prev3!=null ? rec3-prev3 : null;
+    // resumo de todas as matérias
+    const matsR=MATERIAS.filter(m=>horasMateria(m).length||notasMateria(m).length);
+    $("m-resumo").innerHTML = matsR.length ? '<div class="tablewrap"><table><thead><tr><th>Matéria</th><th class="r">Horas em casa</th><th class="r">Atividades</th><th class="r">Média atividades</th><th class="r">Provas em casa</th><th class="r">Escola</th><th class="r">Acerto nas questões</th></tr></thead><tbody>'+
+      matsR.map(m=>{ const r=resumoMateria(m); return `<tr data-mat="${esc(m)}" aria-current="${m===materia}"><td><b>${esc(m)}</b></td><td class="r num">${hm(r.h4)}</td><td class="r num">${r.nAtiv4}</td><td class="r num">${f1(r.mAtiv4)}</td><td class="r num">${f1(r.mProvas)}</td><td class="r num">${f1(r.mEscola)}</td><td class="r num">${r.acerto==null?"–":Math.round(r.acerto)+"%"}</td></tr>`; }).join("")+'</tbody></table></div><p class="tag" style="margin:6px 0 0">Provas em casa e Escola: média das 3 últimas notas. Atividades: últimas 4 semanas.</p>'
+      : '<div class="empty">Sem dados ainda.</div>';
+    const RM=resumoMateria(materia), NP=notasMateria(materia), HR=horasMateria(materia);
     $("m-kpis").innerHTML=[
-      ["Provas da escola", ap], ["Atividades da escola", ae], ["Em casa", ac]
-    ].map(([l,v])=>`<div class="kpi"><span class="label">${l}</span><span class="val num">${f1(v)}</span><span class="foot">Últimas 3 notas ${status(v)}</span></div>`).join("")
-    + `<div class="kpi"><span class="label">Tendência</span><span class="val num">${tend==null?"–":(tend>0?"+":"")+f1(tend)}</span><span class="foot">3 últimas notas x 3 anteriores</span></div>`;
-
-    // insight
+      ["Horas de estudo em casa", hm(RM.h4), `últimas 4 semanas · ${hm(RM.hT)} desde o início`, null],
+      ["Atividades e treinos", RM.nAtiv4, `últimas 4 semanas · média ${f1(RM.mAtiv4)}`, RM.mAtiv4],
+      ["Provas e simulados em casa", f1(RM.mProvas), `${RM.cp.length} feita${RM.cp.length===1?"":"s"} · média das 3 últimas`, RM.mProvas],
+      ["Notas da escola", f1(RM.mEscola), `${RM.es.length} lançada${RM.es.length===1?"":"s"} · média das 3 últimas`, RM.mEscola],
+      ["Acerto nas questões", RM.acerto==null?"–":Math.round(RM.acerto)+"%", `${RM.qT} questões corrigidas em casa`, RM.acerto==null?null:RM.acerto/10]
+    ].map(([l,v,f,st])=>`<div class="kpi"><span class="label">${l}</span><span class="val num">${v}</span><span class="foot">${f}${st!=null?" "+status(st):""}</span></div>`).join("");
+    chartNotas($("ch-notas"), NP);
+    chartHoras($("ch-horas"), HR);
+    $("h-tag").textContent = `Tempo das atividades (até ${CAP_MIN} min cada), vídeos assistidos${materia==="Matemática"?", tabuada":""}${materia==="Português"?", leitura do livro (10 min por dia marcado)":""}`;
+    const HB=RM.hab.slice().sort((a,b)=>a.pct-b.pct), HBf=HB.filter(h=>h.total>=3), HBp=HB.filter(h=>h.total<3);
+    $("m-hab").innerHTML = HB.length ? (HBf.length ? '<div class="hab-l">'+HBf.map(h=>{ const c=h.pct>=80?"var(--good)":h.pct>=60?"var(--warn)":"var(--bad)"; return `<span>${esc(h.habilidade)}</span><span class="hab-b"><i style="width:${Math.max(3,h.pct)}%;background:${c}"></i></span><span class="num">${h.pct}% <small class="tag">${h.certas}/${h.total}</small></span>`; }).join("")+'</div>' : '')
+      + (HBp.length ? `<p class="tag" style="margin:10px 0 0"><b>Com menos de 3 questões (ainda sem conclusão):</b> ${HBp.map(h=>`${esc(h.habilidade)} ${h.certas}/${h.total}`).join(" · ")}</p>` : '')
+      : '<div class="empty">Sem questões corrigidas nesta matéria ainda.</div>';
+    // leitura automática
     let ins=[];
-    const geral=rec3;
-    if(!rs.length) ins.push(`Ainda sem notas de ${materia}. Comece registrando as atividades da escola e os exercícios feitos em casa.`);
+    if(!NP.length && !HR.length) ins.push(`Ainda sem dados de ${materia}.`);
     else {
-      if(geral<7) ins.push(`<b>Reforço indicado:</b> a média das últimas notas está abaixo de 7.`);
-      else if(geral<8.5) ins.push(`<b>Atenção:</b> acima do mínimo, ainda abaixo da meta de 8,5.`);
-      else ins.push(`<b>No alvo:</b> as últimas notas estão na meta de excelência.`);
-      if(ac!=null && ap!=null && ac-ap>=1.5) ins.push(`Em casa ela rende mais do que na prova (${f1(ac)} x ${f1(ap)}): vale treinar tempo e prova sem ajuda.`);
-      if(ac!=null && ap!=null && ap-ac>=1.5) ins.push(`Na prova ela rende mais do que em casa (${f1(ap)} x ${f1(ac)}): os exercícios de casa podem estar mais difíceis do que a escola cobra.`);
-      // correlação semanal casa x escola
-      const byW=(gp)=>{ const o={}; rs.filter(r=>gp.includes(r.grupo)).forEach(r=>{ const w=isoWeek(r.data); const k=w.y+"-"+w.w; (o[k]=o[k]||[]).push(r.nota); }); return o; };
-      const cw=byW(["casa"]), sw=byW(["escola","prova"]); const ks=Object.keys(cw).filter(k=>sw[k]);
-      const r_=pearson(ks.map(k=>avg(cw[k])), ks.map(k=>avg(sw[k])));
-      ins.push(r_==null ? `Correlação casa x escola: precisa de pelo menos 4 semanas com nota nos dois (hoje: ${ks.length}).` : `Correlação casa x escola: <b>${f1(r_).replace(",0","")}</b> em ${ks.length} semanas (${r_>=.5?"forte: o estudo em casa acompanha a escola":r_>=.2?"moderada":"fraca: o que é feito em casa não está refletindo na escola"}).`);
+      const totCasa4=MATERIAS.reduce((s,m)=>s+resumoMateria(m).h4,0);
+      ins.push(`Nas últimas 4 semanas: <b>${hm(RM.h4)}</b> de estudo em casa em ${esc(materia)}${totCasa4?` (${Math.round(RM.h4/totCasa4*100)}% de todo o estudo em casa)`:""}.`);
+      const g4=avg(NP.filter(p=>p.data>=diasAtras(27)).map(p=>p.nota)), g8=avg(NP.filter(p=>p.data>=diasAtras(55)&&p.data<diasAtras(27)).map(p=>p.nota));
+      if(g4!=null) ins.push(`Média geral das notas nas últimas 4 semanas: <b>${f1(g4)}</b>${g8!=null?` (antes: ${f1(g8)}, ${g4>=g8?"subiu":"caiu"} ${f1(Math.abs(g4-g8))})`:""} ${status(g4)}`);
+      if(RM.mAtiv4!=null && RM.mProvas!=null && RM.mAtiv4-RM.mProvas>=1.5) ins.push(`Nas atividades ela rende mais do que nas provas de casa (${f1(RM.mAtiv4)} x ${f1(RM.mProvas)}): na prova, sem retorno a cada questão, ela perde pontos.`);
+      if(RM.mEscola!=null && RM.mProvas!=null) ins.push(`Escola x prova de casa: ${f1(RM.mEscola)} x ${f1(RM.mProvas)}.`);
+      const fracas=HB.filter(h=>h.total>=3&&h.pct<60).slice(0,3); if(fracas.length) ins.push(`Para reforçar: ${fracas.map(h=>`${esc(h.habilidade)} (${h.pct}%)`).join(", ")}.`);
     }
     $("m-insight").innerHTML=ins.join("<br>");
 
-    // tabela de registros da matéria
-    $("t-reg").innerHTML = rs.length ? '<div class="tablewrap"><table><thead><tr><th>Data</th><th>Tipo</th><th>Título</th><th class="r">Acertos</th><th class="r">Nota</th><th></th></tr></thead><tbody>'+
-      rs.slice().sort((a,b)=>a.data<b.data?1:-1).map(r=>`<tr><td class="num">${fmtData(r.data)}</td><td><span class="dot" style="background:var(--${r.grupo==="prova"?"prova":r.grupo==="casa"?"casa":"escola"})"></span>${esc(r.tipo)}</td><td>${esc(r.titulo||"")}${r.obs?`<div class="tag">${esc(r.obs)}</div>`:""}</td><td class="r num">${r.total?`${r.acertos}/${r.total}`:"–"}</td><td class="r num">${f1(r.nota)}</td><td class="r">${r._tent?`<a class="lnk" href="index.html#/adulto/tentativa/${encodeURIComponent(r._id)}">Abrir</a>`:delBtn("avaliacoes",r._id)}</td></tr>`).join("")+'</tbody></table></div>'
+    // histórico completo da matéria (escola + tudo o que ela fez em casa)
+    const casaTodas=(extra.tentativas||[]).filter(t=>t.materia===materia && t.status!=="pendente").map(t=>({_id:t.id,_tent:true,data:t.data,tipo:(t.tipo==="prova"||t.tipo==="simulado")?"Prova (casa)":"Atividade (casa)",titulo:t.titulo,acertos:+t.pontos,total:+t.max,nota:t.status==="corrigida"?+t.nota:null,grupo:"casa",min:t.minutos}));
+    const hist=state.avaliacoes.map(norm).filter(r=>r.materia===materia && r.data).concat(casaTodas).sort((a,b)=>a.data<b.data?1:-1);
+    $("t-reg").innerHTML = hist.length ? '<div class="tablewrap"><table><thead><tr><th>Data</th><th>Tipo</th><th>Título</th><th class="r">Acertos</th><th class="r">Nota</th><th></th></tr></thead><tbody>'+
+      hist.map(r=>`<tr><td class="num">${fmtData(r.data)}</td><td><span class="dot" style="background:var(--${r.grupo==="prova"?"prova":r.grupo==="casa"?(/Prova/.test(r.tipo)?"casa-p":"casa"):"escola"})"></span>${esc(r.tipo)}</td><td>${esc(r.titulo||"")}${r.obs?`<div class="tag">${esc(r.obs)}</div>`:""}${r.min?`<div class="tag">${r.min} min</div>`:""}</td><td class="r num">${r.total?`${r.acertos}/${r.total}`:"–"}</td><td class="r num">${r.nota==null?"…":f1(r.nota)}</td><td class="r">${r._tent?`<a class="lnk" href="index.html#/adulto/tentativa/${encodeURIComponent(r._id)}">Abrir</a>`:delBtn("avaliacoes",r._id)}</td></tr>`).join("")+'</tbody></table></div>'
       : '';
 
     // agenda da escola
@@ -788,7 +873,7 @@ tr.det td{background:var(--bg);padding:12px 14px}
     const L=linhasProvas();
     const mats=["Todas",...new Set(L.map(r=>r.p.materia))];
     if(!mats.includes(pvMat)) pvMat="Todas";
-    $("pv-mat").innerHTML=mats.map(m=>`<option ${m===pvMat?"selected":""}>${esc(m)}</option>`).join("");
+    $("pv-mat").innerHTML=mats.map(m=>{ const n=m==="Todas"?L.filter(r=>r.t).length:L.filter(r=>r.t&&r.p.materia===m).length; return `<button class="chip" data-pvm="${esc(m)}" aria-pressed="${m===pvMat}">${esc(m)}<span class="n">${n}</span></button>`; }).join("");
     const LM=L.filter(r=>pvMat==="Todas"||r.p.materia===pvMat);
     const sem=d=>{ const x=new Date(hoje()+"T12:00:00"); x.setDate(x.getDate()-d); return x.toISOString().slice(0,10); };
     const feitas7=LM.filter(r=>r.t && r.t.data>=sem(6));
@@ -877,7 +962,7 @@ tr.det td{background:var(--bg);padding:12px 14px}
     pvAbertas.add(id); renderProvas();
     if(!pvDet[id]){ try{ pvDet[id]=await api("tentativa",{id}); }catch(err){ pvDet[id]={erro:err.message}; } renderProvas(); }
   });
-  document.addEventListener("change", e=>{ if(e.target.id==="pv-mat"){ pvMat=e.target.value; renderProvas(); } });
+  document.addEventListener("click", e=>{ const b=e.target.closest("[data-pvm]"); if(b){ pvMat=b.dataset.pvm; renderProvas(); } });
 
   // ---------- visão geral: missão, checklist, alertas, foco, semana ----------
   const NOME_CK={caderno:"Caderno",sala:"Atividades de sala",deveres:"Deveres",agenda:"Agenda",aula:"Contar a aula",estudo:"Estudo da manhã",ontem:"O que ficou devendo"};
