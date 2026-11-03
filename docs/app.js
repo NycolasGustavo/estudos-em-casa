@@ -311,7 +311,11 @@ function estadoItem(d, dia, it) {
 }
 const urlLer = it => `#/${sess.papel === "adulto" ? "aluna/" : ""}ler?item=${encodeURIComponent(it.id)}`;
 function acaoItem(d, it) {
-  if (it.provaId) return `<a class="btn" href="#/prova/${encodeURIComponent(it.provaId)}">${store.get("rasc-" + it.provaId) ? "Continuar" : "Começar"}</a>`;
+  if (it.provaId) {
+    const pv = (d.provas || []).find(x => x.id === it.provaId);
+    if (pv && pv.dominio && Number(pv.feitas) > 0 && !pv.feita) return `<span style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><a class="btn" href="#/prova/${encodeURIComponent(it.provaId)}">${store.get("rasc-" + it.provaId) ? "Continuar" : "Tentar de novo"}</a><span class="muted small">Nota ${fmtN(pv.melhor)} · precisa de ${pv.dominio} · contas novas</span></span>`;
+    return `<a class="btn" href="#/prova/${encodeURIComponent(it.provaId)}">${store.get("rasc-" + it.provaId) ? "Continuar" : "Começar"}</a>`;
+  }
   if (it.acao === "tabuada") return `<a class="btn" href="#/tabuada/${encodeURIComponent(it.id)}">Jogar</a>`;
   if (it.acao === "erros") return `<a class="btn" href="#/revisar">Revisar</a>`;
   if (it.acao === "video" && it.yt) return `<a class="btn" href="${urlVideo(it.yt, it.id)}">${ico("aprender", 18)} Assistir</a>`;
@@ -322,12 +326,14 @@ function acaoItem(d, it) {
   if (it.acao === "meensina") return `<span style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;white-space:nowrap">${sess.papel !== "adulto" ? `<a class="btn ghost mini" href="#/ensina?item=${encodeURIComponent(it.id)}">Gravar (opcional)</a>` : ""}<span class="trava">${ico("check", 18)} Um adulto marca à tarde</span></span>`;
   return `<button class="ghost" data-feito="${esc(it.id)}">Marcar feito</button>`;
 }
-const MOMENTO = { aquecimento: ["Aquecimento", "#B8860B"], frio: ["Revisão de ontem · sangue frio", "#0E7C86"], quente: ["Preparar a aula de hoje · sangue quente", "#D2632A"], missao: ["Missão do dia", "#7A4FD6"], video: ["Aula em vídeo · aprender", "#D2632A"], ingles: ["Inglês", "#0E7C86"], meensina: ["Me ensina · com um adulto", "#2F7D4F"], pausa: ["Pausa ativa · mexa o corpo", "#2F7D4F"], recuperacao: ["Recuperação dos erros", "#B7791F"], prova: ["Prova · vale nota", "#C2413A"], simulado: ["Simulado · vale nota", "#C2413A"], extra: ["Extra", "#5E6483"], livro: ["Livro", "#5E6483"] };
+const MOMENTO = { aquecimento: ["Aquecimento", "#B8860B"], frio: ["Revisão de ontem · sangue frio", "#0E7C86"], quente: ["Preparar a aula de hoje · sangue quente", "#D2632A"], missao: ["Missão do dia", "#7A4FD6"], video: ["Aula em vídeo · aprender", "#D2632A"], ingles: ["Inglês", "#0E7C86"], meensina: ["Me ensina · com um adulto", "#2F7D4F"], pausa: ["Pausa ativa · mexa o corpo", "#2F7D4F"], recuperacao: ["Recuperação dos erros", "#B7791F"], prova: ["Prova · vale nota", "#C2413A"], simulado: ["Simulado · vale nota", "#C2413A"], extra: ["Extra", "#5E6483"], livro: ["Livro", "#5E6483"], escada: ["Escada da divisão · reforço", "#7A4FD6"] };
 function linhaItem(d, dia, it, i, ativo, depoisPausa) {
   const st = estadoItem(d, dia, it);
   const m = MOMENTO[it.momento] || ["Atividade", "#5E6483"];
   let botao;
+  const travaReq = it.requer && st !== "feito" && !itemFeito(d, null, { provaId: it.requer });
   if (st === "feito") botao = `<span class="feito">${ico("check", 18)} Feito</span>`;
+  else if (travaReq && st !== "bloqueado") botao = `<span class="trava">${ico("cadeado", 18)} Abre quando você passar do nível anterior</span>`;
   else if (st === "bloqueado") botao = `<span class="trava">${ico("cadeado", 18)} Abre ${DCURTO[diaSem(dia)].toLowerCase()} ${dataBR(dia)}</span>`;
   else if (depoisPausa) botao = `<span class="trava">${ico("cadeado", 18)} Depois da pausa</span>`;
   else botao = acaoItem(d, it);
@@ -1221,7 +1227,8 @@ async function telaTabuada(itemId) {
   // tabuada da semana: o item do plano pode trazer "foco" (ex.: 6) e "revisar" (ex.: [6] já vistas)
   let it = null;
   try { const d = cache.aluna || (cache.aluna = await api("inicioAluna")); (d.plano || []).forEach(p => (p.itens || []).forEach(x => { if (x.id === itemId) it = x; })); } catch (e) { }
-  const foco = it && Number(it.foco) >= 2 ? Number(it.foco) : 0;
+  const livre = /^livre-(\d+)$/.exec(itemId || ""); // treino extra escolhido por ela (não conta como o do dia)
+  const foco = livre ? Number(livre[1]) : it && Number(it.foco) >= 2 ? Number(it.foco) : 0;
   const revisar = it && Array.isArray(it.revisar) ? it.revisar.map(Number).filter(n => n >= 2) : [];
   const pesos = [2, 3, 4, 5, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9];
   const sorteia = a => { const b = 2 + Math.floor(Math.random() * 9); return Math.random() < .5 ? [a, b] : [b, a]; };
@@ -1230,14 +1237,14 @@ async function telaTabuada(itemId) {
     // 14 contas da tabuada da semana (todos os fatos de 2 a 10, embaralhados) + 6 de revisão
     const fatos = [2, 3, 4, 5, 6, 7, 8, 9, 10].sort(() => Math.random() - .5);
     const doFoco = Array.from({ length: 14 }, (_, k) => { const b = fatos[k % fatos.length]; return Math.random() < .5 ? [foco, b] : [b, foco]; });
-    const outras = revisar.length ? revisar : [2, 3, 4, 5];
+    const outras = livre ? [foco] : revisar.length ? revisar : [2, 3, 4, 5];
     const rev = Array.from({ length: N - 14 }, () => sorteia(outras[Math.floor(Math.random() * outras.length)]));
     qs = doFoco.concat(rev).sort(() => Math.random() - .5);
   } else qs = Array.from({ length: N }, () => sorteia(pesos[Math.floor(Math.random() * pesos.length)]));
   let i = 0, ac = 0, t0 = 0, timer = null, erros = [];
   const volta = sess.papel === "adulto" ? "#/aluna/hoje" : "#/hoje";
   const tela = () => {
-    if (!t0) return `<div class="tab-wrap"><div class="tab-card stack"><h1>Tabuada relâmpago</h1>${foco ? `<div class="expl">Tabuada da semana: <b>a do ${foco}</b>. A maioria das contas é dela; algumas são de revisão.${it && it.dica ? ` Dica: ${esc(it.dica)}` : ""}</div>` : ""}<p>São <b>${N} contas</b> de vezes em até <b>2 minutos</b>. Digite a resposta e aperte <b>Enter</b>.</p><div class="row"><button id="tb-ir">Começar</button><a class="btn ghost" href="${volta}">Voltar</a></div></div></div>`;
+    if (!t0) return `<div class="tab-wrap"><div class="tab-card stack"><h1>${livre ? `Treino livre: a do ${foco}` : "Tabuada relâmpago"}</h1>${livre ? `<div class="expl">Treino extra só da <b>tabuada do ${foco}</b>. Não precisa salvar: é para você ficar mais rápida.</div>` : ""}${foco && !livre ? `<div class="expl">Tabuada da semana: <b>a do ${foco}</b>. A maioria das contas é dela; algumas são de revisão.${it && it.dica ? ` Dica: ${esc(it.dica)}` : ""}</div>` : ""}<p>São <b>${N} contas</b> de vezes em até <b>2 minutos</b>. Digite a resposta e aperte <b>Enter</b>.</p><div class="row"><button id="tb-ir">Começar</button><a class="btn ghost" href="${volta}">Voltar</a></div></div></div>`;
     if (i >= N) return "";
     const rest = Math.max(0, LIM - Math.round((Date.now() - t0) / 1000));
     return `<div class="tab-wrap"><div class="tab-card stack"><div class="row between"><span class="muted">${i + 1} de ${N}</span><b id="tb-t">${rest}s</b></div><div class="tab-conta">${qs[i][0]} × ${qs[i][1]} =</div><input id="tb-r" inputmode="numeric" autocomplete="off" class="tab-in"><div class="pbar"><i style="width:${i / N * 100}%"></i></div></div></div>`;
@@ -1245,7 +1252,8 @@ async function telaTabuada(itemId) {
   const fim = async () => {
     clearInterval(timer);
     const seg = Math.round((Date.now() - t0) / 1000);
-    app.innerHTML = `<div class="tab-wrap"><div class="tab-card stack"><h1>${ac} de ${N}!</h1><p>Você levou ${seg} segundos${ac ? `, cerca de ${(seg / ac).toFixed(1).replace(".", ",")} segundos por conta certa` : ""}.</p>${erros.length ? `<div class="expl">Para treinar: ${erros.map(e => `${e[0]} × ${e[1]} = <b>${e[0] * e[1]}</b>`).join(" · ")}</div>` : `<div class="expl">Nenhum erro!</div>`}<span class="muted small" id="tb-s">Salvando…</span><a class="btn" href="${volta}">Voltar para Hoje</a></div></div>`;
+    app.innerHTML = `<div class="tab-wrap"><div class="tab-card stack"><h1>${ac} de ${N}!</h1><p>Você levou ${seg} segundos${ac ? `, cerca de ${(seg / ac).toFixed(1).replace(".", ",")} segundos por conta certa` : ""}.</p>${erros.length ? `<div class="expl">Para treinar: ${erros.map(e => `${e[0]} × ${e[1]} = <b>${e[0] * e[1]}</b>`).join(" · ")}</div>` : `<div class="expl">Nenhum erro!</div>`}<span class="muted small" id="tb-s">${livre ? "" : "Salvando…"}</span><div class="stack" style="gap:6px"><b>Quer treinar outra tabuada?</b><div class="row" style="gap:6px;flex-wrap:wrap">${[2, 3, 4, 5, 6, 7, 8, 9].map(n => `<a class="btn ghost mini" href="#/tabuada/livre-${n}">do ${n}</a>`).join("")}</div></div><a class="btn" href="${volta}">Voltar para Hoje</a></div></div>`;
+    if (livre) return;
     try { await api("registrarTabuada", { acertos: ac, total: N, segundos: seg, foco: foco || "" }); $("#tb-s").textContent = "Resultado salvo."; } catch (e) { $("#tb-s").textContent = e.message; }
   };
   const desenha = () => { app.innerHTML = tela(); const r = $("#tb-r"); if (r) r.focus(); };
@@ -1582,8 +1590,12 @@ async function telaResultado(tid) {
   const refazer = (cache.ultimo && cache.ultimo.tentativaId === tid) ? !!cache.ultimo.refazer : (!VALE_NOTA(t.tipo) && qs.length >= 4 && Number(t.minutos) * 60 <= qs.length * 30 && Number(t.nota) < 8);
   const avisoRapido = refazer ? `<div class="confirm" style="border-style:solid;border-color:var(--sun)"><h3 style="margin:0 0 4px">Foi rápido demais</h3><p style="margin:0">Você levou ${t.minutos} minuto${t.minutos > 1 ? "s" : ""} para ${qs.length} questões. Assim não dá para aprender. Essa atividade <b>volta para você refazer com calma</b>: leia a explicação, ouça e responda de novo.</p></div>` : "";
   const ganhou = cache.ultimo && cache.ultimo.tentativaId === tid ? Number(cache.ultimo.estrelas) || 0 : 0;
+  const ud = cache.ultimo && cache.ultimo.tentativaId === tid && cache.ultimo.dominio ? cache.ultimo : null;
+  const bannerDom = !ud ? "" : Number(t.nota) >= Number(ud.dominio) ? `<div class="confirm" style="border-style:solid;border-color:var(--good);background:#EEF7F0"><h3 style="margin:0 0 4px">Subiu de nível! 🎉</h3><p style="margin:0">Você tirou ${fmtN(t.nota)}. O próximo nível já está liberado na aba Hoje.</p></div>`
+    : Number(ud.restam) > 0 ? `<div class="confirm" style="border-style:solid;border-color:var(--sun)"><h3 style="margin:0 0 4px">Quase! Precisa de ${ud.dominio} para subir</h3><p style="margin:0">Leia as explicações das contas que errou, faça a prova real e <b>tente de novo</b>: vêm <b>contas novas</b>. Você ainda tem ${ud.restam} ${Number(ud.restam) > 1 ? "tentativas" : "tentativa"}.</p></div>`
+    : `<div class="confirm" style="border-style:solid;border-color:var(--sun)"><h3 style="margin:0 0 4px">Acabaram as tentativas deste nível</h3><p style="margin:0">Tudo bem! Um adulto vai ver com você o que faltou. Os erros já foram para o caderno.</p></div>`;
   const bannerEst = ganhou ? `<div class="confirm" style="border-style:solid;border-color:#E0A93B;background:#FFF8E6"><b>⭐ +${ganhou} estrela${ganhou > 1 ? "s" : ""} de foco!</b> Você ganhou por parar e pensar, mostrar a conta, conferir e fazer com calma.</div>` : "";
-  app.innerHTML = topo(extra) + `<div class="stack">${bannerEst}${avisoRapido}
+  app.innerHTML = topo(extra) + `<div class="stack">${bannerDom}${bannerEst}${avisoRapido}
     <div class="panel"><div class="row" style="gap:22px">${anel(t.nota)}<div class="stack" style="gap:6px;flex:1;min-width:200px"><span class="mchip" style="--mc:${corMat(t.materia)};justify-self:start">${esc(t.materia)}</span><h2>${esc(msg)}</h2><p class="muted">${esc(t.titulo)} · ${t.pontos} de ${t.max} pontos · ${t.minutos} min</p></div></div></div>
     <div class="panel stack"><h3>Acertos por assunto</h3><div class="list">${barrasAssunto(d.respostas)}</div></div>
     <div class="panel stack"><h3>Como foi cada questão</h3><div class="review">${qs.map(cel).join("")}</div>
