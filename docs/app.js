@@ -491,6 +491,7 @@ const REGRAS = [
   [/per[ií]metro/i, "Perímetro é a VOLTA (cerca, rodapé, fita): some todos os lados. Área é o espaço de DENTRO."],
   [/[áa]rea/i, "Área é o espaço de DENTRO: conte os quadradinhos ou faça linhas × colunas. Perímetro é a volta."],
   [/resto/i, "O resto é sempre MENOR que o número que divide. Se sobrar alguém, precisa de mais um (carro, caixa, mesa)."],
+  [/divis/i, "Os 4 passos da chave: DIVIDE, MULTIPLICA, SUBTRAI, DESCE. Desceu e o divisor não coube? Escreva 0 no resultado. No fim, prova real: resultado × divisor = número de dentro."],
   [/trajeto|direita|esquerda/i, "Conte só os passos que você anda, não a casa onde está. Letra = fileira (de cima para baixo). Número = coluna (da esquerda para a direita)."],
   [/malha/i, "Endereço: letra primeiro (fileira), número depois (coluna). Mesma fileira = mesma letra."],
   [/dobro|triplo/i, "Dobro = vezes 2. Triplo = vezes 3."],
@@ -1418,7 +1419,8 @@ async function telaProva(id) {
   function fbConf(q) {
     const c = st.conf[q.id]; if (!c) return "";
     if (c.certo) return `<div class="fb ok"><b>${c.n > 1 ? "Agora sim!" : "Isso mesmo!"}</b>${c.aviso ? ` ${esc(c.aviso)}` : ""}${c.n > 1 && c.explicacao ? `<div style="margin-top:6px">${md(c.explicacao)}</div>` : ""}</div>`;
-    if (c.n < 2) return `<div class="fb no"><b>Ainda não.</b> Leia a pergunta de novo, devagar, e refaça a conta. Depois clique em <b>Conferir de novo</b>. (A primeira resposta é a que vale nota, mas tentar de novo ajuda você a aprender.)</div>`;
+    if (c.n < 2) { const rg = regraDe(q.habilidade || q.assunto);
+      return `<div class="fb no"><b>Essa não é a resposta certa.</b> ${c.dica ? md(c.dica) : "Leia a pergunta de novo, devagar, e refaça."}${rg ? `<div class="regra" style="margin-top:8px">${esc(rg)}</div>` : ""}<div class="small" style="margin-top:6px">Descubra onde errou, refaça e clique em <b>Conferir de novo</b>. A primeira resposta é a que vale nota.</div></div>`; }
     return `<div class="fb no"><b>Ainda não.</b> Veja como se faz:${c.explicacao ? `<div style="margin-top:6px">${md(c.explicacao)}</div>` : ""}</div>`;
   }
   function desenha() {
@@ -1469,18 +1471,18 @@ async function telaProva(id) {
     trava(false);
   }
   // trava contra chute: cada parte só libera o "Próximo" depois de um tempo mínimo de leitura
-  const SEG_Q = Number(p.segundosPorQuestao) || (VALE_NOTA(p.tipo) ? 20 : 15), SEG_LICAO = 10;
+  const SEG_Q = Number(p.segundosPorQuestao) || (VALE_NOTA(p.tipo) ? 20 : 15), SEG_LICAO = 10, SEG_REFAZ = 20;
   st.tb = st.tb || {};
-  function chaveTrava() { if (st.etapa === -2) return "l" + Math.min(st.li || 0, p.licao.length - 1); if (TREINO && st.etapa >= 0 && st.etapa < (p.blocos || []).length) { const q = qs[Math.min(st.qi || 0, qs.length - 1)]; return st.conf[q.id] || !pensePronto(q) ? null : "q" + q.id; } if (st.etapa >= 0 && st.etapa < (p.blocos || []).length) return "b" + st.etapa; return null; }
-  function exigido(k) { if (k[0] === "q") return SEG_Q; if (k[0] === "l") { const sec = p.licao[Number(k.slice(1))] || {}; return sec.tipo === "jogo" || sec.tipo === "pratica" || sec.tipo === "cartoes" ? 0 : SEG_LICAO; } const n = qs.filter(q => q.bloco === Number(k.slice(1))).length; return Math.min(150, n * SEG_Q); }
+  function chaveTrava() { if (st.etapa === -2) return "l" + Math.min(st.li || 0, p.licao.length - 1); if (TREINO && st.etapa >= 0 && st.etapa < (p.blocos || []).length) { const q = qs[Math.min(st.qi || 0, qs.length - 1)], c = st.conf[q.id]; if (c && !c.certo && c.n < 2) return "r" + q.id; return c || !pensePronto(q) ? null : "q" + q.id; } if (st.etapa >= 0 && st.etapa < (p.blocos || []).length) return "b" + st.etapa; return null; }
+  function exigido(k) { if (k[0] === "q") return SEG_Q; if (k[0] === "r") return SEG_REFAZ; if (k[0] === "l") { const sec = p.licao[Number(k.slice(1))] || {}; return sec.tipo === "jogo" || sec.tipo === "pratica" || sec.tipo === "cartoes" ? 0 : SEG_LICAO; } const n = qs.filter(q => q.bloco === Number(k.slice(1))).length; return Math.min(150, n * SEG_Q); }
   function trava(conta) {
     if (sess.papel === "adulto") return;
     const k = chaveTrava(); if (!k) return;
     if (conta && !document.hidden) { st.tb[k] = (st.tb[k] || 0) + 1; if (st.tb[k] % 5 === 0) salvar(); }
-    const b = $(k[0] === "l" ? "#l-prox" : k[0] === "q" ? "#conferir, #prox" : "#prox"); if (!b) return;
+    const b = $(k[0] === "l" ? "#l-prox" : k[0] === "q" ? "#conferir, #prox" : k[0] === "r" ? "#conferir" : "#prox"); if (!b) return;
     if (!b.dataset.lbl) b.dataset.lbl = b.textContent;
     const falta = exigido(k) - (st.tb[k] || 0);
-    if (falta > 0) { b.disabled = true; b.textContent = k[0] === "l" ? `Leia com atenção · ${falta}s` : k[0] === "q" ? `Leia de novo e confira · ${falta}s` : `Responda com calma · ${falta}s`; b.title = "O botão libera sozinho. Use o tempo para ler de novo e conferir."; }
+    if (falta > 0) { b.disabled = true; b.textContent = k[0] === "l" ? `Leia com atenção · ${falta}s` : k[0] === "q" ? `Leia de novo e confira · ${falta}s` : k[0] === "r" ? `Leia a dica e refaça · ${falta}s` : `Responda com calma · ${falta}s`; b.title = "O botão libera sozinho. Use o tempo para ler de novo e conferir."; }
     else if (b.disabled) { b.disabled = false; b.textContent = b.dataset.lbl; b.title = ""; }
   }
   const relogio = setInterval(() => { if (!document.body.contains(app) || !location.hash.startsWith("#/prova/")) { clearInterval(relogio); return; } trava(true); }, 1000);
@@ -1534,8 +1536,9 @@ async function telaProva(id) {
       const q = qs[Math.min(st.qi || 0, qs.length - 1)], v = String(st.resp[q.id] || "").trim();
       if (!v) { toast("Responda primeiro. Depois clique em Conferir."); return; }
       b.disabled = true;
-      try { const r = await api("conferir", { id, qid: q.id, resposta: v }); if (st.primeira[q.id] == null) st.primeira[q.id] = st.resp[q.id];
-        const c = st.conf[q.id] || { n: 0 }; st.conf[q.id] = { certo: r.certo, explicacao: r.explicacao, aviso: r.aviso, n: c.n + 1, respostas: (c.respostas || []).concat(v) };
+      try { const c = st.conf[q.id] || { n: 0 };
+        const r = await api("conferir", { id, qid: q.id, resposta: v, n: c.n + 1 }); if (st.primeira[q.id] == null) st.primeira[q.id] = st.resp[q.id];
+        st.conf[q.id] = { certo: r.certo, explicacao: r.explicacao, dica: r.dica, aviso: r.aviso, n: c.n + 1, respostas: (c.respostas || []).concat(v), ts: (c.ts || []).concat(Date.now()) };
         falar(r.certo ? "Isso mesmo!" : "Ainda não. Leia a explicação."); }
       catch (err) { toast(err.message); }
       salvar(); desenha(); return;
@@ -1559,7 +1562,7 @@ async function telaProva(id) {
       try {
         const rac = {};
         qs.forEach(q => { const ps = st.pense[q.id], c = st.conf[q.id]; if (!ps && !c) return;
-          rac[q.id] = Object.assign({}, ps ? { pense: (ps.escolhas || [])[0] || ps.escolha, escolhas: ps.escolhas || [], ok1: ps.ok1, conta: ps.conta || "" } : {}, c ? { conferiu: c.n, respostas: c.respostas || [], final: st.resp[q.id] } : {}); });
+          rac[q.id] = Object.assign({}, ps ? { pense: (ps.escolhas || [])[0] || ps.escolha, escolhas: ps.escolhas || [], ok1: ps.ok1, conta: ps.conta || "" } : {}, c ? { conferiu: c.n, respostas: c.respostas || [], final: st.resp[q.id], seg: (c.ts || []).slice(1).map((t, i) => Math.round((t - c.ts[i]) / 1000)) } : {}); });
         const envio = Object.assign({}, st.resp, st.primeira, { __raciocinio: rac, __adulto: !!st.adulto, __checklist: CHECK_ENTREGA.every(([k]) => st.ck[k]) });
         const r = await api("entregar", { id, respostas: envio, inicio: st.inicio });
         store.del(chave); cache.ultimo = r;

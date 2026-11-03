@@ -938,7 +938,11 @@ tr.det td{background:var(--bg);padding:12px 14px}
   function racHTML(rc){ if(!rc) return ""; const p=[];
     if(rc.pense) p.push(`Pare e pense: ${rc.ok1?'<b class="n-good">acertou o tipo de primeira</b>':`errou o tipo primeiro (${esc((rc.escolhas||[]).join(" → "))})`}`);
     if(rc.conta) p.push(`conta escrita: <b>${esc(rc.conta)}</b>`);
-    if(rc.conferiu) p.push(`conferiu ${rc.conferiu}x${(rc.respostas||[]).length>1?` (tentativas: ${esc(rc.respostas.join(" → "))})`:""}`);
+    if(rc.conferiu){ const rs=rc.respostas||[], sg=rc.seg||[];
+      p.push(`conferiu ${rc.conferiu}x${rs.length>1?` (tentativas: ${esc(rs.join(" → "))}${sg.length?` · reenviou ${sg.map(s=>s<60?s+" s":Math.round(s/60)+" min").join(", ")} depois`:""})`:""}`);
+      const rep=rs.some((v,i)=>i>0&&String(v).trim()===String(rs[i-1]).trim()), rap=sg.some(s=>s<20);
+      if(rep) p.push(`<b class="n-bad">repetiu a mesma resposta errada</b>`);
+      if(rap) p.push(`<b class="n-bad">reenviou em menos de 20 s</b>`); }
     return p.length?`<div class="rh">${p.join(" · ")}</div>`:""; }
   function detalheHTML(tid){
     const d=pvDet[tid];
