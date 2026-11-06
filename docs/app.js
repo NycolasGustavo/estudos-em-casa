@@ -486,6 +486,11 @@ function abaErros(d) {
 }
 // regra curta mostrada antes do primeiro cartão de cada habilidade no caderno
 const REGRAS = [
+  [/fra[çc][ãa]o de uma quantidade/i, "Fração = PARTE sobre TODO. Embaixo vai o TOTAL (quantos tem ao todo). Em cima, a PARTE que a pergunta pede. 3 limões usados de 8 = 3/8."],
+  [/medidas de comprimento/i, "1 metro = 100 centímetros. 105 cm = 1 metro e 5 cm = 1,05 m. Veja em que medida a pergunta pede a resposta."],
+  [/medidas de massa/i, "1 quilograma (kg) = 1.000 gramas. Meio quilo = 500 gramas."],
+  [/duas etapas|\(cada\)/i, "Achou a palavra CADA? O preço é de UM. Multiplique pela quantidade (2 camisetas de R$ 53 cada = 2 × 53) e só depois junte as partes."],
+  [/quadril[áa]teros e pol/i, "Conte os lados: 3 = triângulo, 4 = QUADRILÁTERO (quadrado, retângulo, losango), 5 = pentágono, 6 = hexágono."],
   [/-am ou -ão|ontem ou amanhã/i, "Teste do ONTEM ou AMANHÃ: se já aconteceu (ontem), escreva -AM (ficaram). Se ainda vai acontecer (amanhã), -ÃO (ficarão). Nas histórias, quase sempre é -AM."],
   [/M antes de P/i, "M só antes de P e B (campo, também). Antes das outras letras, N (então, contente, concordou)."],
   [/compara/i, "\"A mais\", \"a menos\", \"diferença\" e \"quanto falta\" é COMPARAR: conta de MENOS, o maior menos o menor. Não some os dois números!"],
