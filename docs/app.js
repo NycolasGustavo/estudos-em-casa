@@ -486,6 +486,8 @@ function abaErros(d) {
 }
 // regra curta mostrada antes do primeiro cartão de cada habilidade no caderno
 const REGRAS = [
+  [/-am ou -ão|ontem ou amanhã/i, "Teste do ONTEM ou AMANHÃ: se já aconteceu (ontem), escreva -AM (ficaram). Se ainda vai acontecer (amanhã), -ÃO (ficarão). Nas histórias, quase sempre é -AM."],
+  [/M antes de P/i, "M só antes de P e B (campo, também). Antes das outras letras, N (então, contente, concordou)."],
   [/compara/i, "\"A mais\", \"a menos\", \"diferença\" e \"quanto falta\" é COMPARAR: conta de MENOS, o maior menos o menor. Não some os dois números!"],
   [/adjetivo|substantivo|classes de palavras/i, "Teste do MUITO: se dá para dizer \"muito ___\" (muito bonito), é ADJETIVO: diz como é. Se não dá (muito mesa), é SUBSTANTIVO: é nome, cabe o/a antes."],
   [/per[ií]metro/i, "Perímetro é a VOLTA (cerca, rodapé, fita): some todos os lados. Área é o espaço de DENTRO."],
