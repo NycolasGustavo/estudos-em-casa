@@ -499,7 +499,8 @@ const REGRAS = [
   [/dobro|triplo/i, "Dobro = vezes 2. Triplo = vezes 3."],
   [/pontua/i, "Frase que mostra emoção (Que lindo!) termina com ponto de exclamação (!). Pergunta termina com (?)."],
   [/conectivo|como = porque/i, "\"Como\" no começo da frase quer dizer \"porque\"."],
-  [/tempo/i, "1 hora = 60 minutos. Meia hora = 30 minutos."],
+  [/tempos? verbais/i, "Já aconteceu (ontem) = PASSADO: comeu, ficaram. Está acontecendo (agora) = PRESENTE: come. Ainda vai acontecer (amanhã) = FUTURO: comerá, ficarão."],
+  [/medidas de tempo|hora|minuto/i, "1 hora = 60 minutos. Meia hora = 30 minutos."],
   [/2 algarismos|dois algarismos/i, "Dois algarismos embaixo = DUAS LINHAS. 1ª linha: vezes a unidade. 2ª linha: vezes a dezena, começando com 0 embaixo das unidades. No fim, some as duas linhas."],
   [/multiplica/i, "Separe em partes: 7 × 16 = 7 × 10 + 7 × 6."]
 ];
