@@ -137,3 +137,11 @@ Base: laudo neuropsicológico (atenção e controle inibitório baixos, memória
 - Ela ajuda nas tarefas: balão na lição (`renderSecao`), dica no 1º erro (`fbConf`), comemoração no acerto, regra no caderno.
 - Boas-vindas: se o último estudo foi há 3 dias ou mais, a Isabella dá boas-vindas e a Sol fica feliz (`falaIsa`, `humorSol`).
 - Valores: `VALORES` em `app.js`, por momento: `papo` (cartão da Sol, conversa do dia), `intro`/`introProva` (antes de começar), `entrega` (checklist), `alta`/`media`/`baixa`/`rapido` (resultado), `pausa`, `ensina`, `erros`, `tabuada`. Uma fala por dia por momento (`sorteioDia`), com botão Ouvir. Temas: por que estudar, atenção, pensar devagar, respeito aos pais e à professora, honestidade, responsabilidade, gratidão, persistência, calma, pedir ajuda.
+
+## Conversa da escola (desde 09/11)
+- Item virtual `acao:"conversa"` (`itensDoDia`): todo dia de aula (seg a sex) com plano, a partir de 09/11, antes do "Me ensina". Abre às 17h (`ABRE_CONVERSA`; o servidor também recusa antes das 17h). Não conta para a ofensiva nem para a tigela (`foraManha`); dá 2 estrelas.
+- Tela `#/conversa/<item>`: uma pergunta por vez, lida em voz alta; 10 s para pensar; até 60 s falando (reconhecimento de voz do Chrome, `pt-BR`); depois ela confere e corrige o texto. Uma pergunta de acompanhamento por resposta (máx. 3): resposta curta, prova ou dever sem data, "não entendi". Sem microfone ou fora do Chrome, ela escreve.
+- Perguntas: `conversa_perguntas/<data>` (`{perguntas:[{pergunta, materia, tipo}], motivo}`), preparadas pela rotina das 18h; sem elas, roteiro pela grade de aulas (`AULAS`).
+- Guarda só o texto: `conversas/<data>` com `respostas:[{pergunta, materia, tipo, texto, segundos, palavras, falou, refez, seguimento}]`, `duracao`, `voz`. Refeita: a anterior fica em `anterior`. A rotina acrescenta `analise:{resumo, conteudos[], duvidas[], agenda[], observacoes}`.
+- O "Me ensina" deixou de pedir a explicação da aula (fica na conversa).
+- Painel: aba Conversas.

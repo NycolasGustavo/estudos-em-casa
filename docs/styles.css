@@ -611,3 +611,13 @@ mark.kw{background:#FFE08A;color:inherit;font-weight:700;padding:0 3px;border-ra
 .isa-fala.valor .papo-ouvir{position:absolute;right:6px;top:6px}
 .tab-card .isa-fala{justify-content:flex-start}
 @media (prefers-color-scheme:dark){.papo-t,.papo .q-sol{color:#F0B45E}.papo .q-isa{color:#8AA6FF}}
+/* conversa da escola */
+.cv-perg{font-size:22px;line-height:1.35;margin:4px 0}
+.cv-relogio{font-size:56px;font-weight:800;text-align:center;color:#2F55C9}
+.cv-gravando{display:flex;align-items:center;gap:8px;font-weight:700;color:#C2413A}
+.cv-ponto{width:12px;height:12px;border-radius:50%;background:#C2413A;animation:cv-pisca 1s infinite}
+@keyframes cv-pisca{50%{opacity:.25}}
+.cv-txt{min-height:110px;background:var(--card);border:2px dashed var(--line);border-radius:12px;padding:12px;font-size:18px;line-height:1.5;text-align:left}
+.cv-edit{width:100%;font:inherit;font-size:17px;line-height:1.5;padding:10px 12px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--fg);resize:vertical}
+.aviso-cv{background:#FFF8E6;color:#1C2140;border-radius:10px;padding:8px 12px}
+@media (prefers-color-scheme:dark){.cv-relogio{color:#8AA6FF}.aviso-cv{background:#33290F;color:var(--fg)}}

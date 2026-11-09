@@ -63,6 +63,7 @@ async function render() {
     if (r[0] === "resultado") return await telaResultado(decodeURIComponent(r[1]));
     if (r[0] === "tabuada") return await telaTabuada(decodeURIComponent(r[1] || ""));
     if (r[0] === "pausa") return await telaPausa(decodeURIComponent(r[1] || ""));
+    if (r[0] === "conversa") return await telaConversa(decodeURIComponent(r[1] || ""));
     if (r[0] === "pare") return await telaPare(decodeURIComponent(r[1] || ""));
     if (r[0] === "revisar") return await telaRevisar();
     if (r[0] === "video") { pararFala(); return await telaVideo(decodeURIComponent(r[1] || "")); }
@@ -323,10 +324,15 @@ function acaoItem(d, it) {
   if (it.acao === "livro") return `<button class="ghost" data-feito="${esc(it.id)}">Li hoje</button>`;
   if (it.acao === "pare") return `<a class="btn" href="#/pare/${encodeURIComponent(it.id)}">Jogar</a>`;
   if (it.acao === "pausa") return `<a class="btn" href="#/pausa/${encodeURIComponent(it.id)}">Fazer a pausa</a>`;
+  if (it.acao === "conversa") {
+    if (sess.papel === "adulto") return `<span class="trava">A conversa aparece no painel</span>`;
+    if (new Date().getHours() < ABRE_CONVERSA) return `<span class="trava">${ico("cadeado", 18)} Abre às ${ABRE_CONVERSA}h</span>`;
+    return `<a class="btn" href="#/conversa/${encodeURIComponent(it.id)}">${ico("som", 18)} Conversar</a>`;
+  }
   if (it.acao === "meensina") return `<span style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;white-space:nowrap">${sess.papel !== "adulto" ? `<a class="btn ghost mini" href="#/ensina?item=${encodeURIComponent(it.id)}">Gravar (opcional)</a>` : ""}<span class="trava">${ico("check", 18)} Um adulto marca à tarde</span></span>`;
   return `<button class="ghost" data-feito="${esc(it.id)}">Marcar feito</button>`;
 }
-const MOMENTO = { aquecimento: ["Aquecimento", "#B8860B"], frio: ["Revisão de ontem · sangue frio", "#0E7C86"], quente: ["Preparar a aula de hoje · sangue quente", "#D2632A"], missao: ["Missão do dia", "#7A4FD6"], video: ["Aula em vídeo · aprender", "#D2632A"], ingles: ["Inglês", "#0E7C86"], meensina: ["Me ensina · com um adulto", "#2F7D4F"], pausa: ["Pausa ativa · mexa o corpo", "#2F7D4F"], recuperacao: ["Recuperação dos erros", "#B7791F"], prova: ["Prova · vale nota", "#C2413A"], simulado: ["Simulado · vale nota", "#C2413A"], extra: ["Extra", "#5E6483"], livro: ["Livro", "#5E6483"], escada: ["Escada da divisão · reforço", "#7A4FD6"] };
+const MOMENTO = { aquecimento: ["Aquecimento", "#B8860B"], frio: ["Revisão de ontem · sangue frio", "#0E7C86"], quente: ["Preparar a aula de hoje · sangue quente", "#D2632A"], missao: ["Missão do dia", "#7A4FD6"], video: ["Aula em vídeo · aprender", "#D2632A"], ingles: ["Inglês", "#0E7C86"], meensina: ["Me ensina · com um adulto", "#2F7D4F"], conversa: ["Depois da escola · conversa", "#2F55C9"], pausa: ["Pausa ativa · mexa o corpo", "#2F7D4F"], recuperacao: ["Recuperação dos erros", "#B7791F"], prova: ["Prova · vale nota", "#C2413A"], simulado: ["Simulado · vale nota", "#C2413A"], extra: ["Extra", "#5E6483"], livro: ["Livro", "#5E6483"], escada: ["Escada da divisão · reforço", "#7A4FD6"] };
 function linhaItem(d, dia, it, i, ativo, depoisPausa) {
   const st = estadoItem(d, dia, it);
   const m = MOMENTO[it.momento] || ["Atividade", "#5E6483"];
@@ -335,6 +341,7 @@ function linhaItem(d, dia, it, i, ativo, depoisPausa) {
   if (st === "feito") botao = `<span class="feito">${ico("check", 18)} Feito</span>`;
   else if (travaReq && st !== "bloqueado") botao = `<span class="trava">${ico("cadeado", 18)} Abre quando você passar do nível anterior</span>`;
   else if (st === "bloqueado") botao = `<span class="trava">${ico("cadeado", 18)} Abre ${DCURTO[diaSem(dia)].toLowerCase()} ${dataBR(dia)}</span>`;
+  else if (it.acao === "conversa" && st === "atrasado") botao = `<span class="trava">Não foi feita</span>`;
   else if (depoisPausa) botao = `<span class="trava">${ico("cadeado", 18)} Depois da pausa</span>`;
   else botao = acaoItem(d, it);
   return `<div class="item ${st === "feito" ? "ok" : ""} ${st === "bloqueado" ? "lock" : ""} ${ativo ? "ativo" : ""}"><div class="inum">${st === "feito" ? ico("check", 20) : st === "bloqueado" ? ico("cadeado", 18) : i + 1}</div>
@@ -346,9 +353,19 @@ function dataFeito(d, it) {
   if (it.provaId) { const ts = d.historico.filter(x => x.provaId === it.provaId).map(x => x.data).sort(); return ts[0] || null; }
   const f = (d.feitosInfo || {})[it.id]; return f ? f.data : null;
 }
+// itens da tarde (não contam para a ofensiva nem para a tigela da manhã)
+const foraManha = it => it.acao === "meensina" || it.acao === "conversa";
+const ABRE_CONVERSA = 17;
 function itensDoDia(d, dia) {
   const p = d.plano.find(x => x._id === dia); const its = p && p.itens ? p.itens.slice() : [];
   const h = d.hoje || hoje();
+  // conversa da escola: todo dia de aula (seg a sex) com plano, abre às 17h
+  const ds = diaSem(dia);
+  if (its.length && ds >= 1 && ds <= 5 && dia >= "2026-11-09" && !its.some(it => it.acao === "conversa")) {
+    const conv = { id: dia + "-conversa", acao: "conversa", momento: "conversa", minutos: 7, titulo: "Como foi a escola hoje?", descricao: "Conte para a mini Isabella o que você aprendeu na aula. Pense antes de falar e responda em 2 ou 3 frases. Abre às 17h." };
+    const im = its.findIndex(it => it.acao === "meensina");
+    if (im >= 0) its.splice(im, 0, conv); else its.push(conv);
+  }
   if (dia === h && its.length && ((d.erros && d.erros.devidos > 0) || d.feitos.includes(h + "-erros")))
     its.splice(Math.min(1, its.length), 0, { id: h + "-erros", momento: "aquecimento", titulo: "Revisar meus erros", descricao: "Questões que você errou antes e voltaram para você vencer.", minutos: 5, acao: "erros" });
   return its;
@@ -357,7 +374,7 @@ const descartado = (d, it) => { const a = (d.feitosInfo || {})["adiado-" + it.id
 function avaliacaoDe(d, dia) { return (d.diario || []).find(x => x.data === dia) || null; }
 // ok | falhou | pendente | neutro
 function statusDia(d, dia) {
-  const h = d.hoje || hoje(), its = itensDoDia(d, dia).filter(it => !descartado(d, it) && it.acao !== "meensina");
+  const h = d.hoje || hoje(), its = itensDoDia(d, dia).filter(it => !descartado(d, it) && !foraManha(it));
   const av = avaliacaoDe(d, dia);
   if (!its.length || (av && av.folga)) return "neutro";
   const ok = its.every(it => { const f = dataFeito(d, it); return f && f <= dia; });
@@ -379,7 +396,7 @@ function ofensiva(d) {
   return { dias: n, quebrouOntem, hojeOk: statusDia(d, h) === "ok" };
 }
 function comidaHoje(d) {
-  const h = d.hoje || hoje(), its = itensDoDia(d, h).filter(it => it.acao !== "meensina");
+  const h = d.hoje || hoje(), its = itensDoDia(d, h).filter(it => !foraManha(it));
   const feitosHoje = new Set(Object.keys(d.feitosInfo || {}).filter(k => (d.feitosInfo[k] || {}).data === h && !k.startsWith("adiado-")));
   d.historico.filter(x => x.data === h).forEach(x => feitosHoje.add("prova:" + x.provaId));
   const deHoje = its.filter(it => { const f = dataFeito(d, it); return f === h; }).length;
@@ -490,7 +507,7 @@ function ultimoEstudo(d, antesDe) {
 }
 function falaIsa(d) {
   const h = d.hoje || hoje(), of = ofensiva(d), c = comidaHoje(d);
-  const its = itensDoDia(d, h).filter(it => it.acao !== "meensina"), prox = its.find(it => dataFeito(d, it) !== h);
+  const its = itensDoDia(d, h).filter(it => !foraManha(it)), prox = its.find(it => dataFeito(d, it) !== h);
   const ult = ultimoEstudo(d, h), voltou = ult && (new Date(h) - new Date(ult)) / 864e5 >= 3;
   const falta = Math.max(0, c.plano - c.deHoje);
   if (!c.plano) return ["feliz", "Hoje é dia de descanso. A Sol e eu esperamos você no próximo estudo!"];
@@ -568,6 +585,11 @@ const VALORES = {
   erros: [
     { q: "isa", h: "dica", t: "Cada erro que volta é uma segunda chance. Quem revisa os erros fica mais forte do que quem nunca errou." },
     { q: "sol", h: "feliz", t: "Eu também errei muitos pulos até acertar a janela. Erro revisado vira acerto!" }
+  ],
+  conversaFim: [
+    { q: "sol", h: "feliz", t: "Contar o que aprendeu é aprender duas vezes! Agora a sua cabeça guardou melhor." },
+    { q: "isa", h: "torcendo", t: "Obrigada por me contar! Quem organiza as ideias antes de falar explica muito melhor." },
+    { q: "isa", h: "feliz", t: "Quando a gente conta o dia com calma, os adultos entendem como ajudar. Isso é cuidar de si mesma." }
   ],
   tabuada: [
     { q: "sol", h: "feliz", t: "Tabuada é como eu afiar as unhas: um pouquinho todo dia e elas ficam afiadas!" },
@@ -746,13 +768,13 @@ function abaHoje(d) {
   const dataTxt = `${DIAS[diaSem(h)]}, ${dataBR(h)}`;
   let estudo;
   if (plano && plano.itens && plano.itens.length) {
-    const manha = plano.itens.filter(it => it.acao !== "meensina");
+    const manha = plano.itens.filter(it => !foraManha(it));
     const feitos = manha.filter(it => itemFeito(d, plano, it)).length;
-    const prox = plano.itens.findIndex(it => it.acao !== "meensina" && !itemFeito(d, plano, it));
+    const prox = plano.itens.findIndex(it => !foraManha(it) && !itemFeito(d, plano, it));
     estudo = `<section class="painel-mundo" style="--w:var(--casa)">${faixa("casa", `Estudo de hoje · ${plano.minutos || 45} minutos`)}
       <div class="pm-corpo"><span class="muted">${feitos === manha.length ? "<b>Tudo feito hoje! Parabéns!</b>" : `Faça na ordem, de cima para baixo. ${feitos} de ${manha.length} feitos.`}</span>
       <div class="bar" style="height:12px"><i style="width:${feitos / (manha.length || 1) * 100}%;background:var(--casa)"></i></div>
-      <div class="itens">${(() => { const ip = plano.itens.findIndex(it => it.acao === "pausa" && !itemFeito(d, plano, it)); return plano.itens.map((it, i) => linhaItem(d, h, it, i, i === prox, ip >= 0 && i > ip && !itemFeito(d, plano, it) && it.acao !== "meensina")).join(""); })()}</div></div></section>`;
+      <div class="itens">${(() => { const ip = plano.itens.findIndex(it => it.acao === "pausa" && !itemFeito(d, plano, it)); return plano.itens.map((it, i) => linhaItem(d, h, it, i, i === prox, ip >= 0 && i > ip && !itemFeito(d, plano, it) && !foraManha(it))).join(""); })()}</div></div></section>`;
   } else {
     const prox = d.plano.filter(p => p._id > h && (p.itens || []).length).sort((a, b) => a._id.localeCompare(b._id))[0];
     estudo = `<section class="painel-mundo" style="--w:var(--casa)">${faixa("casa", "Estudo de hoje")}<div class="pm-corpo">
@@ -1398,6 +1420,154 @@ async function telaPausa(itemId) {
   app.onclick = async e => {
     if (e.target.id === "pz-ir") { t0 = Date.now(); falar("Pausa ativa. Cinco minutos longe da tela. Mexa o corpo e beba água."); timer = setInterval(() => { if (!location.hash.startsWith("#/pausa/")) { clearInterval(timer); return; } desenha(); if (Date.now() - t0 >= LIM * 1000) { clearInterval(timer); falar("A pausa acabou. Vamos voltar!"); } }, 1000); desenha(); }
     if (e.target.id === "pz-fim") { e.target.disabled = true; try { await api("marcarFeito", { item: itemId }); } catch (err) { } cache.aluna = null; location.hash = volta; }
+  };
+  desenha();
+}
+
+/* ---------- Conversa da escola: ela conta o dia por voz, só o texto é guardado ---------- */
+// perguntas do dia: as personalizadas (geradas pela rotina das 18h do dia anterior) ou o roteiro pela grade de aulas
+function perguntasConversa(d, h) {
+  const pers = d && d.conversaPerguntas && Array.isArray(d.conversaPerguntas.perguntas) ? d.conversaPerguntas.perguntas.filter(x => x && x.pergunta) : [];
+  if (pers.length) return { lista: pers.slice(0, 8).map(x => ({ pergunta: String(x.pergunta), materia: x.materia || "", tipo: x.tipo || "personalizada" })), personalizadas: true };
+  const ds = diaSem(h), mats = (AULAS[ds] || []).filter(m => m !== "Disciplinar");
+  const L = [{ tipo: "abertura", pergunta: "Oi! Como foi o seu dia na escola? Me conta qual foi a melhor parte." }];
+  if ((AULAS[ds] || []).includes("Disciplinar")) L.push({ tipo: "aula", materia: "Disciplinar", pergunta: "Na aula da professora regente, qual matéria vocês estudaram? O que ela ensinou? Me explica como se eu não soubesse." });
+  mats.forEach(m => {
+    L.push({ tipo: "aula", materia: m, pergunta: `Na aula de ${m}, o que vocês fizeram hoje? Me explica como se eu não soubesse.` });
+    if (m === "Matemática") L.push({ tipo: "detalhe", materia: m, pergunta: "Me dá um exemplo de conta ou problema que vocês fizeram. Como se resolve?" });
+    if (m === "Português") L.push({ tipo: "detalhe", materia: m, pergunta: "Teve alguma palavra nova ou regra nova em Português? Me explica o que ela quer dizer." });
+    if (m === "Inglês") L.push({ tipo: "detalhe", materia: m, pergunta: "Fale uma palavra ou frase em inglês que você aprendeu hoje e o que ela quer dizer." });
+  });
+  const p = (d && d.plano || []).find(x => x._id === h), estudo = p && (p.itens || []).find(it => it.provaId && it.materia);
+  if (estudo) L.push({ tipo: "app", materia: estudo.materia, pergunta: `Hoje cedo você estudou "${estudo.titulo}" no app. Apareceu alguma coisa disso na escola?` });
+  L.push({ tipo: "agenda", pergunta: "Tem dever de casa, prova ou trabalho marcado? De qual matéria e para quando?" });
+  L.push({ tipo: "duvida", pergunta: "Teve alguma coisa que você não entendeu hoje? Conte o que foi." });
+  return { lista: L.slice(0, 8), personalizadas: false };
+}
+// uma pergunta de seguimento, no máximo, por resposta
+function seguimentoConversa(q, texto, palavras) {
+  const t = (texto || "").toLowerCase();
+  if (q.tipo === "agenda" && /prova|dever|trabalho|tarefa|li[çc][ãa]o de casa|pesquisa/.test(t) && !/\d|segunda|ter[çc]a|quarta|quinta|sexta|amanh|semana/.test(t))
+    return { tipo: "seguimento", materia: q.materia, pergunta: "Para quando é? E de qual matéria?" };
+  if (q.tipo === "duvida" && palavras >= 3 && /n[ãa]o entendi|dif[íi]cil|n[ãa]o sei|confus/.test(t))
+    return { tipo: "seguimento", materia: q.materia, pergunta: "O que exatamente ficou difícil? Explique a parte que você entendeu e onde você travou." };
+  if (q.tipo !== "agenda" && q.tipo !== "duvida" && palavras < 6)
+    return { tipo: "seguimento", materia: q.materia, pergunta: "Me conta um pouco mais: o que mais você lembra? Se precisar, abra o caderno e olhe o que copiou." };
+  return null;
+}
+const contaPalavras = t => (String(t || "").trim().match(/\S+/g) || []).length;
+async function telaConversa(itemId) {
+  app.className = "wrap";
+  const volta = "#/hoje";
+  let d = null; try { d = cache.aluna || (cache.aluna = await api("inicioAluna")); } catch (e) { }
+  const h = (d && d.hoje) || hoje();
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const PENSE = 10, LIM = 60, MAX_SEG = 3;
+  const { lista, personalizadas } = perguntasConversa(d, h);
+  const st = { i: -1, fase: "intro", fila: lista.slice(), resp: [], t0: Date.now(), faseT0: 0, texto: "", interim: "", rec: null, ouvindo: false, semVoz: !SR, refez: 0, nSeg: 0, timer: null, salvo: false, qT0: 0 };
+  const q = () => st.fila[st.i];
+  const decorrido = () => Math.floor((Date.now() - st.faseT0) / 1000);
+  function pararRec() { st.ouvindo = false; try { st.rec && st.rec.stop(); } catch (e) { } st.rec = null; }
+  function sair() { pararRec(); pararFala(); clearInterval(st.timer); }
+  window.addEventListener("hashchange", sair, { once: true });
+  function iniciarRec() {
+    pararFala();
+    const r = new SR(); r.lang = "pt-BR"; r.continuous = true; r.interimResults = true;
+    r.onresult = ev => {
+      let inter = "";
+      for (let k = ev.resultIndex; k < ev.results.length; k++) {
+        const x = ev.results[k];
+        if (x.isFinal) st.texto = (st.texto ? st.texto + " " : "") + x[0].transcript.trim(); else inter += x[0].transcript;
+      }
+      st.interim = inter; mostraTexto();
+    };
+    r.onerror = ev => {
+      if (ev.error === "not-allowed" || ev.error === "service-not-allowed" || ev.error === "audio-capture") {
+        st.semVoz = true; pararRec(); st.fase = "revisar"; desenha();
+        toast("O microfone não liberou. Escreva a resposta na caixa.");
+      }
+    };
+    r.onend = () => { if (st.ouvindo && decorrido() < LIM) { try { r.start(); } catch (e) { } } };
+    try { r.start(); st.rec = r; st.ouvindo = true; } catch (e) { st.semVoz = true; st.fase = "revisar"; desenha(); }
+  }
+  function mostraTexto() {
+    const el = $("#cv-txt"); if (!el) return;
+    const t = (st.texto + (st.interim ? " " + st.interim : "")).trim();
+    el.innerHTML = t ? esc(t) : `<span class="muted">Comece a falar...</span>`;
+  }
+  function feedback(p) {
+    if (p < 6) return ["preocupada", "Ficou curtinho. Tente contar com mais detalhes: o quê, como e por quê."];
+    if (p > 90) return ["pensando", "Ficou longo! Da próxima vez, conte só o mais importante, em 2 ou 3 frases."];
+    return ["torcendo", "Boa! Você explicou com as suas palavras."];
+  }
+  function proxima() {
+    const cur = q();
+    const texto = (($("#cv-edit") || {}).value || st.texto || "").trim(), pal = contaPalavras(texto);
+    st.resp.push({ pergunta: cur.pergunta, materia: cur.materia || "", tipo: cur.tipo || "", texto, segundos: Math.round((Date.now() - st.qT0) / 1000), palavras: pal, falou: !st.semVoz, refez: st.refez, seguimento: cur.tipo === "seguimento" });
+    if (cur.tipo !== "seguimento" && st.nSeg < MAX_SEG) { const sg = seguimentoConversa(cur, texto, pal); if (sg) { st.fila.splice(st.i + 1, 0, sg); st.nSeg++; } }
+    abrir(st.i + 1);
+  }
+  function abrir(i) {
+    pararRec(); st.i = i; st.texto = ""; st.interim = ""; st.refez = 0;
+    if (i >= st.fila.length) { st.fase = "fim"; desenha(); salvar(); return; }
+    st.fase = "pensar"; st.faseT0 = Date.now(); st.qT0 = Date.now();
+    desenha(); falar(q().pergunta);
+  }
+  async function salvar() {
+    if (st.salvo) return; st.salvo = true;
+    try {
+      await api("registrarConversa", { item: itemId, respostas: st.resp, duracao: Math.round((Date.now() - st.t0) / 1000), voz: !st.semVoz, personalizadas });
+      cache.aluna = null; toast("Conversa guardada! +2 estrelas");
+      const el = $("#cv-salvo"); if (el) el.innerHTML = `${ico("check", 18)} Guardado. Obrigada por contar!`;
+    } catch (e) { st.salvo = false; const el = $("#cv-salvo"); if (el) el.innerHTML = `<span style="color:var(--bad)">Não consegui guardar: ${esc(e.message)}</span> <button class="mini" id="cv-salvar">Tentar de novo</button>`; }
+  }
+  function tela() {
+    const n = st.fila.length;
+    if (st.fase === "intro") return `<div class="tab-wrap"><div class="tab-card stack">
+      <h1>Como foi a escola hoje?</h1>
+      ${isaBalao("oi", `Oi! Vou te fazer <b>${n} perguntas</b> sobre a escola. Em cada uma:<br>1. <b>Pense ${PENSE} segundos</b> no que é mais importante.<br>2. <b>Fale por até 1 minuto</b>, em 2 ou 3 frases.<br>Eu escrevo o que você falar. O áudio não fica guardado.`, 72)}
+      ${d && d.conversaHoje ? `<p class="muted small">Você já conversou hoje. Se fizer de novo, a conversa nova fica no lugar da anterior.</p>` : ""}
+      ${st.semVoz ? `<p class="aviso-cv">Este navegador não reconhece voz. Você vai responder escrevendo. (No Chrome dá para falar.)</p>` : ""}
+      <div class="row"><button id="cv-ir">${ico("som", 18)} Começar</button><a class="btn ghost" href="${volta}">Voltar</a></div></div></div>`;
+    if (st.fase === "fim") return `<div class="tab-wrap"><div class="tab-card stack">
+      <h1>Conversa feita!</h1>
+      ${falaPersonagem("conversaFim", h)}
+      <p>Você respondeu <b>${st.resp.length}</b> perguntas em ${Math.max(1, Math.round((Date.now() - st.t0) / 60000))} min.</p>
+      <p id="cv-salvo" class="muted">Guardando...</p>
+      <a class="btn" href="${volta}">Voltar para o Hoje</a></div></div>`;
+    const cur = q(), restP = Math.max(0, PENSE - decorrido()), restF = Math.max(0, LIM - decorrido());
+    const topo = `<div class="row between"><span class="mom" style="--mm:#2F55C9">Pergunta ${st.i + 1} de ${n}${cur.tipo === "seguimento" ? " · para completar" : ""}${cur.materia ? " · " + esc(cur.materia) : ""}</span><button class="ouvir mini ghost" id="cv-ouvir" type="button">${ico("som", 14)} Ouvir</button></div>
+      <h2 class="cv-perg">${esc(cur.pergunta)}</h2>`;
+    if (st.fase === "pensar") return `<div class="tab-wrap"><div class="tab-card stack">${topo}
+      ${isaBalao("pensando", "Antes de falar, pense: qual é a parte mais importante? Organize na cabeça o começo, o meio e o fim.", 60)}
+      <div class="cv-relogio">${restP}</div>
+      <button disabled>${st.semVoz ? "Escrever" : "Falar"} libera em ${restP}s</button></div></div>`;
+    if (st.fase === "falar") return `<div class="tab-wrap"><div class="tab-card stack">${topo}
+      <div class="cv-gravando"><span class="cv-ponto"></span> Ouvindo... <b>${restF}s</b></div>
+      <div class="cv-txt" id="cv-txt"></div>
+      <button id="cv-parar">Terminei de falar</button></div></div>`;
+    // revisar
+    const texto = st.texto.trim(), pal = contaPalavras(texto), [fh, ft] = feedback(pal);
+    return `<div class="tab-wrap"><div class="tab-card stack">${topo}
+      ${st.semVoz ? `<p class="muted small">Escreva a sua resposta (2 ou 3 frases):</p>` : `<p class="muted small">Foi isso que eu entendi. Se alguma palavra saiu errada, corrija escrevendo:</p>`}
+      <textarea id="cv-edit" class="cv-edit" rows="4" placeholder="Sua resposta...">${esc(texto)}</textarea>
+      ${texto || !st.semVoz ? isaBalao(fh, ft, 54) : ""}
+      <div class="row between">${!st.semVoz && st.refez < 1 ? `<button class="ghost" id="cv-refazer">Falar de novo</button>` : "<span></span>"}<button id="cv-prox">${st.i + 1 >= st.fila.length ? "Terminar" : "Próxima"}</button></div></div></div>`;
+  }
+  function desenha() { app.innerHTML = tela(); if (st.fase === "falar") mostraTexto(); }
+  st.timer = setInterval(() => {
+    if (!location.hash.startsWith("#/conversa/")) { clearInterval(st.timer); return; }
+    if (st.fase === "pensar") { if (decorrido() >= PENSE) { st.faseT0 = Date.now(); if (st.semVoz) { st.fase = "revisar"; desenha(); } else { st.fase = "falar"; desenha(); iniciarRec(); } } else desenha(); }
+    else if (st.fase === "falar") { if (decorrido() >= LIM) { pararRec(); st.fase = "revisar"; desenha(); toast("Acabou o minuto!"); } else { const b = document.querySelector(".cv-gravando b"); if (b) b.textContent = Math.max(0, LIM - decorrido()) + "s"; } }
+  }, 250);
+  app.onclick = e => {
+    const id = e.target.closest && e.target.closest("button") ? e.target.closest("button").id : "";
+    if (id === "cv-ir") abrir(0);
+    if (id === "cv-ouvir") falar(q().pergunta);
+    if (id === "cv-parar") { pararRec(); setTimeout(() => { st.fase = "revisar"; desenha(); }, 400); }
+    if (id === "cv-refazer") { st.refez++; st.texto = ""; st.interim = ""; st.fase = "falar"; st.faseT0 = Date.now(); desenha(); iniciarRec(); }
+    if (id === "cv-prox") proxima();
+    if (id === "cv-salvar") salvar();
   };
   desenha();
 }
