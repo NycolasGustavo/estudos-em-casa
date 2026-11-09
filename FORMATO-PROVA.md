@@ -131,3 +131,9 @@ Base: laudo neuropsicológico (atenção e controle inibitório baixos, memória
 - Item de plano com `requer: "<provaId>"`: fica trancado até a prova exigida estar feita (domínio atingido).
 - `momento: "escada"` = "Escada da divisão · reforço". Gerador no servidor: `app.montar_escada(pid, nivel, nome, dia, dica, pares int[38])` (18 contas + 1 exemplo; explicações por `app.passos_div`).
 - Tabuada: `#/tabuada/livre-N` é treino extra (não salva nem conta como o do dia); aparece no fim da tabuada do dia.
+
+## Personagens: Sol e mini Isabella (desde 09/11)
+- `isaSVG(humor, tam)` desenha a mini Isabella (rabo de cavalo, óculos redondos dourados, camisa do uniforme). Humores: `feliz`, `oi`, `dica`, `pensando`, `torcendo`, `preocupada`.
+- Ela ajuda nas tarefas: balão na lição (`renderSecao`), dica no 1º erro (`fbConf`), comemoração no acerto, regra no caderno.
+- Boas-vindas: se o último estudo foi há 3 dias ou mais, a Isabella dá boas-vindas e a Sol fica feliz (`falaIsa`, `humorSol`).
+- Valores: `VALORES` em `app.js`, por momento: `papo` (cartão da Sol, conversa do dia), `intro`/`introProva` (antes de começar), `entrega` (checklist), `alta`/`media`/`baixa`/`rapido` (resultado), `pausa`, `ensina`, `erros`, `tabuada`. Uma fala por dia por momento (`sorteioDia`), com botão Ouvir. Temas: por que estudar, atenção, pensar devagar, respeito aos pais e à professora, honestidade, responsabilidade, gratidão, persistência, calma, pedir ajuda.

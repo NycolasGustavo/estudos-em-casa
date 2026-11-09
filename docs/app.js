@@ -494,7 +494,7 @@ function falaIsa(d) {
   const ult = ultimoEstudo(d, h), voltou = ult && (new Date(h) - new Date(ult)) / 864e5 >= 3;
   const falta = Math.max(0, c.plano - c.deHoje);
   if (!c.plano) return ["feliz", "Hoje é dia de descanso. A Sol e eu esperamos você no próximo estudo!"];
-  if (of.hojeOk) return ["torcendo", "Você conseguiu! Dia completo. Estou muito orgulhosa de você!"];
+  if (of.hojeOk) return ["torcendo", "Você conseguiu! Dia completo. Agora conte para a mamãe o que aprendeu hoje: ela vai adorar ouvir."];
   if (voltou && !c.deHoje) return ["oi", `Que bom que você voltou! A Sol e eu sentimos sua falta. Eu vou ficar do seu lado em cada atividade. Vamos começar${prox ? ` por: ${prox.titulo}` : ""}?`];
   if (voltou) return ["torcendo", `Que volta bonita! Já foram ${c.deHoje}. Faltam ${falta}. Eu estou aqui com você!`];
   if (!c.deHoje) return ["oi", `Bom dia! Hoje a gente começa${prox ? ` por: ${prox.titulo}` : " pelo primeiro item"}. Leia com calma que eu ajudo nas dicas.`];
@@ -504,6 +504,95 @@ function falaIsa(d) {
 function isaBalao(humor, html, tam = 64, cls = "") {
   return `<div class="isa-fala ${cls}">${isaSVG(humor, tam)}<div class="isa-balao">${html}</div></div>`;
 }
+/* ---------- valores: Sol e mini Isabella conversam com ela em momentos-chave ----------
+   Cada fala é curta (1 a 2 frases), muda por dia e combina com o momento. */
+const VALORES = {
+  // papo do dia no cartão da Sol: [fala da Sol, resposta da Isabella]
+  papo: [
+    ["Sabe por que a gente estuda?", "Pra poder escolher! Quem aprende mais tem mais caminhos quando crescer."],
+    ["Gato nunca pula sem olhar. Primeiro eu olho, calculo... e só depois pulo!", "Eu vou fazer igual: ler, pensar e só depois responder."],
+    ["Quem cuida de você também passa o dia pensando em você.", "Por isso eu escuto a mamãe com respeito, mesmo quando não concordo. Depois eu explico, com calma, o que eu penso."],
+    ["Ontem eu errei o pulo do sofá e caí de bumbum!", "Errar faz parte. O importante é tentar de novo, prestando mais atenção."],
+    ["Quando eu caço uma bolinha, não olho para mais nada.", "Isso é atenção! Na hora de estudar, é só o estudo: sem TV e sem celular por perto."],
+    ["Fingir que comeu a ração não enche a barriga.", "Igual copiar a resposta: parece que aprendeu, mas o cérebro continua com fome. Fazer de verdade é o que vale."],
+    ["A sua professora estudou muitos anos para ensinar você.", "Por isso eu presto atenção na aula e anoto tudo na agenda. É um jeito de agradecer."],
+    ["Eu não espero ninguém mandar para lamber o meu pelo.", "Fazer o estudo sem ninguém precisar mandar é ser responsável. E deixa a mamãe muito orgulhosa."],
+    ["Alguém comprou a minha ração, o meu pote e a minha caminha.", "E alguém cuida de tudo o que é meu também. Dizer \"obrigada\" faz bem para quem ouve e para quem fala."],
+    ["A primeira vez que tentei subir na janela, não consegui.", "Mas tentou todo dia até conseguir! Com a tabuada é igual: um pouquinho todo dia."],
+    ["Quando eu fico brava, o meu pelo arrepia todinho.", "Quando eu fico brava, respiro fundo três vezes antes de falar. Assim não digo o que não queria."],
+    ["Quando a porta está fechada, eu mio pedindo ajuda.", "Pedir ajuda é coragem. Se eu não entendi, pergunto para um adulto."],
+    ["Quando o adulto diz \"não\", muitas vezes é para proteger você.", "Mesmo quando eu não gosto, eu respeito. Depois pergunto o porquê, com calma."],
+    ["Gato não sabe mentir: quando derruba alguma coisa, fica com cara de culpado.", "Falar a verdade, mesmo quando a gente erra, faz as pessoas confiarem na gente."],
+    ["Eu durmo bastante para ter energia para brincar.", "E eu durmo cedo para ter energia para aprender. Cérebro cansado não presta atenção."],
+    ["Por que você estuda se a escola já ensina?", "Porque a escola ensina, e em casa eu treino. Quem treina fica boa de verdade."]
+  ],
+  intro: [
+    { q: "isa", h: "dica", t: "Antes de começar: tire o que distrai de perto e respire fundo. Ler devagar é mais rápido do que refazer depois." },
+    { q: "sol", h: "feliz", t: "Gato esperto olha antes de pular. Leia a pergunta inteira antes de responder!" },
+    { q: "isa", h: "feliz", t: "Faça sozinha e de verdade. Se errar, tudo bem: o erro mostra o que a gente precisa treinar." },
+    { q: "sol", h: "feliz", t: "Uma coisa de cada vez. Terminou uma pergunta? Só então vá para a próxima." },
+    { q: "isa", h: "pensando", t: "Antes de escolher, eu me pergunto: o que a pergunta quer saber? Pensar devagar é o meu superpoder." }
+  ],
+  introProva: [
+    { q: "isa", h: "dica", t: "Na prova eu leio cada pergunta duas vezes. Prova não é corrida: ganha quem pensa, não quem termina primeiro." },
+    { q: "sol", h: "feliz", t: "Respira fundo, como eu antes de uma soneca. Com calma, o que você estudou aparece." }
+  ],
+  entrega: [
+    { q: "isa", h: "dica", t: "Conferir é cuidar do seu trabalho. Quem confere mostra que se importa com o que faz." },
+    { q: "sol", h: "feliz", t: "Antes de comer, eu cheiro a ração duas vezes. Confira as respostas com o mesmo cuidado!" },
+    { q: "isa", h: "pensando", t: "Marque cada item só se você fez mesmo. Ser honesta com você mesma é o primeiro passo para aprender." }
+  ],
+  alta: [
+    { q: "isa", h: "torcendo", t: "Viu? Quando você pensa com calma, dá certo. Esse resultado é do seu esforço!" },
+    { q: "sol", h: "feliz", t: "Conte para a mamãe hoje! Ela vai ficar orgulhosa. E você também pode ficar." }
+  ],
+  media: [
+    { q: "isa", h: "feliz", t: "Foi bom! Agora olhe as que errou: cada erro é uma pista do que treinar." },
+    { q: "sol", h: "feliz", t: "Quase lá! Quem confere com calma transforma o \"quase\" em \"consegui\"." }
+  ],
+  baixa: [
+    { q: "isa", h: "preocupada", t: "Tudo bem não ir bem às vezes. O que importa é o que a gente faz depois: ler as explicações e pedir ajuda a um adulto." },
+    { q: "sol", h: "feliz", t: "Até gato cai do sofá. A gente levanta, sacode o pelo e tenta de novo, mais devagar." }
+  ],
+  rapido: [
+    { q: "sol", h: "preocupada", t: "Gato que pula correndo cai no chão! Pressa atrapalha. Da próxima vez, uma pergunta de cada vez." }
+  ],
+  pausa: [
+    { q: "sol", h: "feliz", t: "Gatos se espreguiçam várias vezes por dia. Cuidar do corpo também é cuidar do estudo!" },
+    { q: "isa", h: "feliz", t: "Beba água e mexa o corpo. O cérebro volta mais atento depois de descansar." }
+  ],
+  ensina: [
+    { q: "isa", h: "oi", t: "Quando um adulto para o que está fazendo para escutar você, ele está cuidando de você. Olhe nos olhos, explique com calma e agradeça." },
+    { q: "sol", h: "feliz", t: "Ensinar é o melhor jeito de aprender. E escutar a pergunta do adulto com respeito também faz parte!" }
+  ],
+  erros: [
+    { q: "isa", h: "dica", t: "Cada erro que volta é uma segunda chance. Quem revisa os erros fica mais forte do que quem nunca errou." },
+    { q: "sol", h: "feliz", t: "Eu também errei muitos pulos até acertar a janela. Erro revisado vira acerto!" }
+  ],
+  tabuada: [
+    { q: "sol", h: "feliz", t: "Tabuada é como eu afiar as unhas: um pouquinho todo dia e elas ficam afiadas!" },
+    { q: "isa", h: "torcendo", t: "Não precisa ser a mais rápida do mundo. Só precisa ser um pouquinho melhor do que ontem." }
+  ]
+};
+function sorteioDia(lista, chave) {
+  const s = (hoje() + "|" + (chave || "")); let n = 0;
+  for (let i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) >>> 0;
+  return lista[n % lista.length];
+}
+const HUMOR_SOL = { feliz: "feliz", dica: "feliz", oi: "feliz", torcendo: "feliz", pensando: "fome", preocupada: "preocupada" };
+function falaPersonagem(ctx, chave, tam = 58) {
+  const e = sorteioDia(VALORES[ctx] || [], ctx + "|" + (chave || ""));
+  if (!e) return "";
+  const quem = e.q === "sol" ? "Sol" : "Mini Isabella";
+  const fig = e.q === "sol" ? solSVG(HUMOR_SOL[e.h] || "feliz", 0, tam + 10) : isaSVG(e.h, tam);
+  return `<div class="isa-fala valor">${fig}<div class="isa-balao"><span class="quem">${quem}</span>${esc(e.t)}<button class="ouvir mini ghost papo-ouvir" type="button" data-papo="${esc(e.t)}" aria-label="Ouvir">${ico("som", 14)}</button></div></div>`;
+}
+function papoDoDia() {
+  const [s, i] = sorteioDia(VALORES.papo, "papo");
+  return `<div class="papo"><div class="row between"><span class="papo-t">Papo do dia</span><button class="ouvir mini ghost papo-ouvir" type="button" data-papo="${esc("Sol: " + s + " Isabella: " + i)}" aria-label="Ouvir">${ico("som", 14)}</button></div>
+    <p><b class="q-sol">Sol:</b> ${esc(s)}</p><p><b class="q-isa">Isabella:</b> ${esc(i)}</p></div>`;
+}
+document.addEventListener("click", ev => { const b = ev.target.closest && ev.target.closest("[data-papo]"); if (b) { ev.stopPropagation(); falar(b.dataset.papo); } }, true);
 function cardSol(d) {
   const of = ofensiva(d), c = comidaHoje(d), [humor, frase] = humorSol(d);
   const h = d.hoje || hoje();
@@ -515,6 +604,7 @@ function cardSol(d) {
     <div class="isa-balao isa-topo">${esc(ifala)}</div>
     <div class="sol-pet sol-dupla">${solSVG(humor, c.plano ? c.deHoje / c.plano : 0, 150)}${isaSVG(ih, 92)}${nham ? `<span class="sol-nham">Nham! Você alimentou a Sol!</span>` : ""}</div>
     <p class="sol-frase">${esc(frase)}</p>
+    ${papoDoDia()}
     ${c.plano ? `<div class="sol-tigela"><span>Tigela de hoje</span><div class="bar" style="height:12px"><i style="width:${c.deHoje / c.plano * 100}%;background:#B5763A"></i></div><b>${c.deHoje} de ${c.plano}</b></div>` : ""}
     <div class="sol-cora" title="Dias verdes nos últimos 7 dias">${Array.from({ length: 5 }, (_, i) => `<span class="${i < verdes ? "on" : ""}">♥</span>`).join("")}<small>dias verdes da semana</small></div>
     <p class="muted small" style="margin:0">A chama acende quando você termina <b>todo</b> o estudo do dia, no próprio dia. Domingo e dias de folga não apagam a chama.</p></section>`;
@@ -560,7 +650,7 @@ function abaErros(d) {
   const e = d.erros || { devidos: 0, ativos: 0, vencidos: 0, porHabilidade: [] };
   const porMat = {}; e.porHabilidade.forEach(x => (porMat[x.materia] = porMat[x.materia] || []).push(x));
   return `<div class="erros-top"><div class="panel stack"><h2>${e.devidos ? `${e.devidos} para revisar hoje` : "Nada para revisar hoje"}</h2>
-      <p class="muted" style="margin:0">Toda questão que você erra vem para este caderno. Ela volta como uma <b>questão nova da mesma regra</b> depois de <b>1 dia</b>, <b>3 dias</b>, <b>7 dias</b> e <b>21 dias</b>. Acertou 4 vezes seguidas? <b>Venceu!</b> Errou? Ela volta amanhã. São no máximo <b>8 por dia</b>.</p>
+      <p class="muted" style="margin:0">Toda questão que você erra vem para este caderno. Ela volta como uma <b>questão nova da mesma regra</b> depois de <b>1 dia</b>, <b>3 dias</b>, <b>7 dias</b> e <b>21 dias</b>. Acertou 4 vezes seguidas? <b>Venceu!</b> Errou? Ela volta amanhã. São no máximo <b>8 por dia</b>.</p>${falaPersonagem("erros", "caderno", 52)}
       ${e.devidos ? `<div><a class="btn" href="#/revisar">Revisar agora</a></div>` : ""}</div>
     <div class="kpi-e"><b>${e.ativos}</b><span>no caderno</span></div><div class="kpi-e ok"><b>${e.vencidos}</b><span>vencidos</span></div></div>
    ${Object.keys(porMat).map(m => `<section class="panel stack" style="border-top:5px solid ${corMat(m)}"><h3 style="color:${corMat(m)}">${esc(m)}</h3><div class="list">${porMat[m].map(x => `<div class="li"><div><b>${esc(poderDe(x.habilidade).nome)}</b><div class="muted small">${esc(x.habilidade)}</div></div><div class="row" style="gap:6px">${x.devidos ? `<span class="tag warn">${x.devidos} hoje</span>` : ""}${x.ativos ? `<span class="tag">${x.ativos} no caderno</span>` : ""}${x.vencidos ? `<span class="tag ok">${x.vencidos} vencido${x.vencidos > 1 ? "s" : ""}</span>` : ""}</div></div>`).join("")}</div></section>`).join("") || `<div class="panel muted">Seu caderno está vazio. Os erros das próximas atividades aparecem aqui.</div>`}`;
@@ -1153,7 +1243,7 @@ function abaLer(d) {
 function abaEnsina(d) {
   const q = new URLSearchParams((location.hash.split("?")[1] || "")), itemId = q.get("item") || ((d.hoje || hoje()) + "-meensina");
   const volta = sess.papel === "adulto" ? "#/aluna/hoje" : "#/hoje";
-  return `<div class="home"><div class="stack col-main"><div class="panel stack"><h2>Me ensina: grave a sua explicação</h2>
+  return `<div class="home"><div class="stack col-main"><div class="panel stack"><h2>Me ensina: grave a sua explicação</h2>${falaPersonagem("ensina", itemId)}
      <p>Explique como se estivesse ensinando alguém. Fale devagar, em 1 ou 2 minutos.</p>
      <ol class="passos"><li><b>O que eu aprendi hoje no app:</b> "Hoje eu aprendi que…"</li><li><b>Um problema, passo a passo:</b> "Primeiro eu li… É juntar, tirar ou comparar, porque… A conta é… Deu…"</li><li><b>Uma coisa da aula de hoje na escola.</b></li></ol>
      <div class="grav"><video id="gv" autoplay muted playsinline style="width:100%;max-width:420px;border-radius:12px;background:#111"></video>
@@ -1299,7 +1389,7 @@ async function telaPausa(itemId) {
   const tela = () => {
     const rest = t0 ? Math.max(0, LIM - Math.round((Date.now() - t0) / 1000)) : LIM;
     const mm = Math.floor(rest / 60), ss = String(rest % 60).padStart(2, "0");
-    return `<div class="tab-wrap"><div class="tab-card stack"><h1>Pausa ativa</h1><p>Você terminou a primeira parte! Agora <b>5 minutos longe da tela</b>, mexendo o corpo. O cérebro volta mais atento.</p>
+    return `<div class="tab-wrap"><div class="tab-card stack"><h1>Pausa ativa</h1>${falaPersonagem("pausa", itemId)}<p>Você terminou a primeira parte! Agora <b>5 minutos longe da tela</b>, mexendo o corpo. O cérebro volta mais atento.</p>
       <ol class="passos">${ideias.map(x => `<li>${x}</li>`).join("")}</ol>
       <div class="tab-conta" id="pz-t">${mm}:${ss}</div>
       ${!t0 ? `<div class="row"><button id="pz-ir">Começar a pausa</button><a class="btn ghost" href="${volta}">Voltar</a></div>` : rest > 0 ? `<p class="muted">Quando o relógio zerar, o botão libera.</p><button disabled>Volto em ${mm}:${ss}</button>` : `<button id="pz-fim">Voltei! Continuar o estudo</button>`}</div></div>`;
@@ -1336,7 +1426,7 @@ async function telaTabuada(itemId) {
   let i = 0, ac = 0, t0 = 0, timer = null, erros = [];
   const volta = sess.papel === "adulto" ? "#/aluna/hoje" : "#/hoje";
   const tela = () => {
-    if (!t0) return `<div class="tab-wrap"><div class="tab-card stack"><h1>${livre ? `Treino livre: a do ${foco}` : "Tabuada relâmpago"}</h1>${livre ? `<div class="expl">Treino extra só da <b>tabuada do ${foco}</b>. Não precisa salvar: é para você ficar mais rápida.</div>` : ""}${foco && !livre ? `<div class="expl">Tabuada da semana: <b>a do ${foco}</b>. A maioria das contas é dela; algumas são de revisão.${it && it.dica ? ` Dica: ${esc(it.dica)}` : ""}</div>` : ""}<p>São <b>${N} contas</b> de vezes em até <b>2 minutos</b>. Digite a resposta e aperte <b>Enter</b>.</p><div class="row"><button id="tb-ir">Começar</button><a class="btn ghost" href="${volta}">Voltar</a></div></div></div>`;
+    if (!t0) return `<div class="tab-wrap"><div class="tab-card stack"><h1>${livre ? `Treino livre: a do ${foco}` : "Tabuada relâmpago"}</h1>${livre ? `<div class="expl">Treino extra só da <b>tabuada do ${foco}</b>. Não precisa salvar: é para você ficar mais rápida.</div>` : ""}${foco && !livre ? `<div class="expl">Tabuada da semana: <b>a do ${foco}</b>. A maioria das contas é dela; algumas são de revisão.${it && it.dica ? ` Dica: ${esc(it.dica)}` : ""}</div>` : ""}${falaPersonagem("tabuada", itemId)}<p>São <b>${N} contas</b> de vezes em até <b>2 minutos</b>. Digite a resposta e aperte <b>Enter</b>.</p><div class="row"><button id="tb-ir">Começar</button><a class="btn ghost" href="${volta}">Voltar</a></div></div></div>`;
     if (i >= N) return "";
     const rest = Math.max(0, LIM - Math.round((Date.now() - t0) / 1000));
     return `<div class="tab-wrap"><div class="tab-card stack"><div class="row between"><span class="muted">${i + 1} de ${N}</span><b id="tb-t">${rest}s</b></div><div class="tab-conta">${qs[i][0]} × ${qs[i][1]} =</div><input id="tb-r" inputmode="numeric" autocomplete="off" class="tab-in"><div class="pbar"><i style="width:${i / N * 100}%"></i></div></div></div>`;
@@ -1522,6 +1612,7 @@ async function telaProva(id) {
     if (st.etapa === -1 || (st.etapa < 0 && !p.licao)) {
       html = `<header class="top"><a class="brand" href="#/" style="text-decoration:none"><svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="8" fill="var(--accent)"/><path d="M6 9c3-1.5 5.5-1.5 8 0v11c-2.5-1.5-5-1.5-8 0zM22 9c-3-1.5-5.5-1.5-8 0v11c2.5-1.5 5-1.5 8 0z" fill="#fff"/></svg>Estudos em Casa</a><a class="btn ghost mini" href="${sess.papel === "adulto" ? "#/aluna/hoje" : "#/hoje"}">Voltar</a></header>
       <div class="hello"><span class="mchip" style="--mc:${corMat(p.materia)};justify-self:start">${esc(p.materia)}</span><h1>${esc(p.titulo)}</h1>${p.descricao ? `<p>${esc(p.descricao)}</p>` : ""}<p class="muted">${TIPO_PROVA[p.tipo] || "Prova"} · ${p.licao ? `${p.licao.length} partes para aprender e ` : ""}${qs.length} perguntas${p.minutos ? ` · cerca de ${p.minutos} minutos` : ""}</p></div>
+      ${falaPersonagem(VALE_NOTA(p.tipo) ? "introProva" : "intro", id)}
       ${p.licao ? `<div class="panel stack"><h3>Como funciona</h3><ol class="passos"><li><b>Aprender:</b> você lê, ouve e mexe nas peças (pode usar o botão Ouvir).</li><li><b>Fazer junto:</b> você tenta e o app mostra se acertou na hora.</li><li><b>Agora é com você:</b> ${qs.length} perguntas no final, <b>sem áudio</b>, igual na escola.</li></ol></div>` : ""}
       ${assuntosDe(qs).length ? `<div class="panel stack"><h3>O que cai nesta prova</h3><div class="chips">${assuntosDe(qs).map(a => `<span class="mchip" style="--mc:${corMat(p.materia)}">${esc(a)}</span>`).join("")}</div></div>` : ""}
       <div class="panel stack" ${p.licao ? "hidden" : ""}><h3>Como funciona</h3><p>${esc(p.instrucoes || "Leia com calma. Você pode voltar e trocar as respostas até entregar.")}</p><p class="muted small">Você pode parar e continuar depois: as respostas ficam guardadas neste aparelho até você entregar.</p></div>
@@ -1557,6 +1648,7 @@ async function telaProva(id) {
         <div class="review">${qs.map(q => `<button class="cell ${String(st.resp[q.id] || "").trim() ? "done" : "miss"}" data-goto="${esc(q.id)}">${q.numero}<small>${q.tipo === "mc" || !q.tipo ? (st.resp[q.id] || "—") : (String(st.resp[q.id] || "").trim() ? "ok" : "—")}</small></button>`).join("")}</div>
         ${faltam.length ? `<div class="confirm"><p>Faltam <b>${faltam.length}</b>: ${faltam.map(q => q.numero).join(", ")}. Questão em branco conta como erro.</p></div>` : `<div class="panel">Todas as questões respondidas.</div>`}
         ${confirmar ? `<div class="confirm"><div class="row between"><h3 style="margin:0">Antes de entregar, confira</h3><button class="ouvir mini ghost" type="button" data-fala="${esc(CHECK_ENTREGA.map(x => x[1]).join(". "))}">${ico("som", 16)}</button></div>
+          ${falaPersonagem("entrega", id, 50)}
           <div class="stack" style="gap:6px;margin:10px 0">${CHECK_ENTREGA.map(([k, t]) => `<label class="ck-ent"><input type="checkbox" data-ck="${k}" ${st.ck[k] ? "checked" : ""}> ${esc(t)}</label>`).join("")}</div>
           <p class="small muted">Depois de entregar não dá mais para mudar as respostas.</p><div class="nav"><button class="ghost" id="nao">Ainda não</button><button id="sim" ${enviando || CHECK_ENTREGA.some(([k]) => !st.ck[k]) ? "disabled" : ""}>${enviando ? "Enviando…" : "Sim, entregar"}</button></div></div>`
         : `<div class="nav"><button class="ghost" id="voltar">Voltar</button><button id="entregar">Entregar</button></div>`}</div>`;
@@ -1688,12 +1780,13 @@ async function telaResultado(tid) {
   const avisoRapido = refazer ? `<div class="confirm" style="border-style:solid;border-color:var(--sun)"><h3 style="margin:0 0 4px">Foi rápido demais</h3><p style="margin:0">Você levou ${t.minutos} minuto${t.minutos > 1 ? "s" : ""} para ${qs.length} questões. Assim não dá para aprender. Essa atividade <b>volta para você refazer com calma</b>: leia a explicação, ouça e responda de novo.</p></div>` : "";
   const ganhou = cache.ultimo && cache.ultimo.tentativaId === tid ? Number(cache.ultimo.estrelas) || 0 : 0;
   const ud = cache.ultimo && cache.ultimo.tentativaId === tid && cache.ultimo.dominio ? cache.ultimo : null;
-  const bannerDom = !ud ? "" : Number(t.nota) >= Number(ud.dominio) ? `<div class="confirm" style="border-style:solid;border-color:var(--good);background:#EEF7F0"><h3 style="margin:0 0 4px">Subiu de nível! 🎉</h3><p style="margin:0">Você tirou ${fmtN(t.nota)}. O próximo nível já está liberado na aba Hoje.</p></div>`
+  const bannerDom = !ud ? "" : Number(t.nota) >= Number(ud.dominio) ? `<div class="confirm ban-ok" style="border-style:solid;border-color:var(--good)"><h3 style="margin:0 0 4px">Subiu de nível! 🎉</h3><p style="margin:0">Você tirou ${fmtN(t.nota)}. O próximo nível já está liberado na aba Hoje.</p></div>`
     : Number(ud.restam) > 0 ? `<div class="confirm" style="border-style:solid;border-color:var(--sun)"><h3 style="margin:0 0 4px">Quase! Precisa de ${ud.dominio} para subir</h3><p style="margin:0">Leia as explicações das contas que errou, faça a prova real e <b>tente de novo</b>: vêm <b>contas novas</b>. Você ainda tem ${ud.restam} ${Number(ud.restam) > 1 ? "tentativas" : "tentativa"}.</p></div>`
     : `<div class="confirm" style="border-style:solid;border-color:var(--sun)"><h3 style="margin:0 0 4px">Acabaram as tentativas deste nível</h3><p style="margin:0">Tudo bem! Um adulto vai ver com você o que faltou. Os erros já foram para o caderno.</p></div>`;
-  const bannerEst = ganhou ? `<div class="confirm" style="border-style:solid;border-color:#E0A93B;background:#FFF8E6"><b>⭐ +${ganhou} estrela${ganhou > 1 ? "s" : ""} de foco!</b> Você ganhou por parar e pensar, mostrar a conta, conferir e fazer com calma.</div>` : "";
+  const bannerEst = ganhou ? `<div class="confirm ban-est" style="border-style:solid;border-color:#E0A93B"><b>⭐ +${ganhou} estrela${ganhou > 1 ? "s" : ""} de foco!</b> Você ganhou por parar e pensar, mostrar a conta, conferir e fazer com calma.</div>` : "";
   app.innerHTML = topo(extra) + `<div class="stack">${bannerDom}${bannerEst}${avisoRapido}
     <div class="panel"><div class="row" style="gap:22px">${anel(t.nota)}<div class="stack" style="gap:6px;flex:1;min-width:200px"><span class="mchip" style="--mc:${corMat(t.materia)};justify-self:start">${esc(t.materia)}</span><h2>${esc(msg)}</h2><p class="muted">${esc(t.titulo)} · ${t.pontos} de ${t.max} pontos · ${t.minutos} min</p></div></div></div>
+    ${t.status === "aguardando" ? "" : falaPersonagem(refazer ? "rapido" : Number(t.nota) >= 8.5 ? "alta" : Number(t.nota) >= 7 ? "media" : "baixa", tid)}
     <div class="panel stack"><h3>Acertos por assunto</h3><div class="list">${barrasAssunto(d.respostas)}</div></div>
     <div class="panel stack"><h3>Como foi cada questão</h3><div class="review">${qs.map(cel).join("")}</div>
     ${(() => { const tl = qs.filter(q => info[q.id] && /^(Faltou o til|Faltou o acento|Resposta certa!)/.test(info[q.id].comentario || "")); return tl.length ? `<div class="expl"><b>Contou como certo, mas atenção:</b> ${tl.map(q => `questão ${q.numero}: ${esc(String(info[q.id].comentario).replace(/^Resposta certa! /, "").replace(/ \(.*$/, ""))}`).join(" · ")}</div>` : ""; })()}

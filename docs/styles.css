@@ -587,3 +587,27 @@ mark.kw{background:#FFE08A;color:inherit;font-weight:700;padding:0 3px;border-ra
 @keyframes isa-oi{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
 @media (prefers-reduced-motion:reduce){.sol-dupla .isa{animation:none}}
 @media (max-width:560px){.fb-isa>.isa{width:40px;height:auto}}
+
+.ban-ok{background:#EEF7F0}.ban-est{background:#FFF8E6}
+.sol-dupla svg{width:128px}.sol-dupla svg.isa{width:86px}
+/* tema escuro: caixas de fundo claro fixo */
+@media (prefers-color-scheme:dark){
+  .regra{background:#163323;border-left-color:#4CC28A;color:var(--fg)}
+  .pense{background:#33290F}
+  .humor-op{background:var(--card)}.humor-op.sel{background:var(--accent-s)}
+  .resp-box{background:var(--card);color:var(--fg)}
+  mark.kw{color:#1C2140}
+  .pare-alvo.erro{background:#4A2323}
+  .ban-ok{background:#163323}.ban-est{background:#33290F}
+}
+/* valores: papo do dia e falas das personagens */
+.papo{align-self:stretch;text-align:left;background:var(--card);border:2px dashed #F2C46B;border-radius:14px;padding:8px 12px;display:grid;gap:4px}
+.papo p{margin:0;font-size:14.5px;line-height:1.4}
+.papo-t{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#C77A12}
+.papo .q-sol{color:#C77A12}.papo .q-isa{color:#2F55C9}
+.isa-balao .quem{display:block;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);margin-bottom:2px}
+.isa-fala.valor .isa-balao{padding-right:38px}
+.papo-ouvir{padding:3px 6px;min-height:0;line-height:1}
+.isa-fala.valor .papo-ouvir{position:absolute;right:6px;top:6px}
+.tab-card .isa-fala{justify-content:flex-start}
+@media (prefers-color-scheme:dark){.papo-t,.papo .q-sol{color:#F0B45E}.papo .q-isa{color:#8AA6FF}}
