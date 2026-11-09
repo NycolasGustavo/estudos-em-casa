@@ -101,8 +101,8 @@ function telaLogin() {
   const saud = agora.getHours() < 12 ? "Bom dia" : agora.getHours() < 18 ? "Boa tarde" : "Boa noite";
   app.innerHTML = `<div class="login2"><section class="lg-arte">
       <div class="lg-marca"><svg width="34" height="34" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="8" fill="#fff"/><path d="M6 9c3-1.5 5.5-1.5 8 0v11c-2.5-1.5-5-1.5-8 0zM22 9c-3-1.5-5.5-1.5-8 0v11c2.5-1.5 5-1.5 8 0z" fill="#2F55C9"/></svg><span>Estudos em Casa</span></div>
-      <div class="lg-sol">${solSVG("fome", 0, 190)}</div>
-      <h1>${saud}!</h1><p>A Sol está esperando você para estudar.</p>
+      <div class="lg-sol sol-dupla">${solSVG("fome", 0, 170)}${isaSVG("oi", 104)}</div>
+      <h1>${saud}!</h1><p>A Sol e a mini Isabella estão esperando você para estudar.</p>
       <div class="lg-aula">${ico("escola", 18)}<span>${DIAS[agora.getDay()]} · ${aula.aulas.length ? `aula de ${esc(aula.titulo)} às 13:15` : esc(aula.linha)}</span></div>
     </section>
     <section class="lg-form">
@@ -390,6 +390,8 @@ function humorSol(d) {
   const ontem = avaliacaoDe(d, addDias(h, -1));
   if (of.hojeOk) return ["feliz", "A Sol está de barriga cheia e muito feliz. Obrigada por cuidar dela!"];
   if (!c.plano) return ["dormindo", diaSem(h) === 0 ? "Domingo a Sol tira uma soneca. Até amanhã!" : "Hoje não tem estudo. A Sol está tirando uma soneca."];
+  const ult = ultimoEstudo(d, h);
+  if (ult && (new Date(h) - new Date(ult)) / 864e5 >= 3 && !c.deHoje) return ["fome", "A Sol ficou muito feliz com a sua volta! Agora ela está com fome: cada atividade é uma porção."];
   if (ontem && (ontem.cor === "vermelho" || ontem.cor === "preto") && !c.comeu) return ["preocupada", "A Sol ficou preocupada com ontem. Vamos fazer um dia verde hoje?"];
   if (of.quebrouOntem && !c.comeu) return ["triste", "A Sol sentiu sua falta ontem. Vamos recomeçar a ofensiva hoje?"];
   if (c.comeu) return ["comendo", `Nham! Faltam ${Math.max(0, c.plano - c.deHoje)} atividade${c.plano - c.deHoje === 1 ? "" : "s"} para a Sol ficar de barriga cheia.`];
@@ -424,15 +426,94 @@ function solSVG(humor, cheio = 0, tam = 150) {
     <g transform="translate(0,0)"><path d="M110 129h34l-4 13h-26z" fill="#2F55C9"/><rect x="113" y="${nivel}" width="28" height="${129 - nivel}" fill="#B5763A" rx="2"/><rect x="108" y="127" width="38" height="4" rx="2" fill="#24439F"/></g>
     ${extra}</svg>`;
 }
+// Mini Isabella: rabo de cavalo, óculos redondos dourados, camisa do uniforme (azul-marinho, gola V vermelha).
+function isaSVG(humor = "feliz", tam = 110) {
+  const PELE = "#F4D5C2", PELE_S = "#E3B9A3", CAB = "#3A2A22", CAB_L = "#5A4234", AZUL = "#22336F", AZUL_E = "#1A2858", VERM = "#C9333B", OURO = "#C49A6C";
+  const olhos = humor === "pensando"
+    ? `<circle cx="49" cy="71" r="3.6" fill="#3A2618"/><circle cx="73" cy="71" r="3.6" fill="#3A2618"/><circle cx="50.4" cy="69.6" r="1.2" fill="#fff"/><circle cx="74.4" cy="69.6" r="1.2" fill="#fff"/>`
+    : humor === "torcendo"
+      ? `<path d="M44 72q5-6 10 0M68 72q5-6 10 0" stroke="#3A2618" stroke-width="2.6" fill="none" stroke-linecap="round"/>`
+      : `<circle cx="49" cy="72" r="4" fill="#3A2618"/><circle cx="73" cy="72" r="4" fill="#3A2618"/><circle cx="50.5" cy="70.5" r="1.4" fill="#fff"/><circle cx="74.5" cy="70.5" r="1.4" fill="#fff"/>`;
+  const sobr = humor === "preocupada"
+    ? `<path d="M42 59l11 2M80 59l-11 2" stroke="${CAB}" stroke-width="2" stroke-linecap="round"/>`
+    : humor === "pensando"
+      ? `<path d="M42 60q6-4 11-1M69 58q6-3 11 1" stroke="${CAB}" stroke-width="2" fill="none" stroke-linecap="round"/>`
+      : `<path d="M42 61q6-4 11-2M69 59q6-2 11 2" stroke="${CAB}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+  const boca = humor === "torcendo" || humor === "oi"
+    ? `<path d="M53 86q8 9 16 0z" fill="#9C3B3B"/><path d="M56 89q5 3 10 0" stroke="#E98B8B" stroke-width="2" fill="none" stroke-linecap="round"/>`
+    : humor === "pensando" ? `<ellipse cx="61" cy="88" rx="3" ry="2.6" fill="#9C3B3B"/>`
+    : humor === "preocupada" ? `<path d="M55 89q6-4 12 0" stroke="#9C3B3B" stroke-width="2.2" fill="none" stroke-linecap="round"/>`
+    : `<path d="M54 85q7 6 14 0" stroke="#9C3B3B" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
+  // braços: esquerdo (da tela) sempre para baixo; direito muda
+  const bracoE = `<path d="M33 121q-9 6-12 18" stroke="${AZUL}" stroke-width="12" stroke-linecap="round" fill="none"/><path d="M22 136q-2 6-1 9" stroke="${PELE}" stroke-width="8" stroke-linecap="round"/><circle cx="21" cy="147" r="5" fill="${PELE}"/>`;
+  const bracoD = humor === "oi" || humor === "torcendo"
+    ? `<path d="M87 121q9-4 13-14" stroke="${AZUL}" stroke-width="12" stroke-linecap="round" fill="none"/><path d="M101 106q4-8 5-14" stroke="${PELE}" stroke-width="8" stroke-linecap="round"/><circle cx="106" cy="89" r="6" fill="${PELE}"/>`
+      + (humor === "oi" ? `<path d="M114 80q4 3 3 8M118 76q6 5 4 13" stroke="#F2A33A" stroke-width="2" fill="none" stroke-linecap="round"/>` : "")
+    : humor === "pensando"
+      ? `<path d="M87 121q8 4 4 10" stroke="${AZUL}" stroke-width="12" stroke-linecap="round" fill="none"/><path d="M88 131q-6 -6 -14 -26" stroke="${PELE}" stroke-width="8" stroke-linecap="round"/><circle cx="73" cy="101" r="5.5" fill="${PELE}"/>`
+      : humor === "dica"
+        ? `<path d="M87 121q9-4 12-12" stroke="${AZUL}" stroke-width="12" stroke-linecap="round" fill="none"/><path d="M100 108q2-6 2-10" stroke="${PELE}" stroke-width="8" stroke-linecap="round"/><circle cx="102" cy="96" r="5.5" fill="${PELE}"/><path d="M103 92v-11" stroke="${PELE}" stroke-width="4" stroke-linecap="round"/>`
+        : `<path d="M87 121q9 6 12 18" stroke="${AZUL}" stroke-width="12" stroke-linecap="round" fill="none"/><path d="M98 136q2 6 1 9" stroke="${PELE}" stroke-width="8" stroke-linecap="round"/><circle cx="99" cy="147" r="5" fill="${PELE}"/>`;
+  const extra = humor === "dica"
+    ? `<g transform="translate(96,46)"><circle cx="8" cy="8" r="8" fill="#FFD34A" stroke="#E5A41A" stroke-width="1.5"/><rect x="5" y="15" width="6" height="5" rx="1.5" fill="#B8BDC9"/><path d="M8 -6v-4M-4 -1l-3-3M20 -1l3-3" stroke="#F2A33A" stroke-width="2" stroke-linecap="round"/></g>`
+    : humor === "pensando" ? `<g fill="#8A94A6"><circle cx="100" cy="52" r="2.5"/><circle cx="106" cy="44" r="3.5"/><text x="104" y="36" font-size="16" font-weight="800" font-family="sans-serif">?</text></g>`
+    : humor === "torcendo" ? `<path d="M10 70l4-8 4 8-8-5h8zM104 128l3-6 3 6-6-4h6z" fill="#FFD34A"/>`
+    : "";
+  return `<svg viewBox="0 0 122 160" width="${tam}" height="${Math.round(tam * 160 / 122)}" role="img" aria-label="Mini Isabella (${humor})" class="isa">
+    <path d="M84 40q26 2 24 34q-1 16-11 24q5-20-4-36q-4-8-12-12z" fill="${CAB}"/>
+    <path d="M90 50q12 8 9 30" stroke="${CAB_L}" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    <ellipse cx="88" cy="42" rx="4.5" ry="6" fill="${VERM}" transform="rotate(-30 88 42)"/>
+    <path d="M34 112h54l8 46H26z" fill="${AZUL}"/>
+    <path d="M26 158h70" stroke="${AZUL_E}" stroke-width="2"/>
+    ${bracoE}${bracoD}
+    <rect x="53" y="100" width="16" height="14" rx="5" fill="${PELE_S}"/>
+    <path d="M45 111l16 20 16-20" stroke="${VERM}" stroke-width="7" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M45 111l16 20 16-20" stroke="#fff" stroke-width="1" fill="none" stroke-linejoin="round" stroke-dasharray="2.2 2.2"/>
+    <g transform="translate(70,134)"><path d="M0 0h12v7q0 6-6 8q-6-2-6-8z" fill="#fff" stroke="#E5A41A" stroke-width="1"/><rect x="1.5" y="-2.5" width="9" height="3" rx="1" fill="#E5C23A"/><rect x="1.8" y="1.5" width="4" height="5" fill="${VERM}"/><rect x="6.2" y="1.5" width="4" height="5" fill="#3E6CC4"/><rect x="1.8" y="7" width="8.4" height="4" fill="#9AA3B5"/></g>
+    <circle cx="27" cy="74" r="6.5" fill="${PELE}"/><circle cx="95" cy="74" r="6.5" fill="${PELE}"/>
+    <circle cx="61" cy="70" r="34" fill="${PELE}"/>
+    <path d="M27 70q-2-40 34-42q36 2 34 42q-3-15-12-22q-5 4-11 3q-4-5-11-8q-7 3-11 8q-6 1-11-3q-9 7-12 22z" fill="${CAB}"/>
+    <path d="M61 30q-1 8 0 13" stroke="${CAB_L}" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M28 70q0 14 4 20" stroke="${CAB}" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M94 70q0 14-4 20" stroke="${CAB}" stroke-width="3" fill="none" stroke-linecap="round"/>
+    ${sobr}${olhos}
+    <circle cx="49" cy="72" r="11" fill="#E8E6FF" fill-opacity=".25" stroke="${OURO}" stroke-width="1.8"/><circle cx="73" cy="72" r="11" fill="#E8E6FF" fill-opacity=".25" stroke="${OURO}" stroke-width="1.8"/>
+    <path d="M59.5 70q1.5-2.5 3 0" stroke="${OURO}" stroke-width="1.6" fill="none"/><path d="M38 70l-10-2M84 70l10-2" stroke="${OURO}" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M60 77q1.5 3 3 2" stroke="${PELE_S}" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    <circle cx="41" cy="84" r="4.5" fill="#F2A7A7" opacity=".55"/><circle cx="81" cy="84" r="4.5" fill="#F2A7A7" opacity=".55"/>
+    ${boca}${extra}</svg>`;
+}
 const chamaSVG = (acesa, t = 22) => `<svg width="${t}" height="${t}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 1.5-5 3-6c0 2 1 3 2 3c0-4-1-6 1-9z" fill="${acesa ? "#FF8A1F" : "#C9CCD6"}"/><path d="M12 12c.5 2 3 3 3 5.5a3 3 0 0 1-6 0c0-1.5.8-2.5 1.5-3c0 1 .5 1.5 1 1.5c0-2 0-3 .5-4z" fill="${acesa ? "#FFD34A" : "#E9ECF2"}"/></svg>`;
+// a mini Isabella fala com ela: boas-vindas na volta, próximo passo, comemoração
+function ultimoEstudo(d, antesDe) {
+  const datas = d.historico.map(x => x.data).concat(Object.values(d.feitosInfo || {}).map(f => f && f.data)).filter(x => x && x < antesDe).sort();
+  return datas.length ? datas[datas.length - 1] : null;
+}
+function falaIsa(d) {
+  const h = d.hoje || hoje(), of = ofensiva(d), c = comidaHoje(d);
+  const its = itensDoDia(d, h).filter(it => it.acao !== "meensina"), prox = its.find(it => dataFeito(d, it) !== h);
+  const ult = ultimoEstudo(d, h), voltou = ult && (new Date(h) - new Date(ult)) / 864e5 >= 3;
+  const falta = Math.max(0, c.plano - c.deHoje);
+  if (!c.plano) return ["feliz", "Hoje é dia de descanso. A Sol e eu esperamos você no próximo estudo!"];
+  if (of.hojeOk) return ["torcendo", "Você conseguiu! Dia completo. Estou muito orgulhosa de você!"];
+  if (voltou && !c.deHoje) return ["oi", `Que bom que você voltou! A Sol e eu sentimos sua falta. Eu vou ficar do seu lado em cada atividade. Vamos começar${prox ? ` por: ${prox.titulo}` : ""}?`];
+  if (voltou) return ["torcendo", `Que volta bonita! Já foram ${c.deHoje}. Faltam ${falta}. Eu estou aqui com você!`];
+  if (!c.deHoje) return ["oi", `Bom dia! Hoje a gente começa${prox ? ` por: ${prox.titulo}` : " pelo primeiro item"}. Leia com calma que eu ajudo nas dicas.`];
+  return ["feliz", `Boa! Faltam ${falta}.${prox ? ` A próxima é: ${prox.titulo}.` : ""}`];
+}
+// balão da mini Isabella (ajuda durante as tarefas)
+function isaBalao(humor, html, tam = 64, cls = "") {
+  return `<div class="isa-fala ${cls}">${isaSVG(humor, tam)}<div class="isa-balao">${html}</div></div>`;
+}
 function cardSol(d) {
   const of = ofensiva(d), c = comidaHoje(d), [humor, frase] = humorSol(d);
   const h = d.hoje || hoje();
   const verdes = (d.diario || []).filter(x => x.cor === "verde" && x.data > addDias(h, -7)).length;
   const chave = "sol-comeu-" + h, antes = store.get(chave, 0), nham = c.comeu > antes;
   store.set(chave, c.comeu);
+  const [ih, ifala] = falaIsa(d);
   return `<section class="sol-card ${nham ? "nham" : ""}"><div class="sol-ofensiva">${chamaSVG(of.hojeOk || of.dias > 0, 30)}<div><b>${of.dias}</b><span>dia${of.dias === 1 ? "" : "s"} de ofensiva</span></div></div>
-    <div class="sol-pet">${solSVG(humor, c.plano ? c.deHoje / c.plano : 0, 170)}${nham ? `<span class="sol-nham">Nham! Você alimentou a Sol!</span>` : ""}</div>
+    <div class="isa-balao isa-topo">${esc(ifala)}</div>
+    <div class="sol-pet sol-dupla">${solSVG(humor, c.plano ? c.deHoje / c.plano : 0, 150)}${isaSVG(ih, 92)}${nham ? `<span class="sol-nham">Nham! Você alimentou a Sol!</span>` : ""}</div>
     <p class="sol-frase">${esc(frase)}</p>
     ${c.plano ? `<div class="sol-tigela"><span>Tigela de hoje</span><div class="bar" style="height:12px"><i style="width:${c.deHoje / c.plano * 100}%;background:#B5763A"></i></div><b>${c.deHoje} de ${c.plano}</b></div>` : ""}
     <div class="sol-cora" title="Dias verdes nos últimos 7 dias">${Array.from({ length: 5 }, (_, i) => `<span class="${i < verdes ? "on" : ""}">♥</span>`).join("")}<small>dias verdes da semana</small></div>
@@ -533,7 +614,7 @@ async function telaRevisar() {
     app.innerHTML = `<div class="ptop"><div class="row between"><b style="font-family:var(--display);color:var(--accent)">Caderno de erros</b><span class="muted">${i + 1} de ${qs.length}</span></div><div class="pbar"><i style="width:${(i + (res ? 1 : 0)) / qs.length * 100}%"></i></div></div>
       <div class="stack" style="max-width:900px;margin:0 auto">
       <div class="row" style="gap:6px"><span class="mchip" style="--mc:${corMat(e.materia)}">${esc(e.materia)}</span><span class="tag">${esc(poderDe(e.habilidade || "").nome)}</span>${e.var ? `<span class="tag ok">questão nova, mesma regra</span>` : ""}${e.vezes > 1 ? `<span class="tag warn">já errou ${e.vezes} vezes</span>` : ""}</div>
-      ${regraDe(e.habilidade) && (i === 0 || qs[i - 1].habilidade !== e.habilidade || (res && !res.certo)) ? `<div class="regra"><b>Lembre a regra:</b> ${esc(regraDe(e.habilidade))}</div>` : ""}
+      ${regraDe(e.habilidade) && (i === 0 || qs[i - 1].habilidade !== e.habilidade || (res && !res.certo)) ? `<div class="regra fb-isa">${isaSVG("dica", 46)}<div><b>Lembre a regra:</b> ${esc(regraDe(e.habilidade))}</div></div>` : ""}
       ${q._lead ? `<div class="lead">${esc(q._lead)}</div>` : ""}${q._texto ? renderTexto(q._texto) : ""}
       <div class="q"><div class="q-h"><span class="num">${i + 1}</span><span>${realce(md(q.enunciado))}</span></div>${q.apoio ? renderTexto(q.apoio) : ""}${corpo}${fb}</div>
       <div class="nav">${res ? `<span></span><button id="rv-prox">${i === qs.length - 1 ? "Terminar" : "Próxima"}</button>` : `<a class="btn ghost" href="${volta}">Sair</a><button id="rv-ok" ${enviando ? "disabled" : ""}>Conferir</button>`}</div></div>`;
@@ -1403,8 +1484,11 @@ function renderSecao(s, i, n, materia) {
   const texto = `${(s.paragrafos || []).map(p => `<p>${md(p)}</p>`).join("")}${s.html ? `<div class="visual">${s.html}</div>` : ""}${s.destaque ? `<div class="destaque">${md(s.destaque)}</div>` : ""}`;
   const ouvir = s.tipo !== "jogo" ? `<button class="ouvir ghost" data-ouvir="1">${ico("som", 18)} Ouvir</button>` : "";
   const ROT = { explica: "Entender", exemplo: "Ver como se faz", blocos: "Mexer nas peças", fracao: "Mexer nas peças", pratica: "Fazer junto", jogo: "Desafio", cartoes: "Cartões" };
+  const ajuda = i === 0 ? isaBalao("oi", "Vamos aprender juntas! Leia com calma. Se quiser, aperte <b>Ouvir</b>.", 56)
+    : s.tipo === "pratica" ? isaBalao("dica", "Agora tente comigo! Errar aqui não tira nota.", 56)
+    : s.tipo === "exemplo" ? isaBalao("pensando", "Faça junto no caderno, um passo de cada vez.", 56) : "";
   return `<div class="licao stack"><div class="row between"><span class="mom" style="--mm:${corMat(materia)}">${ROT[s.tipo] || "Aprender"} · parte ${i + 1} de ${n}</span>${ouvir}</div>
-    <h2>${esc(s.titulo || "")}</h2>${texto}${corpo}</div>`;
+    ${ajuda}<h2>${esc(s.titulo || "")}</h2>${texto}${corpo}</div>`;
 }
 
 /* ---------------- fazer prova ---------------- */
@@ -1428,10 +1512,10 @@ async function telaProva(id) {
   const pensePronto = q => !q.pense || (st.pense[q.id] && st.pense[q.id].ok && (!q.pense.conta || st.pense[q.id].contaOk));
   function fbConf(q) {
     const c = st.conf[q.id]; if (!c) return "";
-    if (c.certo) return `<div class="fb ok"><b>${c.n > 1 ? "Agora sim!" : "Isso mesmo!"}</b>${c.aviso ? ` ${esc(c.aviso)}` : ""}${c.n > 1 && c.explicacao ? `<div style="margin-top:6px">${md(c.explicacao)}</div>` : ""}</div>`;
+    if (c.certo) return `<div class="fb ok fb-isa">${isaSVG("torcendo", 48)}<div><b>${c.n > 1 ? "Agora sim!" : "Isso mesmo!"}</b>${c.aviso ? ` ${esc(c.aviso)}` : ""}${c.n > 1 && c.explicacao ? `<div style="margin-top:6px">${md(c.explicacao)}</div>` : ""}</div></div>`;
     if (c.n < 2) { const rg = regraDe(q.habilidade || q.assunto);
-      return `<div class="fb no"><b>Essa não é a resposta certa.</b> ${c.dica ? md(c.dica) : "Leia a pergunta de novo, devagar, e refaça."}${rg ? `<div class="regra" style="margin-top:8px">${esc(rg)}</div>` : ""}<div class="small" style="margin-top:6px">Descubra onde errou, refaça e clique em <b>Conferir de novo</b>. A primeira resposta é a que vale nota.</div></div>`; }
-    return `<div class="fb no"><b>Ainda não.</b> Veja como se faz:${c.explicacao ? `<div style="margin-top:6px">${md(c.explicacao)}</div>` : ""}</div>`;
+      return `<div class="fb no fb-isa">${isaSVG("dica", 58)}<div><b>Essa não é a resposta certa. Olha a minha dica:</b> ${c.dica ? md(c.dica) : "Leia a pergunta de novo, devagar, e refaça."}${rg ? `<div class="regra" style="margin-top:8px">${esc(rg)}</div>` : ""}<div class="small" style="margin-top:6px">Descubra onde errou, refaça e clique em <b>Conferir de novo</b>. A primeira resposta é a que vale nota.</div></div></div>`; }
+    return `<div class="fb no fb-isa">${isaSVG("pensando", 52)}<div><b>Ainda não.</b> Vamos ver juntas como se faz:${c.explicacao ? `<div style="margin-top:6px">${md(c.explicacao)}</div>` : ""}</div></div>`;
   }
   function desenha() {
     let html = "";

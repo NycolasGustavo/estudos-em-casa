@@ -570,3 +570,20 @@ mark.kw{background:#FFE08A;color:inherit;font-weight:700;padding:0 3px;border-ra
 /* faixa: adulto nas telas da Isabella */
 .faixa-adulto{position:sticky;top:0;z-index:1000;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 14px;background:#C2413A;color:#fff;padding:8px 16px;font-size:15px;text-align:center}
 .faixa-adulto button{background:#fff;color:#C2413A;border:0}
+
+/* mini Isabella */
+.sol-dupla{display:flex;align-items:flex-end;justify-content:center;gap:2px}
+.sol-dupla .isa{margin-bottom:4px;animation:isa-oi 2.6s ease-in-out infinite}
+.lg-sol.sol-dupla{padding:10px 14px 6px}
+.isa-balao{background:var(--card);color:var(--fg);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:15px;line-height:1.4;position:relative;text-align:left}
+.isa-topo{align-self:stretch;font-weight:600;border-color:#F2C46B}
+.isa-topo::after{content:"";position:absolute;right:28%;bottom:-9px;width:14px;height:14px;background:var(--card);border-right:2px solid #F2C46B;border-bottom:2px solid #F2C46B;transform:rotate(45deg)}
+.isa-fala{display:flex;align-items:flex-end;gap:8px;margin:2px 0 4px}
+.isa-fala .isa{flex:none}
+.isa-fala .isa-balao::before{content:"";position:absolute;left:-8px;bottom:14px;width:12px;height:12px;background:var(--card);border-left:2px solid var(--line);border-bottom:2px solid var(--line);transform:rotate(45deg)}
+.fb-isa{display:flex;gap:10px;align-items:flex-start}
+.fb-isa>.isa{flex:none;margin-top:-2px}
+.fb-isa>div{flex:1;min-width:0}
+@keyframes isa-oi{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){.sol-dupla .isa{animation:none}}
+@media (max-width:560px){.fb-isa>.isa{width:40px;height:auto}}
