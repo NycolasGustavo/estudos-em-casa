@@ -177,7 +177,7 @@ const TIPO_PROVA = { simulado: "Simulado", prova: "Prova", atividade: "Atividade
 const VALE_NOTA = t => t === "prova" || t === "simulado";
 const CHECK_ENTREGA = [["li", "Li cada pergunta com calma, até o fim."], ["tipo", "Nos problemas, vi se era juntar, tirar, comparar, repartir ou vezes."], ["conferi", "Conferi as contas e as respostas antes de entregar."]];
 const DIAS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-const AULAS = { 1: ["Disciplinar", "Educação Física"], 2: ["Inglês", "PLE · Leitura e Escrita"], 3: ["Artes", "Informática"], 4: ["Português"], 5: ["Matemática"] };
+const AULAS = { 1: ["Disciplinar", "Educação Física"], 2: ["Inglês", "PLE · Leitura e Escrita"], 3: ["Artes", "Disciplinar", "Educação Física", "Informática"], 4: ["Português"], 5: ["Matemática"] };
 const MANHA = {
   1: [["Revisão de ontem", "Matemática de sexta"], ["Preparar a aula", "Disciplinar"], ["Missão do dia", "Português"]],
   2: [["Revisão de ontem", "Disciplinar"], ["Preparar a aula", "Leitura e Inglês"], ["Extra", "Ler em voz alta"]],
@@ -226,7 +226,7 @@ function infoAula(agora = new Date()) {
   const min = agora.getHours() * 60 + agora.getMinutes(), ini = 13 * 60 + 15, fim = 17 * 60 + 15;
   if (!aulas) {
     let d = new Date(agora); do { d.setDate(d.getDate() + 1); } while (!AULAS[d.getDay()]);
-    return { titulo: "Sem aula hoje", linha: `${DIAS[d.getDay()]}: ${AULAS[d.getDay()].join(" e ")}`, estado: "folga", aulas: [] };
+    return { titulo: "Sem aula hoje", linha: `${DIAS[d.getDay()]}: ${AULAS[d.getDay()].length > 2 ? AULAS[d.getDay()].slice(0, -1).join(", ") + " e " + AULAS[d.getDay()].slice(-1) : AULAS[d.getDay()].join(" e ")}`, estado: "folga", aulas: [] };
   }
   let estado, linha;
   if (min < ini) { const f = ini - min; estado = "antes"; linha = `Começa em ${f >= 60 ? Math.floor(f / 60) + "h" + String(f % 60).padStart(2, "0") : f + " min"}`; }
