@@ -760,6 +760,62 @@ function cartoesHTML(s) {
     ${s._virado ? `<div class="row" style="justify-content:center;gap:10px"><button class="ghost" data-fc="nao">Ainda não</button><button data-fc="sabia">Eu sabia!</button></div>` : ""}</div>`;
 }
 
+/* ---------- Rotina da Isa: modelos recorrentes, Iniciar e Terminei ---------- */
+const seguro = f => { try { return f(); } catch (e) { console.error("rotina:", e); return ""; } };
+const BLOCO_ROT = { antes: ["Antes dos estudos", "A rotina começa às 8h, quando todos já saíram."], meio: ["Meio-dia", "Almoço e hora de ir para a escola."], noite: ["Depois da escola", "Noite: Lua, banho, jantar, leitura e dormir."] };
+function rotinaDoDia(d, dia) {
+  const ms = (d.rotina && d.rotina.itens) || [], ds = diaSem(dia);
+  if (d.rotina && d.rotina.inicio && dia < d.rotina.inicio) return [];
+  return ms.filter(m => m.datas ? m.datas.includes(dia) : (m.dias || [0, 1, 2, 3, 4, 5, 6]).includes(ds)).sort((a, b) => (a.hora || "").localeCompare(b.hora || ""))
+    .map(m => { const fi = (d.feitosInfo || {})[`${dia}-r-${m.id}`], ii = (d.feitosInfo || {})[`${dia}-ri-${m.id}`]; return Object.assign({}, m, { _dia: dia, _feito: !!fi, _fim: fi && fi.em, _ini: ii && ii.em }); });
+}
+const minDe = (a, b) => Math.max(1, Math.round((new Date(b) - new Date(a)) / 60000));
+function estudoFeito(d, h) {
+  const p = d.plano.find(x => x._id === h); if (!p || !(p.itens || []).length) return true;
+  return itensDoDia(d, h).filter(it => !foraManha(it)).every(it => itemFeito(d, p, it) || descartado(d, it));
+}
+function sequenciaDia(d, h) {
+  const r = rotinaDoDia(d, h), seq = [];
+  r.filter(x => x.bloco === "antes").forEach(x => seq.push({ r: x }));
+  seq.push({ estudo: true });
+  r.filter(x => x.bloco === "meio").forEach(x => seq.push({ r: x }));
+  r.filter(x => x.bloco === "noite").forEach(x => seq.push({ r: x }));
+  return seq;
+}
+function btnRot(x) {
+  if (x._feito) return `<span class="feito">${ico("check", 18)} ${x._ini && x._fim ? minDe(x._ini, x._fim) + " min" : "Feito"}</span>`;
+  if (x._ini) return `<button data-rfim="${esc(x.id)}">Terminei</button>`;
+  return `<button class="ghost" data-rini="${esc(x.id)}">Começar</button>`;
+}
+function linhaRot(x, ativo) {
+  const pas = (x.passos || []).length ? `<span class="muted small">${x.passos.map(esc).join(" · ")}</span>` : "";
+  return `<div class="item ${x._feito ? "ok" : ""} ${ativo ? "ativo" : ""}"><div class="inum rhora">${esc(x.hora)}</div>
+    <div class="ibody"><b>${esc(x.titulo)}</b><span class="muted small">${x.min} min${x._ini && !x._feito ? ` · começou às ${new Date(x._ini).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : ""}</span>${pas}</div>${btnRot(x)}</div>`;
+}
+function rotinaBloco(d, bloco) {
+  const h = d.hoje || hoje(), its = rotinaDoDia(d, h).filter(x => x.bloco === bloco);
+  if (!its.length) return "";
+  const fe = its.filter(x => x._feito).length, ativo = its.find(x => !x._feito);
+  return `<section class="painel-mundo" style="--w:var(--casa)"><div class="faixa" style="--w:var(--casa)"><b>${BLOCO_ROT[bloco][0]}</b><span>${fe} de ${its.length} feitas</span></div><div class="pm-corpo"><span class="muted small">${BLOCO_ROT[bloco][1]}</span><div class="itens">${its.map(x => linhaRot(x, x === ativo)).join("")}</div></div></section>`;
+}
+function cardAgora(d) {
+  const h = d.hoje || hoje(), seq = sequenciaDia(d, h), est = estudoFeito(d, h);
+  const rs = seq.filter(s => s.r), total = rs.length + (d.plano.some(p => p._id === h && (p.itens || []).length) ? 1 : 0);
+  const feitas = rs.filter(s => s.r._feito).length + (est && d.plano.some(p => p._id === h && (p.itens || []).length) ? 1 : 0);
+  if (!rs.length) return "";
+  const emCurso = rs.find(s => s.r._ini && !s.r._feito);
+  const prox = seq.find(s => s.estudo ? !est : !s.r._feito);
+  const barra = `<div class="bar" style="height:12px"><i style="width:${feitas / (total || 1) * 100}%;background:var(--casa)"></i></div><span class="muted small">${feitas} de ${total} partes do dia</span>`;
+  let corpo;
+  if (emCurso) { const x = emCurso.r; corpo = `<span class="muted">Você está fazendo agora</span><h2 style="margin:4px 0">${esc(x.titulo)}</h2><div class="row" style="gap:14px;align-items:center"><span class="mono" style="font-size:2rem" data-ini="${esc(x._ini)}">0:00</span><span class="muted">previsto: ${x.min} min</span><button data-rfim="${esc(x.id)}">Terminei</button></div>`; }
+  else if (!prox) corpo = `<h2 style="margin:4px 0">Tudo feito por hoje! Parabéns!</h2>`;
+  else if (prox.estudo) corpo = `<span class="muted">Agora</span><h2 style="margin:4px 0">Hora dos estudos</h2><button data-vai="estudo">Ir para o estudo de hoje</button>`;
+  else { const x = prox.r; corpo = `<span class="muted">Agora · ${esc(x.hora)}</span><h2 style="margin:4px 0">${esc(x.titulo)}</h2><span class="muted">${x.min} min${(x.passos || []).length ? " · " + x.passos.map(esc).join(" · ") : ""}</span><div style="margin-top:8px"><button data-rini="${esc(x.id)}">Começar</button></div>`; }
+  const idx = prox ? seq.indexOf(prox) : -1, seguinte = idx >= 0 ? seq.slice(idx + 1).find(s => s.estudo ? !est : !s.r._feito) : null;
+  return `<section class="painel-mundo" style="--w:var(--casa)"><div class="faixa" style="--w:var(--casa)"><b>AGORA</b><span>uma coisa de cada vez</span></div><div class="pm-corpo">${corpo}${seguinte && !emCurso ? `<span class="muted small">Depois: ${seguinte.estudo ? "estudos" : esc(seguinte.r.titulo)}</span>` : ""}${barra}</div></section>`;
+}
+setInterval(() => document.querySelectorAll("[data-ini]").forEach(e => { const s = Math.max(0, Math.floor((Date.now() - new Date(e.dataset.ini)) / 1000)); e.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }), 1000);
+
 /* ---------- Hoje ---------- */
 function abaHoje(d) {
   const h = d.hoje || hoje();
@@ -786,7 +842,7 @@ function abaHoje(d) {
   const aula = infoAula(), proxEsc = d.agenda.filter(a => diasAte(a.data) >= 0).slice(0, 3);
   const lendo = d.livros.filter(l => l.status === "lendo");
   return `<p class="hoje-data">${dataTxt}</p>
-   <div class="home3"><div class="stack c1">${cardHumor(d)}${cardDevendo(d)}${estudo}
+   <div class="home3"><div class="stack c1">${cardHumor(d)}${seguro(() => cardAgora(d))}${cardDevendo(d)}${seguro(() => rotinaBloco(d, "antes"))}<div id="estudo-hoje">${estudo}</div>${seguro(() => rotinaBloco(d, "meio"))}${seguro(() => rotinaBloco(d, "noite"))}
     ${atrasados.length ? `<section class="painel-mundo" style="--w:var(--bad)"><div class="faixa" style="--w:var(--bad)"><b>FICOU PARA TRÁS</b><span>faça quando terminar o de hoje</span></div><div class="pm-corpo"><div class="itens">${atrasados.slice(-4).map(([dia, it], i) => linhaItem(d, dia, Object.assign({}, it, { descricao: `Era para ${DCURTO[diaSem(dia)].toLowerCase()}, ${dataBR(dia)}` }), i, false)).join("")}</div></div></section>` : ""}
    </div><aside class="stack c2">${cardSol(d)}${cardEstrelas(d)}${cardDia(d)}</aside><aside class="stack c3">
     <section class="painel-mundo" style="--w:var(--escola)">${faixa("escola", "Hoje à tarde")}<div class="pm-corpo">${aula.aulas.length ? `${aula.aulas.map(a => `<div class="aula-l"><span class="mchip" style="--mc:${corMat(a.split(" ")[0])}">${esc(a)}</span></div>`).join("")}<span class="muted small">13:15 às 17:15 · ${esc(aula.linha)}</span>` : `<span>${esc(aula.linha)}</span>`}
@@ -1325,6 +1381,9 @@ function ligarAluna(d) {
     if (b.dataset.fmat) { filtroMat = b.dataset.fmat; render(); }
     else if (b.dataset.nver) { notasVer = notasVer === b.dataset.nver && b.dataset.nver.includes("-") ? "todas" : b.dataset.nver; render(); }
     else if (b.dataset.sem) { semanaOff = Math.max(-1, Math.min(1, semanaOff + Number(b.dataset.sem))); render(); }
+    else if (b.dataset.rini) { const h = (cache.aluna && cache.aluna.hoje) || hoje(); exec("marcarFeito", { item: `${h}-ri-${b.dataset.rini}` }, "Valendo! Faça com calma.", b); }
+    else if (b.dataset.rfim) { const h = (cache.aluna && cache.aluna.hoje) || hoje(); exec("marcarFeito", { item: `${h}-r-${b.dataset.rfim}` }, "Muito bem!", b); }
+    else if (b.dataset.vai) { const el = document.getElementById("estudo-hoje"); if (el) el.scrollIntoView({ behavior: "smooth" }); }
     else if (b.dataset.feito) { if (b.dataset.volta) { b.disabled = true; api("marcarFeito", { item: b.dataset.feito }).then(() => { toast("Muito bem!"); location.hash = b.dataset.volta; }).catch(e => { toast(e.message); b.disabled = false; }); } else exec("marcarFeito", { item: b.dataset.feito }, "Muito bem!", b); }
     else if (b.dataset.lvedit) { const f = corpo.querySelector(`[data-edit-form="${b.dataset.lvedit}"]`); f.hidden = !f.hidden; }
     else if (b.dataset.lvsalvar) { const id = b.dataset.lvsalvar, v = k => corpo.querySelector(`[data-ed-${k}="${id}"]`).value; exec("livroEditar", { id, titulo: v("tit"), autor: v("aut"), inicio: v("ini") }, "Livro atualizado.", b); }

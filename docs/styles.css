@@ -621,3 +621,6 @@ mark.kw{background:#FFE08A;color:inherit;font-weight:700;padding:0 3px;border-ra
 .cv-edit{width:100%;font:inherit;font-size:17px;line-height:1.5;padding:10px 12px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--fg);resize:vertical}
 .aviso-cv{background:#FFF8E6;color:#1C2140;border-radius:10px;padding:8px 12px}
 @media (prefers-color-scheme:dark){.cv-relogio{color:#8AA6FF}.aviso-cv{background:#33290F;color:var(--fg)}}
+
+.inum.rhora{width:auto;min-width:56px;border-radius:12px;padding:0 8px;font-size:15px}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700}
