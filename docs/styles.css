@@ -624,3 +624,5 @@ mark.kw{background:#FFE08A;color:inherit;font-weight:700;padding:0 3px;border-ra
 
 .inum.rhora{width:auto;min-width:56px;border-radius:12px;padding:0 8px;font-size:15px}
 .mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700}
+
+.vit-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}.vit{justify-content:space-between}

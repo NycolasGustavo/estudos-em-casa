@@ -187,6 +187,7 @@ const MANHA = {
   6: [["Simulado ou prova", "Português e Matemática"], ["Livro", "Ler um pouco"]]
 };
 const ICO = {
+  banco: '<path d="M12 3l2.7 5.6 6.1.8-4.4 4.3 1 6.1L12 16.9 6.6 19.8l1-6.1L3.2 9.4l6.1-.8z"/>',
   hoje: '<path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/><circle cx="12" cy="12" r="4"/>',
   aulas: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>',
   notas: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
@@ -242,7 +243,7 @@ function widgetAula() {
 setInterval(() => { const w = document.getElementById("aula-w"); if (w) w.outerHTML = widgetAula(); }, 30000);
 
 /* concha da aluna: menu lateral */
-const NAV = [["hoje", "Hoje"], ["aprender", "Aprender"], ["aulas", "Agenda"], ["notas", "Minhas notas"], ["materias", "Matérias"], ["livros", "Livros"], ["erros", "Caderno de erros"]];
+const NAV = [["hoje", "Hoje"], ["aprender", "Aprender"], ["aulas", "Agenda"], ["banco", "Estrelas e prêmios"], ["notas", "Minhas notas"], ["materias", "Matérias"], ["livros", "Livros"], ["erros", "Caderno de erros"]];
 function concha(aba, titulo, corpo, d) {
   const of = d ? ofensiva(d) : null;
   const base = sess.papel === "adulto" ? "#/aluna/" : "#/";
@@ -286,8 +287,8 @@ async function telaAluna(aba) {
   const d = await api("inicioAluna");
   cache.aluna = d;
   const primeiro = (d.nome || sess.nome || "").split(" ")[0];
-  const T = { hoje: `Oi, <span class="hl">${esc(primeiro)}</span>!`, aulas: "Minha agenda", notas: "Minhas notas", materias: "Matérias", agenda: "Agenda", livros: "Livros", ler: "Ler em voz alta", ensina: "Me ensina", erros: "Caderno de erros", aprender: "Aprender com vídeos" };
-  const f = { hoje: abaHoje, aulas: abaAulas, notas: abaNotas, materias: abaMaterias, agenda: abaAgenda, livros: abaLivros, ler: abaLer, ensina: abaEnsina, erros: abaErros, aprender: abaAprender }[aba];
+  const T = { hoje: `Oi, <span class="hl">${esc(primeiro)}</span>!`, aulas: "Minha agenda", notas: "Minhas notas", materias: "Matérias", agenda: "Agenda", livros: "Livros", ler: "Ler em voz alta", ensina: "Me ensina", erros: "Caderno de erros", aprender: "Aprender com vídeos", banco: "Estrelas e prêmios" };
+  const f = { hoje: abaHoje, aulas: abaAulas, notas: abaNotas, materias: abaMaterias, agenda: abaAgenda, livros: abaLivros, ler: abaLer, ensina: abaEnsina, erros: abaErros, aprender: abaAprender, banco: abaBanco }[aba];
   app.innerHTML = concha(aba === "ler" || aba === "ensina" ? "hoje" : aba, T[aba], f(d), d);
   ligarAluna(d);
 }
@@ -790,7 +791,7 @@ function btnRot(x) {
 function linhaRot(x, ativo) {
   const pas = (x.passos || []).length ? `<span class="muted small">${x.passos.map(esc).join(" · ")}</span>` : "";
   return `<div class="item ${x._feito ? "ok" : ""} ${ativo ? "ativo" : ""}"><div class="inum rhora">${esc(x.hora)}</div>
-    <div class="ibody"><b>${esc(x.titulo)}</b><span class="muted small">${x.min} min${x._ini && !x._feito ? ` · começou às ${new Date(x._ini).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : ""}</span>${pas}</div>${btnRot(x)}</div>`;
+    <div class="ibody"><b>${esc(x.titulo)}${x.estrelas ? ` <span class="small" style="color:#B8860B">⭐ ${x.estrelas}</span>` : ""}</b><span class="muted small">${x.min} min${x._ini && !x._feito ? ` · começou às ${new Date(x._ini).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : ""}</span>${pas}</div>${btnRot(x)}</div>`;
 }
 function rotinaBloco(d, bloco) {
   const h = d.hoje || hoje(), its = rotinaDoDia(d, h).filter(x => x.bloco === bloco);
@@ -1179,13 +1180,12 @@ function abaNotas(d) {
 
 /* ---------- recompensa da semana ---------- */
 function cardEstrelas(d) {
-  const e = d.estrelas || { saldo: 0, hoje: 0, semana: 0, ultimas: [] }, r = d.recompensa || {}, preco = Number(r.estrelas) || 0;
-  const falta = preco ? Math.max(0, preco - e.saldo) : 0;
-  return `<section class="panel stack estrelas-c"><div class="row between"><h3 style="margin:0">⭐ Estrelas de foco</h3><b class="est-n">${e.saldo}</b></div>
-    <span class="small">Hoje: <b>+${e.hoje}</b> · nesta semana: <b>+${e.semana}</b></span>
-    ${preco ? `<div class="bar" style="height:10px"><i style="width:${Math.min(100, e.saldo / preco * 100)}%;background:#E0A93B"></i></div><span class="small">${falta ? `Faltam <b>${falta}</b> estrelas para: ${esc(r.texto || "a recompensa")}` : `Você já pode trocar por: <b>${esc(r.texto || "a recompensa")}</b>! Peça para um adulto.`}</span>` : ""}
-    <span class="muted small">Você ganha estrelas quando para e pensa, mostra a conta, confere antes de entregar, faz com calma, faz o caderno de erros e joga o Pare!</span>
-    ${(e.ultimas || []).filter(x => x.qtd > 0).slice(0, 3).map(x => `<span class="small">+${x.qtd} ${esc(x.motivo || "")}</span>`).join("")}</section>`;
+  const b = d.banco || { saldo: 0, pendente: 0, metas: [] }, base = sess.papel === "adulto" ? "#/aluna/" : "#/";
+  const m = (b.metas || [])[0];
+  const termo = m ? `<div class="stack" style="gap:4px"><span class="small"><b>${esc(m.nome)}</b>: ${m.ganhas} de ${m.x} estrelas</span><div class="bar" style="height:10px"><i style="width:${Math.min(100, m.ganhas / m.x * 100)}%;background:#E0A93B"></i></div><span class="muted small">Estudos e Escola: ${m.ee} de ${m.min_ee || 0}. Vale o que você ganhar de 20/11 a 24/12, mesmo que gaste em prêmios.</span></div>` : "";
+  return `<section class="panel stack estrelas-c"><div class="row between"><h3 style="margin:0">⭐ Minhas estrelas</h3><b class="est-n">${b.saldo}</b></div>
+    ${b.pendente ? `<span class="small">${b.pendente} esperando a conferência de um adulto</span>` : ""}${termo}
+    <a class="btn" href="${base}banco" style="text-align:center">Ver prêmios</a></section>`;
 }
 const HUMORES = [["animada", "😄", "Animada"], ["bem", "🙂", "Bem"], ["maisoumenos", "😐", "Mais ou menos"], ["triste", "😟", "Triste ou preocupada"], ["irritada", "😠", "Irritada"]];
 let humorSel = null;
@@ -1213,6 +1213,35 @@ function cardRecompensa(d) {
   return `<section class="recomp ${ok ? "ok" : ""}"><span class="rc-k">Recompensa da semana</span><b>${esc(r.texto)}</b>
     <div class="rc-dots">${Array.from({ length: meta }, (_, i) => `<i class="${i < verdes ? "on" : ""}"></i>`).join("")}</div>
     <span class="small">${ok ? "Conseguiu! Você ganhou a recompensa desta semana!" : `${verdes} de ${meta} dias verdes nesta semana. Faltam ${meta - verdes}.`}</span></section>`;
+}
+
+
+/* ---------- Estrelas e prêmios ---------- */
+const AREA_B = { casa: "Casa", estudos: "Estudos em casa", escola: "Escola" };
+const TIPOS_NOTA_B = ["Atividade (escola)", "Tarefa de casa (escola)", "Prova (escola)", "Trabalho (escola)", "Simulado (escola)"];
+let resgArmado = null;
+function abaBanco(d) {
+  const b = d.banco || { saldo: 0, pendente: 0, vitrine: [], resgates: [], extrato: [], metas: [], notas: [] };
+  const niveis = [...new Set((b.vitrine || []).map(v => v.nivel))];
+  const cardV = v => `<div class="panel stack vit"><b>${esc(v.nome)}</b><span class="est-n" style="font-size:20px">⭐ ${v.custo}</span>
+    ${v.bloqueio ? `<span class="muted small">${esc(v.bloqueio)}</span><button class="ghost" disabled>Ainda não</button>` : resgArmado === v.id ? `<button data-resg="${esc(v.id)}">Confirmar: gastar ${v.custo} estrelas</button><button class="ghost" data-resg-cancela="1">Cancelar</button>` : `<button data-resg-pede="${esc(v.id)}">Quero resgatar</button>`}</div>`;
+  const meus = (b.resgates || []).map(r => `<div class="row between"><span>${esc(r.nome)}</span><span class="small">${r.estado === "pedido" ? "Pedido feito. Um adulto vai combinar a entrega." : r.estado === "entregue" ? "Entregue" : "Estrelas devolvidas"}</span></div>`).join("");
+  const nt = (b.notas || []).map(n => `<div class="row between"><span>${esc(n.materia)} · ${esc(n.tipo)} · ${fmtN(n.nota)}</span><span class="small">${n.estado === "pendente" ? "Esperando um adulto conferir" : n.estado === "validada" ? "Validada" : "Não validada"}</span></div>`).join("");
+  const ext = (b.extrato || []).slice(0, 15).map(x => `<div class="row between small"><span>${dataBR(x.dia)} · ${AREA_B[x.area] || x.area} · ${esc(x.titulo || "")}</span><b>+${x.qtd}${x.estado === "pendente" ? " (a confirmar)" : ""}</b></div>`).join("");
+  return `<section class="panel stack estrelas-c"><div class="row between"><h3 style="margin:0">Você tem</h3><b class="est-n" style="font-size:36px">⭐ ${b.saldo}</b></div>
+    ${b.pendente ? `<span class="small">Mais ${b.pendente} estrelas aparecem quando um adulto conferir as tarefas de casa.</span>` : ""}
+    <span class="muted small">Estrelas vêm das tarefas de casa (no máximo 4 por dia), das atividades de estudo com nota 9 ou 10 e das notas da escola. Quanto mais difícil, mais estrelas.</span></section>
+  ${(b.metas || []).map(m => `<section class="panel stack"><h3 style="margin:0">${esc(m.nome)}</h3><div class="bar" style="height:12px"><i style="width:${Math.min(100, m.ganhas / m.x * 100)}%;background:#E0A93B"></i></div><span class="small">${m.ganhas} de ${m.x} estrelas ganhas (de ${dataBR(m.ini)} a ${dataBR(m.fim)}). Estudos e Escola: ${m.ee} de ${m.min_ee || 0}.</span></section>`).join("")}
+  ${niveis.map(n => `<h3>${esc(n)}</h3><div class="vit-grid">${b.vitrine.filter(v => v.nivel === n).map(cardV).join("")}</div>`).join("")}
+  ${meus ? `<section class="panel stack"><h3 style="margin:0">Meus pedidos</h3>${meus}</section>` : ""}
+  <section class="panel stack"><h3 style="margin:0">Lançar uma nota da escola</h3><span class="muted small">Um adulto confere com o caderno e valida. Só depois a nota vira estrelas (nota 9 ou 10).</span>
+    <div class="form"><label class="f">Matéria<select id="nb-mat">${MATERIAS.map(m => `<option>${m}</option>`).join("")}</select></label>
+    <label class="f">Tipo<select id="nb-tipo">${TIPOS_NOTA_B.map(m => `<option>${m}</option>`).join("")}</select></label>
+    <label class="f">Nome da atividade<input id="nb-tit" maxlength="120" placeholder="Ex.: Prova de ciências"></label>
+    <label class="f">Nota<input id="nb-nota" inputmode="decimal" placeholder="Ex.: 9,5"></label>
+    <label class="f">Dia<input type="date" id="nb-data" value="${hoje()}"></label></div>
+    <div><button data-nota-env="1">Enviar para os adultos</button></div>${nt}</section>
+  ${ext ? `<section class="panel stack"><h3 style="margin:0">Últimas estrelas</h3>${ext}</section>` : ""}`;
 }
 
 /* ---------- Matérias e superpoderes ---------- */
@@ -1370,6 +1399,10 @@ function ligarAluna(d) {
   const exec = async (acao, dados, msg, b) => { if (b) b.disabled = true; try { await api(acao, dados); toast(msg); render(); } catch (e) { toast(e.message); if (b) b.disabled = false; } };
   corpo.onclick = e => {
     const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.resgPede) { resgArmado = b.dataset.resgPede; cache.aluna = d; corpo.innerHTML = abaBanco(d); return; }
+    if (b.dataset.resgCancela) { resgArmado = null; corpo.innerHTML = abaBanco(d); return; }
+    if (b.dataset.resg) { resgArmado = null; return exec("bancoResgatar", { item: b.dataset.resg }, "Pedido feito! Um adulto vai combinar a entrega.", b); }
+    if (b.dataset.notaEnv) { return exec("notaEnviar", { materia: $("#nb-mat").value, tipo: $("#nb-tipo").value, titulo: $("#nb-tit").value, nota: $("#nb-nota").value, data: $("#nb-data").value }, "Enviada! Um adulto vai conferir.", b); }
     if (b.dataset.humor) { humorSel = b.dataset.humor; render(); return; }
     if (b.dataset.energia) {
       const h = humorSel, en = b.dataset.energia; b.disabled = true;
