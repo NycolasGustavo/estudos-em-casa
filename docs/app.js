@@ -1226,7 +1226,7 @@ let resgArmado = null;
 function abaBanco(d) {
   const b = d.banco || { saldo: 0, pendente: 0, vitrine: [], resgates: [], extrato: [], metas: [], notas: [] };
   const niveis = [...new Set((b.vitrine || []).map(v => v.nivel))];
-  const cardV = v => `<div class="panel stack vit"><b>${esc(v.nome)}</b><span class="est-n" style="font-size:20px">⭐ ${v.custo}</span>
+  const cardV = v => `<div class="panel stack vit"><div class="vit-img">${v.foto ? `<img src="${esc(v.foto)}" alt="${esc(v.nome)}" loading="lazy">` : `<span aria-hidden="true">${esc(v.icone || "🎁")}</span>`}</div><b>${esc(v.nome)}</b><span class="est-n" style="font-size:20px">⭐ ${v.custo}</span>
     ${v.bloqueio ? `<span class="muted small">${esc(v.bloqueio)}</span><button class="ghost" disabled>Ainda não</button>` : resgArmado === v.id ? `<button data-resg="${esc(v.id)}">Confirmar: gastar ${v.custo} estrelas</button><button class="ghost" data-resg-cancela="1">Cancelar</button>` : `<button data-resg-pede="${esc(v.id)}">Quero resgatar</button>`}</div>`;
   const meus = (b.resgates || []).map(r => `<div class="row between"><span>${esc(r.nome)}</span><span class="small">${r.estado === "pedido" ? "Pedido feito. Um adulto vai combinar a entrega." : r.estado === "entregue" ? "Entregue" : "Estrelas devolvidas"}</span></div>`).join("");
   const nt = (b.notas || []).map(n => `<div class="row between"><span>${esc(n.materia)} · ${esc(n.tipo)} · ${fmtN(n.nota)}</span><span class="small">${n.estado === "pendente" ? "Esperando um adulto conferir" : n.estado === "validada" ? "Validada" : "Não validada"}</span></div>`).join("");
