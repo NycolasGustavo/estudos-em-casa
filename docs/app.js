@@ -177,6 +177,8 @@ const TIPO_PROVA = { simulado: "Simulado", prova: "Prova", atividade: "Atividade
 const VALE_NOTA = t => t === "prova" || t === "simulado";
 const CHECK_ENTREGA = [["li", "Li cada pergunta com calma, até o fim."], ["tipo", "Nos problemas, vi se era juntar, tirar, comparar, repartir ou vezes."], ["conferi", "Conferi as contas e as respostas antes de entregar."]];
 const DIAS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+const FERIADOS = ["2026-11-20", "2026-12-25", "2027-01-01", "2027-02-08", "2027-02-09", "2027-03-26", "2027-04-21", "2027-05-01", "2027-05-27", "2027-09-07", "2027-10-12", "2027-11-02", "2027-11-15", "2027-11-20", "2027-12-25"];
+const ehFeriado = iso => FERIADOS.includes(iso);
 const AULAS = { 1: ["Disciplinar", "Educação Física"], 2: ["Inglês", "PLE · Leitura e Escrita"], 3: ["Artes", "Disciplinar", "Educação Física", "Informática"], 4: ["Português"], 5: ["Matemática"] };
 const MANHA = {
   1: [["Revisão de ontem", "Matemática de sexta"], ["Preparar a aula", "Disciplinar"], ["Missão do dia", "Português"]],
@@ -223,10 +225,11 @@ function pararFala() { try { window.speechSynthesis && window.speechSynthesis.ca
 
 /* widget da aula de hoje */
 function infoAula(agora = new Date()) {
-  const dia = agora.getDay(), aulas = AULAS[dia];
+  const dia = agora.getDay(), iso = new Date(agora.getTime() - agora.getTimezoneOffset() * 60000).toISOString().slice(0, 10), aulas = ehFeriado(iso) ? null : AULAS[dia];
   const min = agora.getHours() * 60 + agora.getMinutes(), ini = 13 * 60 + 15, fim = 17 * 60 + 15;
   if (!aulas) {
     let d = new Date(agora); do { d.setDate(d.getDate() + 1); } while (!AULAS[d.getDay()]);
+    if (ehFeriado(iso)) return { titulo: "Feriado: sem aula", linha: "Hoje não tem aula", estado: "folga", aulas: [] };
     return { titulo: "Sem aula hoje", linha: `${DIAS[d.getDay()]}: ${AULAS[d.getDay()].length > 2 ? AULAS[d.getDay()].slice(0, -1).join(", ") + " e " + AULAS[d.getDay()].slice(-1) : AULAS[d.getDay()].join(" e ")}`, estado: "folga", aulas: [] };
   }
   let estado, linha;
@@ -767,7 +770,7 @@ const BLOCO_ROT = { antes: ["Antes dos estudos", "A rotina começa às 8h, quand
 function rotinaDoDia(d, dia) {
   const ms = (d.rotina && d.rotina.itens) || [], ds = diaSem(dia);
   if (d.rotina && d.rotina.inicio && dia < d.rotina.inicio) return [];
-  return ms.filter(m => m.datas ? m.datas.includes(dia) : (m.dias || [0, 1, 2, 3, 4, 5, 6]).includes(ds)).sort((a, b) => (a.hora || "").localeCompare(b.hora || ""))
+  return ms.filter(m => !(m.escola && ehFeriado(dia))).filter(m => m.datas ? m.datas.includes(dia) : (m.dias || [0, 1, 2, 3, 4, 5, 6]).includes(ds)).sort((a, b) => (a.hora || "").localeCompare(b.hora || ""))
     .map(m => { const fi = (d.feitosInfo || {})[`${dia}-r-${m.id}`], ii = (d.feitosInfo || {})[`${dia}-ri-${m.id}`]; return Object.assign({}, m, { _dia: dia, _feito: !!fi, _fim: fi && fi.em, _ini: ii && ii.em }); });
 }
 const minDe = (a, b) => Math.max(1, Math.round((new Date(b) - new Date(a)) / 60000));
@@ -1181,10 +1184,10 @@ function abaNotas(d) {
 /* ---------- recompensa da semana ---------- */
 function cardEstrelas(d) {
   const b = d.banco || { saldo: 0, pendente: 0, metas: [] }, base = sess.papel === "adulto" ? "#/aluna/" : "#/";
-  const m = (b.metas || [])[0];
-  const termo = m ? `<div class="stack" style="gap:4px"><span class="small"><b>${esc(m.nome)}</b>: ${m.ganhas} de ${m.x} estrelas</span><div class="bar" style="height:10px"><i style="width:${Math.min(100, m.ganhas / m.x * 100)}%;background:#E0A93B"></i></div><span class="muted small">Estudos e Escola: ${m.ee} de ${m.min_ee || 0}. Vale o que você ganhar de 20/11 a 24/12, mesmo que gaste em prêmios.</span></div>` : "";
+  const m = (b.metas || []).slice().sort((x, y) => String(x.ini).localeCompare(String(y.ini)))[0];
+  const termo = m ? `<div class="stack" style="gap:4px"><span class="small"><b>${esc(m.nome)}</b>: ${m.ganhas} de ${m.x} estrelas</span><div class="bar" style="height:10px"><i style="width:${Math.min(100, m.ganhas / m.x * 100)}%;background:#E0A93B"></i></div><span class="muted small">Vale o que você ganhar de ${dataBR(m.ini)} a ${dataBR(m.fim)}, mesmo que gaste em prêmios.</span></div>` : "";
   return `<section class="panel stack estrelas-c"><div class="row between"><h3 style="margin:0">⭐ Minhas estrelas</h3><b class="est-n">${b.saldo}</b></div>
-    ${b.pendente ? `<span class="small">${b.pendente} esperando a conferência de um adulto</span>` : ""}${termo}
+    ${termo}
     <a class="btn" href="${base}banco" style="text-align:center">Ver prêmios</a></section>`;
 }
 const HUMORES = [["animada", "😄", "Animada"], ["bem", "🙂", "Bem"], ["maisoumenos", "😐", "Mais ou menos"], ["triste", "😟", "Triste ou preocupada"], ["irritada", "😠", "Irritada"]];
@@ -1229,9 +1232,8 @@ function abaBanco(d) {
   const nt = (b.notas || []).map(n => `<div class="row between"><span>${esc(n.materia)} · ${esc(n.tipo)} · ${fmtN(n.nota)}</span><span class="small">${n.estado === "pendente" ? "Esperando um adulto conferir" : n.estado === "validada" ? "Validada" : "Não validada"}</span></div>`).join("");
   const ext = (b.extrato || []).slice(0, 15).map(x => `<div class="row between small"><span>${dataBR(x.dia)} · ${AREA_B[x.area] || x.area} · ${esc(x.titulo || "")}</span><b>+${x.qtd}${x.estado === "pendente" ? " (a confirmar)" : ""}</b></div>`).join("");
   return `<section class="panel stack estrelas-c"><div class="row between"><h3 style="margin:0">Você tem</h3><b class="est-n" style="font-size:36px">⭐ ${b.saldo}</b></div>
-    ${b.pendente ? `<span class="small">Mais ${b.pendente} estrelas aparecem quando um adulto conferir as tarefas de casa.</span>` : ""}
-    <span class="muted small">Estrelas vêm das tarefas de casa (no máximo 4 por dia), das atividades de estudo com nota 9 ou 10 e das notas da escola. Quanto mais difícil, mais estrelas.</span></section>
-  ${(b.metas || []).map(m => `<section class="panel stack"><h3 style="margin:0">${esc(m.nome)}</h3><div class="bar" style="height:12px"><i style="width:${Math.min(100, m.ganhas / m.x * 100)}%;background:#E0A93B"></i></div><span class="small">${m.ganhas} de ${m.x} estrelas ganhas (de ${dataBR(m.ini)} a ${dataBR(m.fim)}). Estudos e Escola: ${m.ee} de ${m.min_ee || 0}.</span></section>`).join("")}
+    <span class="muted small">Estrelas vêm das atividades de estudo com nota 9 ou 10 e das notas da escola. Quanto mais difícil, mais estrelas. As tarefas de casa são obrigação do dia e não valem estrelas.</span></section>
+  ${(b.metas || []).slice().sort((x, y) => String(x.ini).localeCompare(String(y.ini))).map(m => `<section class="panel stack"><h3 style="margin:0">${esc(m.nome)}</h3><div class="bar" style="height:12px"><i style="width:${Math.min(100, m.ganhas / m.x * 100)}%;background:#E0A93B"></i></div><span class="small">${m.ganhas} de ${m.x} estrelas ganhas (de ${dataBR(m.ini)} a ${dataBR(m.fim)}).</span></section>`).join("")}
   ${niveis.map(n => `<h3>${esc(n)}</h3><div class="vit-grid">${b.vitrine.filter(v => v.nivel === n).map(cardV).join("")}</div>`).join("")}
   ${meus ? `<section class="panel stack"><h3 style="margin:0">Meus pedidos</h3>${meus}</section>` : ""}
   <section class="panel stack"><h3 style="margin:0">Lançar uma nota da escola</h3><span class="muted small">Um adulto confere com o caderno e valida. Só depois a nota vira estrelas (nota 9 ou 10).</span>
