@@ -1525,6 +1525,14 @@ async function telaPausa(itemId) {
   desenha();
 }
 
+// pede ao Claude (função do Supabase) a análise da conversa e as perguntas do próximo dia; se não estiver configurada, não faz nada
+async function analisarConversaIA(dia) {
+  try {
+    const cfg = window.ESTUDOS || {};
+    const r = await fetch(cfg.url + "/functions/v1/analisar-conversa", { method: "POST", headers: { "Content-Type": "application/json", apikey: cfg.chave, Authorization: "Bearer " + cfg.chave }, body: JSON.stringify({ token: sess && sess.token, dia }) });
+    return await r.json();
+  } catch (e) { return null; }
+}
 /* ---------- Conversa da escola: ela conta o dia por voz, só o texto é guardado ---------- */
 // perguntas do dia: as personalizadas (geradas pela rotina das 18h do dia anterior) ou o roteiro pela grade de aulas
 function perguntasConversa(d, h) {
@@ -1628,6 +1636,7 @@ async function telaConversa(itemId) {
       cache.aluna = null; toast("Conversa guardada!");
       let av = null; try { av = await api("conversaResultado"); } catch (e2) { }
       const el = $("#cv-salvo"); if (el) el.innerHTML = `${ico("check", 18)} Guardado. Obrigada por contar!` + (av && av.nota != null ? `<div class="panel stack" style="margin-top:10px"><b style="font-size:22px">Nota da conversa: ${av.nota} de 10</b><span>${esc(av.dica || "")}</span></div>` : "");
+      analisarConversaIA().then(x => { const e2 = $("#cv-salvo"); if (e2 && x && x.ok && x.comentario) e2.insertAdjacentHTML("beforeend", `<div class="panel stack" style="margin-top:10px">${isaBalao("oi", esc(x.comentario))}</div>`); });
     } catch (e) { st.salvo = false; const el = $("#cv-salvo"); if (el) el.innerHTML = `<span style="color:var(--bad)">Não consegui guardar: ${esc(e.message)}</span> <button class="mini" id="cv-salvar">Tentar de novo</button>`; }
   }
   function tela() {
