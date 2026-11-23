@@ -661,6 +661,12 @@ function cardDia(d) {
     ${av.obs ? `<div class="dc-recado"><b>Recado de casa</b>${esc(av.obs)}</div>` : ""}${av.combinado ? `<div class="dc-recado comb"><b>Combinado</b>${esc(av.combinado)}</div>` : ""}</section>`;
 }
 // o que ficou devendo do último dia avaliado (aparece no dia seguinte)
+function cardDeveres(d) {
+  const ds = (d.deveres || []).filter(x => x.estado === "aberto" || x.estado === "feito_aluna");
+  if (!ds.length) return "";
+  return `<section class="panel stack" style="border-left:5px solid var(--bad)"><h3 style="margin:0">Deveres para entregar</h3>
+    ${ds.map(x => `<div class="row between" style="gap:10px;align-items:flex-start"><span class="small"><b>${dataBR(x.data)}${(x.materias || []).length ? " · " + esc(x.materias.join(", ")) : ""}</b><br>${esc(x.texto || "")}</span>${x.estado === "feito_aluna" ? `<span class="small muted">Um adulto vai conferir</span>` : `<button class="mini" data-dever="${esc(x.id)}">Já fiz</button>`}</div>`).join("")}</section>`;
+}
 function cardDevendo(d) {
   const h = d.hoje || hoje(), av = ultimaAvaliacao(d, h);
   if (!av || av.folga) return "";
@@ -846,7 +852,7 @@ function abaHoje(d) {
   const aula = infoAula(), proxEsc = d.agenda.filter(a => diasAte(a.data) >= 0).slice(0, 3);
   const lendo = d.livros.filter(l => l.status === "lendo");
   return `<p class="hoje-data">${dataTxt}</p>
-   <div class="home3"><div class="stack c1">${cardHumor(d)}${seguro(() => cardAgora(d))}${cardDevendo(d)}${seguro(() => rotinaBloco(d, "antes"))}<div id="estudo-hoje">${estudo}</div>${seguro(() => rotinaBloco(d, "meio"))}${seguro(() => rotinaBloco(d, "noite"))}
+   <div class="home3"><div class="stack c1">${cardHumor(d)}${seguro(() => cardDeveres(d))}${seguro(() => cardAgora(d))}${cardDevendo(d)}${seguro(() => rotinaBloco(d, "antes"))}<div id="estudo-hoje">${estudo}</div>${seguro(() => rotinaBloco(d, "meio"))}${seguro(() => rotinaBloco(d, "noite"))}
     ${atrasados.length ? `<section class="painel-mundo" style="--w:var(--bad)"><div class="faixa" style="--w:var(--bad)"><b>FICOU PARA TRÁS</b><span>faça quando terminar o de hoje</span></div><div class="pm-corpo"><div class="itens">${atrasados.slice(-4).map(([dia, it], i) => linhaItem(d, dia, Object.assign({}, it, { descricao: `Era para ${DCURTO[diaSem(dia)].toLowerCase()}, ${dataBR(dia)}` }), i, false)).join("")}</div></div></section>` : ""}
    </div><aside class="stack c2">${cardSol(d)}${cardEstrelas(d)}${cardDia(d)}</aside><aside class="stack c3">
     <section class="painel-mundo" style="--w:var(--escola)">${faixa("escola", "Hoje à tarde")}<div class="pm-corpo">${aula.aulas.length ? `${aula.aulas.map(a => `<div class="aula-l"><span class="mchip" style="--mc:${corMat(a.split(" ")[0])}">${esc(a)}</span></div>`).join("")}<span class="muted small">13:15 às 17:15 · ${esc(aula.linha)}</span>` : `<span>${esc(aula.linha)}</span>`}
@@ -1401,6 +1407,7 @@ function ligarAluna(d) {
   const exec = async (acao, dados, msg, b) => { if (b) b.disabled = true; try { await api(acao, dados); toast(msg); render(); } catch (e) { toast(e.message); if (b) b.disabled = false; } };
   corpo.onclick = e => {
     const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.dever) { return exec("deverFeito", { id: b.dataset.dever }, "Anotado! Um adulto vai conferir.", b); }
     if (b.dataset.resgPede) { resgArmado = b.dataset.resgPede; cache.aluna = d; corpo.innerHTML = abaBanco(d); return; }
     if (b.dataset.resgCancela) { resgArmado = null; corpo.innerHTML = abaBanco(d); return; }
     if (b.dataset.resg) { resgArmado = null; return exec("bancoResgatar", { item: b.dataset.resg }, "Pedido feito! Um adulto vai combinar a entrega.", b); }
@@ -1522,13 +1529,15 @@ async function telaPausa(itemId) {
 // perguntas do dia: as personalizadas (geradas pela rotina das 18h do dia anterior) ou o roteiro pela grade de aulas
 function perguntasConversa(d, h) {
   const pers = d && d.conversaPerguntas && Array.isArray(d.conversaPerguntas.perguntas) ? d.conversaPerguntas.perguntas.filter(x => x && x.pergunta) : [];
-  if (pers.length) return { lista: pers.slice(0, 8).map(x => ({ pergunta: String(x.pergunta), materia: x.materia || "", tipo: x.tipo || "personalizada" })), personalizadas: true };
+  const extras = (d && Array.isArray(d.conversaExtras) ? d.conversaExtras : []).filter(x => x && x.pergunta).slice(0, 3).map(x => ({ pergunta: String(x.pergunta), materia: x.materia || "", tipo: x.tipo || "extra", dever: x.dever || "" }));
+  const junta = L => [L[0], ...extras, ...L.slice(1)].filter(Boolean).slice(0, 9);
+  if (pers.length) return { lista: junta(pers.slice(0, 8).map(x => ({ pergunta: String(x.pergunta), materia: x.materia || "", tipo: x.tipo || "personalizada" }))), personalizadas: true };
   const ds = diaSem(h), mats = (AULAS[ds] || []).filter(m => m !== "Disciplinar");
   const L = [{ tipo: "abertura", pergunta: "Oi! Como foi o seu dia na escola? Me conta qual foi a melhor parte." }];
   if ((AULAS[ds] || []).includes("Disciplinar")) L.push({ tipo: "aula", materia: "Disciplinar", pergunta: "Na aula da professora regente, qual matéria vocês estudaram? O que ela ensinou? Me explica como se eu não soubesse." });
   mats.forEach(m => {
     L.push({ tipo: "aula", materia: m, pergunta: `Na aula de ${m}, o que vocês fizeram hoje? Me explica como se eu não soubesse.` });
-    if (m === "Matemática") L.push({ tipo: "detalhe", materia: m, pergunta: "Me dá um exemplo de conta ou problema que vocês fizeram. Como se resolve?" });
+    if (m === "Matemática") L.push({ tipo: "detalhe", materia: m, pergunta: "Me diga uma conta que vocês fizeram, com os números (por exemplo: 36 × 27 = 972). Como se resolve?" });
     if (m === "Português") L.push({ tipo: "detalhe", materia: m, pergunta: "Teve alguma palavra nova ou regra nova em Português? Me explica o que ela quer dizer." });
     if (m === "Inglês") L.push({ tipo: "detalhe", materia: m, pergunta: "Fale uma palavra ou frase em inglês que você aprendeu hoje e o que ela quer dizer." });
   });
@@ -1536,16 +1545,21 @@ function perguntasConversa(d, h) {
   if (estudo) L.push({ tipo: "app", materia: estudo.materia, pergunta: `Hoje cedo você estudou "${estudo.titulo}" no app. Apareceu alguma coisa disso na escola?` });
   L.push({ tipo: "agenda", pergunta: "Tem dever de casa, prova ou trabalho marcado? De qual matéria e para quando?" });
   L.push({ tipo: "duvida", pergunta: "Teve alguma coisa que você não entendeu hoje? Conte o que foi." });
-  return { lista: L.slice(0, 8), personalizadas: false };
+  return { lista: junta(L.slice(0, 8)), personalizadas: false };
 }
 // uma pergunta de seguimento, no máximo, por resposta
 function seguimentoConversa(q, texto, palavras) {
   const t = (texto || "").toLowerCase();
-  if (q.tipo === "agenda" && /prova|dever|trabalho|tarefa|li[çc][ãa]o de casa|pesquisa/.test(t) && !/\d|segunda|ter[çc]a|quarta|quinta|sexta|amanh|semana/.test(t))
+  const nega = /nenhum|nenhuma|n[ãa]o (tem|tenho|temos|teve|passou)|\bnada\b/.test(t) && !/(tenho|tem|temos) (um|uma) /.test(t);
+  if (q.tipo === "agenda" && !nega && /prova|dever|trabalho|tarefa|folha|ditado|li[çc][ãa]o de casa|pesquisa/.test(t) && !/\d|segunda|ter[çc]a|quarta|quinta|sexta|amanh|semana/.test(t))
     return { tipo: "seguimento", materia: q.materia, pergunta: "Para quando é? E de qual matéria?" };
   if (q.tipo === "duvida" && palavras >= 3 && /n[ãa]o entendi|dif[íi]cil|n[ãa]o sei|confus/.test(t))
     return { tipo: "seguimento", materia: q.materia, pergunta: "O que exatamente ficou difícil? Explique a parte que você entendeu e onde você travou." };
-  if (q.tipo !== "agenda" && q.tipo !== "duvida" && palavras < 6)
+  if (q.materia === "Matemática" && q.tipo === "detalhe" && !/\d/.test(t))
+    return { tipo: "seguimento", materia: q.materia, pergunta: "Agora diga a conta com os números. Por exemplo: 48 ÷ 6 = 8. Qual foi uma conta de hoje?" };
+  if (q.tipo === "cobranca" && /n[ãa]o (fiz|terminei|entreguei|consegui)|ainda n[ãa]o|esqueci/.test(t))
+    return { tipo: "seguimento", materia: q.materia, pergunta: "Quando você vai fazer? Combine agora com um adulto o horário e me diga qual é." };
+  if (q.tipo !== "agenda" && q.tipo !== "duvida" && q.tipo !== "cobranca" && palavras < 6)
     return { tipo: "seguimento", materia: q.materia, pergunta: "Me conta um pouco mais: o que mais você lembra? Se precisar, abra o caderno e olhe o que copiou." };
   return null;
 }
@@ -1611,8 +1625,9 @@ async function telaConversa(itemId) {
     if (st.salvo) return; st.salvo = true;
     try {
       await api("registrarConversa", { item: itemId, respostas: st.resp, duracao: Math.round((Date.now() - st.t0) / 1000), voz: !st.semVoz, personalizadas });
-      cache.aluna = null; toast("Conversa guardada! +2 estrelas");
-      const el = $("#cv-salvo"); if (el) el.innerHTML = `${ico("check", 18)} Guardado. Obrigada por contar!`;
+      cache.aluna = null; toast("Conversa guardada!");
+      let av = null; try { av = await api("conversaResultado"); } catch (e2) { }
+      const el = $("#cv-salvo"); if (el) el.innerHTML = `${ico("check", 18)} Guardado. Obrigada por contar!` + (av && av.nota != null ? `<div class="panel stack" style="margin-top:10px"><b style="font-size:22px">Nota da conversa: ${av.nota} de 10</b><span>${esc(av.dica || "")}</span></div>` : "");
     } catch (e) { st.salvo = false; const el = $("#cv-salvo"); if (el) el.innerHTML = `<span style="color:var(--bad)">Não consegui guardar: ${esc(e.message)}</span> <button class="mini" id="cv-salvar">Tentar de novo</button>`; }
   }
   function tela() {

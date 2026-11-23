@@ -842,7 +842,7 @@ tr.det td{background:var(--bg);padding:12px 14px}
     const [d,p]=await Promise.all([api("docs"), api("painelAdulto")]);
     extra=p;
     Object.keys(listeners).forEach(c=>listeners[c].forEach(fn=>fn({docs:(d[c]||[]).map(x=>{ const o={...x}; delete o._id; return {id:x._id, data:()=>o}; })})));
-    renderProvas(); renderBanco();
+    renderProvas(); renderBanco(); renderConversas();
   }
   db = { collection(col){ return {
     onSnapshot(fn){ (listeners[col]=listeners[col]||[]).push(fn); return ()=>{}; },
@@ -929,13 +929,16 @@ tr.det td{background:var(--bg);padding:12px 14px}
     const prox=state.conversa_perguntas.filter(x=>x._id>=hj).sort((a,b)=>a._id.localeCompare(b._id));
     $("cv-prox-p").innerHTML='<h2>Perguntas preparadas</h2>'+(prox.length?prox.map(p=>`<p style="margin:6px 0 2px"><b>${fmtData(p._id)}</b>${p.motivo?` <span class="tag">${esc(p.motivo)}</span>`:""}</p><ol style="margin:0 0 0 18px">${(p.perguntas||[]).map(q=>`<li>${esc(q.pergunta)}${q.materia?` <span class="tag">${esc(q.materia)}</span>`:""}</li>`).join("")}</ol>`).join(""):'<div class="empty">Nenhuma ainda. Sem perguntas preparadas, o app usa o roteiro pela grade de aulas do dia.</div>');
     const cs=state.conversas.slice().sort((a,b)=>String(b._id).localeCompare(String(a._id)));
-    $("cv-lista").innerHTML=cs.length?cs.map(c=>{
-      const rs=c.respostas||[], an=c.analise||null;
+    const DV=extra.deveres||[], DE={aberto:'<span class="pill bad">em aberto</span>',feito_aluna:'<span class="pill warn">ela disse que fez</span>',conferido:'<span class="pill good">conferido</span>',nao_tinha:'<span class="pill na">não tinha</span>'};
+    const dvh='<div class="panel"><h2>Deveres citados nas conversas</h2>'+(DV.length?'<div class="tablewrap"><table><thead><tr><th>Dia</th><th>Matéria</th><th>O que ela disse</th><th>Situação</th><th></th></tr></thead><tbody>'+DV.map(x=>`<tr><td class="num">${fmtData(x.data)}</td><td>${esc((x.materias||[]).join(", "))}</td><td>${esc(x.texto||"")}</td><td>${DE[x.estado]||esc(x.estado)}</td><td>${x.estado==="conferido"||x.estado==="nao_tinha"?`<button class="btn ghost" data-dv="aberto" data-id="${esc(x.id)}">Reabrir</button>`:`<button class="btn sec" data-dv="conferido" data-id="${esc(x.id)}">Conferi</button> <button class="btn ghost" data-dv="nao_tinha" data-id="${esc(x.id)}">Não tinha</button>`}</td></tr>`).join("")+'</tbody></table></div>':'<p class="tag">Nenhum dever citado.</p>')+'<p class="tag">O app cobra os deveres em aberto na conversa do dia seguinte e mostra no "Hoje" dela.</p></div>';
+    $("cv-lista").innerHTML=dvh+(cs.length?cs.map(c=>{
+      const rs=c.respostas||[], an=c.analise||null, av=c.avaliacao||null, CR={respondeu:"Respondeu tudo",explicou:"Explicou a aula",exemplo:"Exemplo concreto",agenda:"Deveres e prazos",duvida:"Dúvida real"};
       const tot=rs.reduce((a,r)=>a+(+r.palavras||0),0);
       return `<div class="panel stack"><div class="row between"><h2 style="margin:0">${fmtData(c._id)}</h2><span class="tag">${rs.length} respostas · ${tot} palavras · ${Math.round((c.duracao||0)/60)} min · ${c.voz?"por voz":"escrito"}${c.personalizadas?" · perguntas preparadas":""}${c.vezes>1?` · refeita ${c.vezes}x`:""}</span></div>
+        ${av?`<p style="margin:4px 0"><b>Nota da conversa: ${av.nota}/10</b> <span class="tag">${Object.entries(av.criterios||{}).map(([k,v])=>`${CR[k]||k} ${v}/2`).join(" · ")}</span><br><span class="tag">Dica que ela recebeu: ${esc(av.dica||"")}</span></p>`:""}
         ${an?`<div class="grid2"><div><p style="margin:8px 0 2px"><b>Resumo</b></p><p style="margin:4px 0">${esc(an.resumo||"")}</p><p style="margin:8px 0 2px"><b>O que ela aprendeu</b></p>${lst(an.conteudos)}</div><div><p style="margin:8px 0 2px"><b>Dúvidas</b></p>${lst(an.duvidas)}<p style="margin:8px 0 2px"><b>Agenda citada</b></p>${lst(an.agenda)}${an.observacoes?`<p style="margin:8px 0 2px"><b>Observações</b></p><p style="margin:4px 0">${esc(an.observacoes)}</p>`:""}</div></div>`:'<p class="tag">A análise do Claude aparece aqui depois das 18h.</p>'}
         <div class="tablewrap"><table><thead><tr><th>Pergunta</th><th>Resposta dela</th><th class="r">Palavras</th><th class="r">Tempo</th></tr></thead><tbody>${rs.map(r=>`<tr><td>${r.seguimento?"↳ ":""}${esc(r.pergunta)}${r.materia?` <span class="tag">${esc(r.materia)}</span>`:""}</td><td>${r.texto?esc(r.texto):'<span class="tag">sem resposta</span>'}${(+r.palavras||0)<6?' <span class="cat treino">curta</span>':(+r.palavras>90?' <span class="cat treino">longa</span>':"")}${r.refez?' <span class="tag">falou de novo</span>':""}</td><td class="r num">${r.palavras||0}</td><td class="r num">${r.segundos||0}s</td></tr>`).join("")}</tbody></table></div></div>`;
-    }).join(""):'<div class="panel"><div class="empty">Ainda sem conversas. A primeira aparece aqui assim que ela fizer.</div></div>';
+    }).join(""):'<div class="panel"><div class="empty">Ainda sem conversas. A primeira aparece aqui assim que ela fizer.</div></div>');
   }
   function renderBanco(){
     const el=$("bn"); if(!el) return; const B=extra.banco; if(!B){ el.innerHTML='<p class="tag">Carregando…</p>'; return; }
@@ -962,6 +965,7 @@ tr.det td{background:var(--bg);padding:12px 14px}
     el.innerHTML=h;
   }
   document.addEventListener("click",async e=>{
+    const v=e.target.closest("[data-dv]"); if(v){ v.disabled=true; try{ await api("deverEstado",{id:v.dataset.id,estado:v.dataset.dv}); await refresh(); }catch(err){ v.disabled=false; alert(err.message); } return; }
     const b=e.target.closest("[data-bn]"); if(!b) return; const k=b.dataset.bn, id=b.dataset.id; b.disabled=true;
     try{
       if(k==="ok") await api("rotinaConferir",{ids:[id],ok:true});
